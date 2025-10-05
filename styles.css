@@ -1,19 +1,22 @@
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-    padding: 20px;
+:root{
+    margin:0;
+    padding:0;
+    --main-font-family: sans-serif; 
+    --primary-color: #fff;
 }
 
-.product {
-    border: 1px solid #ccc;
-    padding: 10px;
-    text-align: center;
+.container__block{
+    display: flex;
+    padding: 5px;
+    background-color: brown;
 }
 
-.product img {
-    width: 100%;
-    height: auto;
-    max-height: 150px;
-    object-fit: cover;
+.block__item{
+    background-color: purple;
+    color: var(--primary-color);
+    font-family: var(--main-font-family);
+}
+
+.block__graphic{
+    filter: drop-shadow(5px 5px 5px #fff);
 }

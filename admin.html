@@ -3,21 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Menú del Restaurante</title>
+    <title>Administración del Menú</title>
+    <link rel="icon" href="./img/icons/MalditoCaféIcon.jpg">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Panel de Administración</h1>
+    <h1>hola</h1>
+    <div class="container">
+        <div class="container__block block--row1">
+            <div class="block__item item--product1"><p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Nisi tenetur fuga hic ducimus blanditiis! Voluptates soluta debitis, porro ut qui alias, commodi cum illo quos facere architecto at vero deleniti?
+            Possimus delectus error sed incidunt blanditiis ullam pariatur vitae minima assumenda magnam tenetur porro, repudiandae voluptas facilis ex! Fuga commodi mollitia eius facilis illo sint architecto possimus repellat, officia voluptatibus.
+            </p></div>
+            <div class="block__graphic graphic--img1">
+                <img src="./img/img/coffee.png" alt="">
+            </div>
+        </div>
+        <div class="container__block block--row2">
+            <div class="block__graphic graphic--img2">
+                <img src="./img/img/croissant.png" alt="">
+            </div>
+            <div class="block__item item--product2">
+                <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Expedita sint ex unde consequuntur animi magnam quos totam, necessitatibus dolor minus odio nobis quo, corporis dolorum repudiandae quidem, eaque adipisci laboriosam!</p>
+            </div>
+        </div>
+    </div>
     
-    <form id="product-form">
-        <input type="text" id="name" placeholder="Nombre del producto" required>
-        <input type="text" id="price" placeholder="Precio" required>
-        <input type="file" id="image" accept="image/*" required>
-        <button type="submit">Agregar Producto</button>
-    </form>
-
-    <h2>Vista Previa del Menú</h2>
-    <div id="menu-grid" class="grid-container"></div>
 
     <script src="script.js"></script>
 </body>
