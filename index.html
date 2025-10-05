@@ -18,17 +18,16 @@
         <p>&copy; 2025 Maldito Café</p>
     </footer>
 
-    <script src="./Js/menu-viewer.js"></script> 
+    <!-- Carga las librerías de Firebase SDK PRIMERO -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    <!-- firebase.js debe ir antes de tu menu-viewers.js -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Luego, carga tu script de configuración de Firebase (aquí se inicializa 'db') -->
+    <!-- VERIFICAR: Si firebase-config.js está en la carpeta 'Js', la ruta sería './Js/firebase-config.js' -->
+    <script src="firebase-config.js"></script> 
 
-<!-- Tu script de configuración de Firebase (asegúrate de que tenga tus credenciales) -->
-<script src="firebase-config.js"></script> <!-- Podría ser este archivo, o tus credenciales directamente en index.html -->
-
-<!-- Tu script que muestra el menú -->
-<script src="menu-viewers.js"></script>
+    <!-- Finalmente, carga tu script del menú que usa Firebase/Firestore -->
+    <script src="./Js/menu-viewers.js"></script> 
 
 </body>
 </html>

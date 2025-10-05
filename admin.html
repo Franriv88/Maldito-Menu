@@ -55,7 +55,15 @@
         </div>
     </div>
     
+    <!-- Carga las librerías de Firebase SDK PRIMERO para el admin -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+    <!-- Luego, carga tu script de configuración de Firebase (aquí se inicializa 'db' para el admin) -->
+    <!-- VERIFICAR: Si firebase-config.js está en la carpeta 'Js', la ruta sería './Js/firebase-config.js' -->
+    <script src="firebase-config.js"></script> 
+
+    <!-- Finalmente, carga tu script de administración -->
     <script src="script.js"></script>
 </body>
 </html>
