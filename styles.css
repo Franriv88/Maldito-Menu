@@ -4,6 +4,8 @@
     --main-font-family: sans-serif; 
     --text-color: #7C6C5C;
     --primary-color: #141A1A;
+    --add-color: green;
+    --delete-color: red;
 }
 
 body{
@@ -66,3 +68,29 @@ body{
        El resto de la imagen (la parte izquierda) se desborda y se oculta. */
     object-position: right center;
 }
+
+
+
+
+/* ============================================================ */
+/*            TABLAS (Agregar - Elminar filas)                  */
+/* ============================================================ */
+
+.add-btn{
+    background-color: var(--add-color);
+    padding: 0.1rem 0.3rem;
+    border: none;
+    border-radius: 5px;
+    cursor:pointer;
+    width: fit-content;
+}
+
+.delete-btn{
+    background-color: var(--delete-color);
+    padding: 0.1rem 0.3rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: fit-content;
+}
+

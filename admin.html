@@ -15,9 +15,17 @@
     </div>
     <div class="container">
         <div class="container__block block--row1">
-            <div class="block__item item--product1"><p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Nisi tenetur fuga hic ducimus blanditiis! Voluptates soluta debitis, porro ut qui alias, commodi cum illo quos facere architecto at vero deleniti?
-            Possimus delectus error sed incidunt blanditiis ullam pariatur vitae minima assumenda magnam tenetur porro, repudiandae voluptas facilis ex! Fuga commodi mollitia eius facilis illo sint architecto possimus repellat, officia voluptatibus.
-            </p></div>
+            <div class="block__item item--product1">
+                <h2>CAFÉ DE ESPECIALIDAD</h2>
+                <button class="add-btn" type="button" onclick="agregarFila()">+</button>
+                <table id="coffeeTable">
+                    <tr>
+                        <td class="col-product"><input type="text" name="product[]"/></td>
+                        <td class="col-price"><input type="number" name="price[]"/></td>
+                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</td>
+                    </tr>
+                </table>
+            </div>
             <div class="block__graphic graphic--img1">
                 <img src="./img/img/coffee.png" alt="">
             </div>
