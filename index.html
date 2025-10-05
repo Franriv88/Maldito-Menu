@@ -19,5 +19,16 @@
     </footer>
 
     <script src="./Js/menu-viewer.js"></script> 
+
+    <!-- firebase.js debe ir antes de tu menu-viewers.js -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Tu script de configuración de Firebase (asegúrate de que tenga tus credenciales) -->
+<script src="firebase-config.js"></script> <!-- Podría ser este archivo, o tus credenciales directamente en index.html -->
+
+<!-- Tu script que muestra el menú -->
+<script src="menu-viewers.js"></script>
+
 </body>
 </html>
