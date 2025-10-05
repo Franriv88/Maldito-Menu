@@ -10,6 +10,7 @@ body {
     font-family: 'Helvetica', sans-serif;
     margin: 0;
     padding: 1rem;
+    background-color: var(--primary-color);
 }
 header { text-align: center; margin-bottom: 2rem; }
 header img { max-width: 200px; }
@@ -21,15 +22,19 @@ header img { max-width: 200px; }
     display: flex; /* ¡La clave! Habilita Flexbox */
     align-items: center; /* Centra verticalmente */
     margin-bottom: 2rem;
-    background-color: #f9f9f9;
+    background-color: var(--primary-color);
     overflow: hidden; /* Importante para el efecto de la imagen */
 }
 
 /* Las dos columnas interiores: contenido e imagen */
-.menu-content,
+.menu-content {
+    flex: 0 1 60%; /* Base del 60% */
+    /* Significa: flex-grow: 0, flex-shrink: 1, flex-basis: 60% */
+}
+
 .menu-image {
-    flex: 1; /* Cada una ocupa el 50% del espacio */
-    padding: 2rem;
+    flex: 0 1 40%; /* Base del 40% */
+    /* Significa: flex-grow: 0, flex-shrink: 1, flex-basis: 40% */
 }
 
 /* --- LA MAGIA PARA INVERTIR EL ORDEN --- */
@@ -42,19 +47,24 @@ header img { max-width: 200px; }
     border-bottom: 2px solid #333;
     padding-bottom: 0.5rem;
     margin-top: 0;
+    color: var(--text-color);
 }
 .menu-item {
     display: flex;
     justify-content: space-between;
     margin-bottom: 0.8rem;
     font-size: 1.1rem;
+    color: var(--text-color);
 }
-.producto { font-weight: bold; }
+.producto { 
+    font-weight: bold; 
+    color: var(--text-color);
+}
 
 /* --- ESTILOS PARA LAS IMÁGENES (EFECTO CORTADO) --- */
 .menu-image {
     padding: 0;
-    height: 450px; /* Ajusta la altura a tu gusto */
+    height: 350px; /* Ajusta la altura a tu gusto */
 }
 .menu-image img {
     width: 100%;
