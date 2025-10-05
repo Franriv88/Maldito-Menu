@@ -1,4 +1,11 @@
-/* --- ESTILOS GENERALES --- */
+:root{
+    margin:0;
+    padding:0;
+    --main-font-family: sans-serif; 
+    --text-color: #7C6C5C;
+    --primary-color: #141A1A;
+}
+
 body {
     font-family: 'Helvetica', sans-serif;
     margin: 0;
