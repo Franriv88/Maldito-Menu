@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="save-container">
+    <button id="saveMenuBtn">Guardar Menú</button>
+</div>
     <div class="maldito">
         <span>
             <img src="./img/img/MalditoCafeName2.png" alt="">
@@ -17,13 +20,15 @@
         <div class="container__block block--row1">
             <div class="block__item item--product1">
                 <h2>CAFÉ DE ESPECIALIDAD</h2>
-                <button class="add-btn" type="button" onclick="agregarFila()">+</button>
-                <table id="coffeeTable">
+                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
+                <table>
+                    <tbody>
                     <tr>
-                        <td class="col-product"><input type="text" name="product[]"/></td>
-                        <td class="col-price"><input type="number" name="price[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</td>
+                        <td class="col-product"><input type="text" name="product_especialidad[]"/></td>
+                        <td class="col-price"><input type="number" name="price_especialidad[]"/></td>
+                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
                     </tr>
+                    </tbody>
                 </table>
             </div>
             <div class="block__graphic graphic--img1">
@@ -35,7 +40,17 @@
                 <img src="./img/img/croissant.png" alt="">
             </div>
             <div class="block__item item--product2">
-                <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Expedita sint ex unde consequuntur animi magnam quos totam, necessitatibus dolor minus odio nobis quo, corporis dolorum repudiandae quidem, eaque adipisci laboriosam!</p>
+                <h2>CAFÉ FRÍO</h2>
+                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td class="col-product"><input type="text" name="product_frio[]"/></td>
+                        <td class="col-price"><input type="number" name="price_frio[]"/></td>
+                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

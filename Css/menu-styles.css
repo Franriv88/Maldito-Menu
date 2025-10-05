@@ -1,0 +1,66 @@
+/* --- ESTILOS GENERALES --- */
+body {
+    font-family: 'Helvetica', sans-serif;
+    margin: 0;
+    padding: 1rem;
+}
+header { text-align: center; margin-bottom: 2rem; }
+header img { max-width: 200px; }
+
+/* --- ESTRUCTURA DEL LAYOUT DE CADA SECCIÓN --- */
+
+/* El contenedor principal de cada sección (Ej: Café de especialidad) */
+.menu-section {
+    display: flex; /* ¡La clave! Habilita Flexbox */
+    align-items: center; /* Centra verticalmente */
+    margin-bottom: 2rem;
+    background-color: #f9f9f9;
+    overflow: hidden; /* Importante para el efecto de la imagen */
+}
+
+/* Las dos columnas interiores: contenido e imagen */
+.menu-content,
+.menu-image {
+    flex: 1; /* Cada una ocupa el 50% del espacio */
+    padding: 2rem;
+}
+
+/* --- LA MAGIA PARA INVERTIR EL ORDEN --- */
+.menu-section.layout-reversed {
+    flex-direction: row-reverse; /* Invierte el orden de las columnas */
+}
+
+/* --- ESTILOS DEL CONTENIDO (PRODUCTOS Y PRECIOS) --- */
+.menu-content h2 {
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+}
+.menu-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
+}
+.producto { font-weight: bold; }
+
+/* --- ESTILOS PARA LAS IMÁGENES (EFECTO CORTADO) --- */
+.menu-image {
+    padding: 0;
+    height: 450px; /* Ajusta la altura a tu gusto */
+}
+.menu-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Rellena el contenedor sin deformarse */
+}
+
+/* Hacemos que la imagen de la primera sección se ancle a la izquierda */
+.menu-section:not(.layout-reversed) .menu-image img {
+    object-position: left center;
+}
+
+/* Hacemos que la imagen de la sección invertida se ancle a la derecha */
+.menu-section.layout-reversed .menu-image img {
+    object-position: right center;
+}
