@@ -13,8 +13,8 @@ body{
     /* overflow: hidden; */
 }
 
-/* --- 1. CONFIGURACIÓN GENERAL DEL LAYOUT --- */
 
+/* --- 1. CONFIGURACIÓN GENERAL DEL LAYOUT --- */
 /* Contenedor de cada fila (texto + imagen) */
 .container__block {
     display: flex;
@@ -37,9 +37,7 @@ body{
 .block__graphic {
     height: 450px; /* Damos una altura fija para el ejemplo */
     padding: 0; /* Quitamos el padding para que la imagen ocupe todo el espacio */
-
-    /* ¡CLAVE! Oculta cualquier parte de la imagen que se salga de este div */
-    overflow: hidden; 
+    overflow: hidden;/* ¡CLAVE! Oculta cualquier parte de la imagen que se salga de este div */
 }
 
 /* Estilos generales para AMBAS imágenes */
