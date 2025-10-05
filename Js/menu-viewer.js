@@ -19,13 +19,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h2>CAFÉ DE ESPECIALIDAD</h2>`;
         
         // Agregamos cada item de producto
+        // menuData.especialidad.forEach(item => {
+        //     seccionHTML += `
+        //         <div class="menu-item">
+        //             <span class="producto">${item.producto}</span>
+        //             <span class="precio">$${item.precio}</span>
+        //         </div>`;
+        // });
         menuData.especialidad.forEach(item => {
-            seccionHTML += `
-                <div class="menu-item">
-                    <span class="producto">${item.producto}</span>
-                    <span class="precio">$${item.precio}</span>
-                </div>`;
-        });
+    // Aquí puedes añadir descripciones para cada plato
+    const descripciones = {
+        "Doppio": "Doble shot de espresso con leche vaporizada, creando una textura aterciopelada.",
+        "Café Irlandés": "Whisky irlandés, café recién hecho, crema batida y un toque de nuez moscada.",
+        // Añade más descripciones aquí...
+    };
+
+    const descripcion = descripciones[item.producto] || "El clásico de la casa."; // Una descripción por defecto
+
+    seccionHTML += `
+        <div class="menu-item" data-producto="${item.producto}" data-categoria="CAFÉ DE ESPECIALIDAD">
+            <div class="item-header">
+                <span class="producto">${item.producto}</span>
+                <span class="precio">$${item.precio}</span>
+            </div>
+            <div class="item-details">
+                <p>${descripcion}</p>
+            </div>
+        </div>
+    `;
+});
         
         // Cerramos la columna de contenido y abrimos la de la imagen
         seccionHTML += `
@@ -62,6 +84,45 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
             
         menuContainer.innerHTML += seccionHTML;
+
+
+
+
+        // =====================================================================
+    // --- AQUÍ COMIENZA EL CÓDIGO DEL PUNTO B ---
+    // Este código escucha los clics en todo el menú.
+    // =====================================================================
+    menuContainer.addEventListener('click', (evento) => {
+        // Busca el contenedor principal del item al que se le hizo clic
+        const menuItem = evento.target.closest('.menu-item');
+
+        if (menuItem) {
+            // --- 1. Lógica para mostrar/ocultar los detalles (el acordeón) ---
+            const details = menuItem.querySelector('.item-details');
+            details.classList.toggle('visible');
+
+            // --- 2. Lógica para enviar el evento a Analytics ---
+            const producto = menuItem.dataset.producto;
+            const categoria = menuItem.dataset.categoria;
+
+            console.log(`Enviando evento: ${producto} en ${categoria}`); // Para pruebas
+
+            // Se asegura de que la función gtag exista antes de llamarla
+            if (typeof gtag === 'function') {
+                gtag('event', 'view_item_details', {
+                    'item_name': producto,
+                    'item_category': categoria
+                });
+            }
+        }
+    });
+    // =====================================================================
+    // --- AQUÍ TERMINA EL CÓDIGO DEL PUNTO B ---
+    // =====================================================================
+
     }
 
 });
+
+
+

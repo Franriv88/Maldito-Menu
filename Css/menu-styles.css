@@ -81,3 +81,39 @@ header img { max-width: 200px; }
 .menu-section.layout-reversed .menu-image img {
     object-position: right center;
 }
+
+
+
+
+
+
+
+/* En tu menu-styles.css */
+
+.menu-item {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column; /* <--- La solución clave: apila los elementos verticalmente */
+    margin-bottom: 0.8rem;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    margin-bottom: 0.2rem;
+    padding: 0;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-details {
+    display: none; /* Oculto por defecto */
+    margin-top: 0rem;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+.item-details.visible {
+    display: block; /* Se muestra al agregar la clase 'visible' */
+}
