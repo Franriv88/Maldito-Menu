@@ -1,4 +1,4 @@
-// script.js (Versión Corregida - Sin columna de descripción)
+// script.js (Versión Final y Definitiva con Firebase)
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarMenuExistente();
@@ -9,7 +9,6 @@ function agregarFila(boton_agregar) {
     const tabla = boton_agregar.nextElementSibling;
     const tbody = tabla.querySelector('tbody');
     const nuevaFila = tbody.insertRow();
-    // Corregido: Se quitó la celda de descripción
     nuevaFila.innerHTML = `
         <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
         <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
@@ -24,8 +23,9 @@ function eliminarFila(boton_eliminar) {
 }
 
 async function cargarMenuExistente() {
+    // Esta función carga los datos existentes desde Firebase al panel de admin
     try {
-        const snapshot = await db.collection('productos').orderBy('categoria', 'asc').get();
+        const snapshot = await db.collection('productos').orderBy('orden', 'asc').orderBy('ordenProducto', 'asc').get();
         const productosPorCategoria = {};
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -40,53 +40,48 @@ async function cargarMenuExistente() {
             const tabla = h2.nextElementSibling.nextElementSibling.querySelector('tbody');
             tabla.innerHTML = ''; // Limpiar la tabla
 
-            if (productosPorCategoria[categoria]) {
+            if (productosPorCategoria[categoria] && productosPorCategoria[categoria].length > 0) {
                 productosPorCategoria[categoria].forEach(producto => {
                     const nuevaFila = tabla.insertRow();
-                    nuevaFila.dataset.firestoreDocId = producto.id;
-                    // Corregido: Se quitó la celda de descripción
                     nuevaFila.innerHTML = `
                         <td class="col-product"><input type="text" name="product[]" value="${producto.nombre || ''}"/></td>
                         <td class="col-price"><input type="number" name="price[]" value="${producto.precio || ''}"/></td>
                         <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>`;
                 });
             } else {
-                const nuevaFila = tabla.insertRow();
-                // Corregido: Se quitó la celda de descripción
-                nuevaFila.innerHTML = `
+                 const nuevaFila = tabla.insertRow();
+                 nuevaFila.innerHTML = `
                     <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
                     <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
                     <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>`;
             }
         });
-
     } catch (error) {
-        console.error("Error al cargar menú:", error);
+        console.error("Error al cargar menú existente:", error);
     }
 }
 
-// En tu script.js
 async function guardarMenu() {
     const saveBtn = document.getElementById('saveMenuBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Guardando...';
 
-    // 👇 CAMBIO 1: Define el orden deseado para cada categoría aquí.
+    // Objeto para definir el orden de las categorías
     const ordenes = {
         "CAFÉ DE ESPECIALIDAD": 1,
         "CAFÉ FRÍO": 2,
         "BEBIDAS": 3
-        // Si agregas "POSTRES" en el futuro, le pones el 4, y así sucesivamente.
     };
 
     const productosParaGuardar = [];
 
+    // Lógica escalable: encuentra TODOS los h2 y los trata como categorías
     document.querySelectorAll('.block__item').forEach(block => {
         block.querySelectorAll('h2').forEach(h2 => {
             const categoria = h2.textContent.trim();
             const tabla = h2.nextElementSibling.nextElementSibling;
 
-            tabla.querySelectorAll('tbody tr').forEach(fila => {
+            tabla.querySelectorAll('tbody tr').forEach((fila, index) => {
                 const productoInput = fila.querySelector('input[type="text"]');
                 const precioInput = fila.querySelector('input[type="number"]');
 
@@ -96,8 +91,8 @@ async function guardarMenu() {
                         precio: parseFloat(precioInput.value),
                         categoria: categoria,
                         descripcion: "",
-                        // 👇 CAMBIO 2: Añade el campo 'orden' al objeto que se guarda.
-                        orden: ordenes[categoria] || 99 // Usa el orden definido o 99 si no se encuentra.
+                        orden: ordenes[categoria] || 99,
+                        ordenProducto: index
                     });
                 }
             });
@@ -105,17 +100,19 @@ async function guardarMenu() {
     });
 
     try {
+        // Borra todo lo anterior para sincronizar
         const snapshotActual = await db.collection('productos').get();
         const deletePromises = snapshotActual.docs.map(doc => doc.ref.delete());
         await Promise.all(deletePromises);
 
+        // Añade los nuevos productos con el orden correcto
         const addPromises = productosParaGuardar.map(producto => db.collection('productos').add(producto));
         await Promise.all(addPromises);
 
-        alert('¡Menú guardado con éxito!');
+        alert('¡Menú guardado con éxito en Firebase!');
         console.log("Datos guardados en Firestore:", productosParaGuardar);
     } catch (error) {
-        console.error("Error al guardar el menú:", error);
+        console.error("Error al guardar el menú en Firebase:", error);
         alert('Hubo un error al guardar. Revisa la consola.');
     } finally {
         saveBtn.disabled = false;
