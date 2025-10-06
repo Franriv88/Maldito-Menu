@@ -12,7 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const seccionesConfig = {
         "CAFÉ DE ESPECIALIDAD": { layout: 'normal', imagen: './img/img/coffee.png' },
         "CAFÉ FRÍO":          { layout: 'normal' },
-        "BEBIDAS":            { layout: 'reversed', imagen: './img/img/croissant.png' },
+        "BEBIDAS":            { layout: 'reversed', imagen: './img/img/tea.png' },
+        "EXTRAS":             { layout: 'reversed'},
+        "SALADOS":            { layout: 'normal', imagen: './img/img/croissant.png'},
+        "LAMINADOS":          { layout: 'normal'}
     };
 
     db.collection('productos').orderBy('orden', 'asc').orderBy('ordenProducto', 'asc').onSnapshot(snapshot => {
