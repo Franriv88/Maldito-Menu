@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const seccionesConfig = {
         "CAFÉ DE ESPECIALIDAD": { layout: 'normal', imagen: './img/img/coffee.png' },
         "CAFÉ FRÍO":          { layout: 'normal' }, // No tendrá imagen
-        "BEBIDAS":            { layout: 'reversed', imagen: './img/img/croissant.png' },
+        "BEBIDAS":            { layout: 'reversed', imagen: './img/img/tea.png' },
         // Para añadir una nueva sección en el futuro, solo tienes que agregar una línea aquí.
         // "SANDWICHES":      { layout: 'normal', imagen: './img/img/sandwich.png' }
     };
