@@ -18,12 +18,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Escucha cambios en la colección 'productos' de Firestore
     // Ordena por categoría para facilitar el agrupamiento y renderizado
     db.collection('productos').orderBy('categoria', 'asc').onSnapshot(snapshot => {
-        // Se ejecuta cada vez que hay un cambio (añadir, eliminar, modificar) en la colección 'productos'
+        // --- CONSOLE.LOG DE DEPURACIÓN INICIO ---
+        console.log("menu-viewers.js: onSnapshot activado.");
+        console.log("menu-viewers.js: Snapshot vacío?", snapshot.empty);
+        if (!snapshot.empty) {
+            console.log("menu-viewers.js: Número de documentos en el snapshot:", snapshot.size);
+        }
+        // --- CONSOLE.LOG DE DEPURACIÓN FIN ---
 
         const productos = [];
         snapshot.forEach(doc => {
             productos.push({ id: doc.id, ...doc.data() }); // 'id' del documento y todos sus datos
         });
+
+        // --- CONSOLE.LOG DE DEPURACIÓN INICIO ---
+        console.log("menu-viewers.js: Array 'productos' después de forEach:", productos);
+        // --- CONSOLE.LOG DE DEPURACIÓN FIN ---
+
 
         // Si no hay productos, mostrar un mensaje
         if (productos.length === 0) {
@@ -43,12 +54,18 @@ document.addEventListener('DOMContentLoaded', () => {
             menuCategorizado[item.categoria].push(item);
         });
 
+        // --- CONSOLE.LOG DE DEPURACIÓN INICIO ---
+        console.log("menu-viewers.js: Objeto 'menuCategorizado':", menuCategorizado);
+        // --- CONSOLE.LOG DE DEPURACIÓN FIN ---
+
+
         // --- RENDERIZADO DEL MENÚ DINÁMICO ---
         // Este es el mismo código que tenías, adaptado para usar los datos de Firestore
 
         // SECCIÓN 1: CAFÉ DE ESPECIALIDAD (Texto a la izquierda, Imagen a la derecha)
         const cafeEspecialidad = menuCategorizado['CAFÉ DE ESPECIALIDAD'];
         if (cafeEspecialidad && cafeEspecialidad.length > 0) {
+            console.log("menu-viewers.js: Renderizando sección CAFÉ DE ESPECIALIDAD."); // Depuración
             let seccionHTML = `
                 <div class="menu-section">
                     <div class="menu-content">
@@ -78,11 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
             menuContainer.innerHTML += seccionHTML;
+        } else {
+            console.log("menu-viewers.js: No hay productos para CAFÉ DE ESPECIALIDAD o la categoría no coincide."); // Depuración
         }
+
 
         // SECCIÓN 2: CAFÉ FRÍO (Imagen a la izquierda, Texto a la derecha)
         const cafeFrio = menuCategorizado['CAFÉ FRÍO'];
         if (cafeFrio && cafeFrio.length > 0) {
+            console.log("menu-viewers.js: Renderizando sección CAFÉ FRÍO."); // Depuración
             let seccionHTML = `
                 <div class="menu-section layout-reversed">
                     <div class="menu-content">
@@ -112,9 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
             menuContainer.innerHTML += seccionHTML;
+        } else {
+            console.log("menu-viewers.js: No hay productos para CAFÉ FRÍO o la categoría no coincide."); // Depuración
         }
 
-        // *** FIN del Renderizado del Menú Dinámico ***
+
+        // --- FIN del Renderizado del Menú Dinámico ---
 
     }, (error) => {
         // Manejo de errores durante la escucha de Firestore
