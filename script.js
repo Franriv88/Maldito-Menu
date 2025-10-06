@@ -73,7 +73,8 @@ async function guardarMenu() {
         "BEBIDAS": 3, 
         "EXTRAS": 4,
         "SALADOS": 5,
-        "LAMINADOS": 6
+        "LAMINADOS": 6,
+        "DULCES": 7
     };
 
     const productosParaGuardar = [];
