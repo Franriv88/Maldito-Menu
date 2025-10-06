@@ -105,23 +105,26 @@
                 <img src="./img/img/croissant.png" alt="">
             </div>
         </div>
-        <div class="block__item item--product4">
+        
+        <div class="container__block block--row4">
             <div class="block__graphic graphic--img4">
                 <img src="./img/img/cookie.png" alt="">
             </div>
-                <h2>DULCES</h2>
+            <div class="block__item item--product4">
+                <h2>BEBIDAS</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
-                    <tbody>
+                <tbody>
                     <tr>
-                        <td class="col-product"><input type="text" name="product_dulces[]"/></td>
-                        <td class="col-price"><input type="number" name="price_dulces[]"/></td>
+                        <td class="col-product"><input type="text" name="product_dulce[]"/></td>
+                        <td class="col-price"><input type="number" name="price_dulce[]"/></td>
                         <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
                     </tr>
-                    </tbody>
-                </table>
-    </div>
-    
+                </tbody>
+            </div>
+        </div>
+
+
     <!-- Carga las librerías de Firebase SDK compat PRIMERO para el admin -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>

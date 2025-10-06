@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "EXTRAS":             { layout: 'reversed'},
         "SALADOS":            { layout: 'normal', imagen: './img/img/croissant.png'},
         "LAMINADOS":          { layout: 'normal'},
-        "DULCES":             { layout: 'normal', imagen: './img/img/cookie.png'}
+        "DULCES":             { layout: 'reversed', imagen: './img/img/cookie.png'}
     };
 
     db.collection('productos').orderBy('orden', 'asc').orderBy('ordenProducto', 'asc').onSnapshot(snapshot => {
