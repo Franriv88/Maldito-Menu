@@ -83,6 +83,7 @@ header img { max-width: 300px; }
 /* Hacemos que la imagen de la sección invertida se ancle a la derecha */
 .menu-section.layout-reversed .menu-image img {
     object-position: right center;
+    width: 10rem;
 }
 
 /*TABLAS*/
@@ -167,7 +168,7 @@ footer p{
 }
 
 .iconFooter a img {
-    width: 24px; /* Un tamaño de ejemplo para los íconos */
+    width: 24px;
     height: 24px;
 }
 

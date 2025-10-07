@@ -111,6 +111,8 @@ body{
     /* La alineamos a la DERECHA de su contenedor.
        El resto de la imagen (la parte izquierda) se desborda y se oculta. */
     object-position: right center;
+    width: 15rem;
+    margin-left: -1rem;
 }
 
 
