@@ -123,6 +123,7 @@ footer p{
     color: var(--text-color);
     text-align: center;
     margin: 0;
+    font-size: 0.5rem;
 }
 
 .iconFooter{
