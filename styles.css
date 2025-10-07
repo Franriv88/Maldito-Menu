@@ -4,7 +4,7 @@
     --main-font-family: sans-serif; 
     --text-color: #7C6C5C;
     --primary-color: #141A1A;
-    --add-color: green;
+    --add-color: #28a745;
     --delete-color: red;
 }
 
@@ -151,19 +151,38 @@ body{
 
 .add-btn{
     background-color: var(--add-color);
-    padding: 0.1rem 0.3rem;
+    color:#fff;
+    padding: 0.3rem 0.5rem;
+    margin: 5px 10px;
     border: none;
     border-radius: 5px;
     cursor:pointer;
     width: fit-content;
+    box-shadow: -2px 2px 0 #218838; /* Sombra sólida 3D */
+    transition: transform 0.1s, box-shadow 0.1s;
+    /* Evita que el texto se seleccione al hacer doble clic */
+    user-select: none;
+}
+
+.add-btn:hover{
+    transform: translateX(2px) translateY(-2px);
 }
 
 .delete-btn{
     background-color: var(--delete-color);
-    padding: 0.1rem 0.3rem;
+    color:#fff;
+    padding: 0.3rem 0.5rem;
     border: none;
     border-radius: 5px;
-    cursor: pointer;
+    cursor:pointer;
     width: fit-content;
+    box-shadow: -2px 2px 0 #9f0404; /* Sombra sólida 3D */
+    transition: transform 0.1s, box-shadow 0.1s;
+    /* Evita que el texto se seleccione al hacer doble clic */
+    user-select: none;
+}
+
+.delete-btn:hover{
+    transform: translateX(2px) translateY(-2px);
 }
 
