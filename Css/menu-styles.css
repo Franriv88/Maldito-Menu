@@ -1,13 +1,13 @@
 :root{
     margin:0;
     padding:0;
-    --main-font-family: sans-serif; 
+    --main-font-family:sans-serif; 
     --text-color: #7C6C5C;
     --primary-color: #141A1A;
 }
 
 body {
-    font-family: 'Helvetica', sans-serif;
+    font-family: var(--main-font-family);
     margin: 0;
     padding: 1rem;
     background-color: var(--primary-color);
@@ -144,5 +144,5 @@ footer p{
 }
 
 .textFooter{
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem ;
 }
