@@ -117,3 +117,32 @@ header img { max-width: 200px; }
 .item-details.visible {
     display: block; /* Se muestra al agregar la clase 'visible' */
 }
+
+
+footer p{
+    color: var(--text-color);
+    text-align: center;
+    margin: 0;
+}
+
+.iconFooter{
+    display: flex;
+    justify-content: space-between;
+    margin: 0.1rem;
+}
+
+.iconFooter a{
+    display: flex;
+    text-decoration: none;
+    color: var(--text-color);
+    gap:8px;
+}
+
+.iconFooter a img {
+    width: 24px; /* Un tamaño de ejemplo para los íconos */
+    height: 24px;
+}
+
+.textFooter{
+    margin-bottom: 1rem;
+}
