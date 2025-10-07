@@ -38,12 +38,29 @@ body{
 #saveMenuBtn {
     padding: 15px 25px;
     font-size: 1rem;
-    background-color: #28a745; /* Un color verde llamativo */
+    background-color: #28a745;
     color: white;
     border: none;
-    border-radius: 50px; /* Lo hace más redondeado */
+    border-radius: 50px;
     cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Le da una sombra para que resalte */
+    box-shadow: 0 4px 0 #218838; /* Sombra sólida 3D */
+    transition: transform 0.1s, box-shadow 0.1s;
+    /* Evita que el texto se seleccione al hacer doble clic */
+    user-select: none;
+}
+
+/* Efecto rápido al hacer clic (opcional, pero mejora la sensación) */
+#saveMenuBtn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #218838;
+}
+
+/* --- CLASE NUEVA Y CLAVE --- */
+/* Estilo que se aplicará DURANTE el guardado */
+#saveMenuBtn.is-saving {
+    transform: translateY(4px); /* Mantiene el botón hundido */
+    box-shadow: none; /* Sin sombra */
+    cursor: not-allowed; /* Cambia el cursor para indicar que está ocupado */
 }
 
 
@@ -68,7 +85,7 @@ body{
     width: 15%;
 }
 .col-price input{
-    width: 90%;
+    width: 85%;
 }
 
 .col-description{
@@ -123,6 +140,7 @@ body{
     width: 15rem;
     margin-left: -1rem;
 }
+
 
 
 
