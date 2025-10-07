@@ -147,6 +147,15 @@ footer p{
     display: flex;
     justify-content: space-between;
     margin: 0.1rem;
+    gap: 1rem;
+}
+
+.iconFooter a:first-child{
+    margin-left: 0.5rem;
+}
+
+.iconFooter a:last-child{
+    margin-right: 0.5rem;
 }
 
 .iconFooter a{
