@@ -15,6 +15,37 @@ body{
     /* overflow: hidden; */
 }
 
+/* Esta regla solo se aplicará en admin.html */
+.admin-page .block__graphic {
+    max-width: 500px; /* Define un ancho máximo para la columna de la imagen */
+    flex-basis: 20%;  /* Reduce su espacio base en el layout flexible */
+}
+
+.admin-page .block__graphic{
+    width: 100%;
+    height: 100%;
+}
+
+/* Botón de Guardar Menú */
+.save-container {
+    position: fixed; /* Fija el botón a la pantalla */
+    bottom: 30px;    /* A 30px del borde inferior */
+    right: 30px;     /* A 30px del borde derecho */
+    z-index: 1000;   /* Se asegura de que esté por encima de todo lo demás */
+}
+
+/* Opcional: Un estilo extra para que el botón se vea mejor */
+#saveMenuBtn {
+    padding: 15px 25px;
+    font-size: 1rem;
+    background-color: #28a745; /* Un color verde llamativo */
+    color: white;
+    border: none;
+    border-radius: 50px; /* Lo hace más redondeado */
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Le da una sombra para que resalte */
+}
+
 
 /* --- 1. CONFIGURACIÓN GENERAL DEL LAYOUT --- */
 /* Contenedor de cada fila (texto + imagen) */
@@ -26,6 +57,19 @@ body{
   /*background-color: #f0f0f0;  Un fondo para ver los límites */
 }
 
+.col-product{
+    width: 60%;
+}
+.col-product input{
+    width: 98%;
+}
+
+.col-price{
+    width: 30%;
+}
+.col-price input{
+    width: 90%;
+}
 /* Los hijos directos (texto e imagen) se reparten el espacio 50/50 */
 .block__item,
 .block__graphic {
