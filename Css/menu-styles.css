@@ -120,6 +120,19 @@ header img { max-width: 300px; }
     display: block; /* Se muestra al agregar la clase 'visible' */
 }
 
+/* DISCLAIMER */
+.disclaimer{
+    color: var(--text-color);
+    text-align: center;
+}
+
+.disclaimer p{
+    font-size: 12px;
+    border: 1px solid var(--text-color);
+    padding: 0.3rem;
+    margin: 1rem 1rem;
+}
+
 footer{
     margin-top: 50px;
 }
