@@ -58,23 +58,32 @@ body{
 }
 
 .col-product{
-    width: 60%;
+    width: 30%;
 }
 .col-product input{
-    width: 98%;
+    width: 90%;
 }
 
 .col-price{
-    width: 30%;
+    width: 15%;
 }
 .col-price input{
     width: 90%;
 }
+
+.col-description{
+    width: 40%;
+}
+
+.col-description input{
+    width: 90%;
+}
+
 /* Los hijos directos (texto e imagen) se reparten el espacio 50/50 */
 .block__item,
 .block__graphic {
     flex: 1; /* Ocupa el 50% del ancho */
-    padding: 2rem;
+    padding: 1rem;
 }
 
 /* --- 2. EL SECRETO PARA CORTAR LAS IMÁGENES --- */
