@@ -136,7 +136,7 @@ footer p{
     text-decoration: none;
     color: var(--text-color);
     gap:8px;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
 }
 
 .iconFooter a img {
