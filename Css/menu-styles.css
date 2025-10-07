@@ -12,8 +12,9 @@ body {
     padding: 0;
     background-color: var(--primary-color);
 }
-header { text-align: center; margin-bottom: 2rem; }
-header img { max-width: 200px; }
+header { text-align: center; margin-top: 1rem; margin-bottom: 1rem; }
+header img { max-width: 300px; }
+
 
 /* --- ESTRUCTURA DEL LAYOUT DE CADA SECCIÓN --- */
 
@@ -149,5 +150,10 @@ footer p{
 }
 
 .textFooter{
-    margin-bottom: 0.5rem ;
+    margin-bottom: 1rem ;
+}
+
+.copyright{
+    margin-top: 1rem;
+    font-size: 0.5rem;
 }
