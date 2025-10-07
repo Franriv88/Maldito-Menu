@@ -47,7 +47,8 @@ header img { max-width: 200px; }
 .menu-content h2 {
     border-bottom: 2px solid #333;
     padding-bottom: 0.5rem;
-    margin-top: 0;
+    margin-top: 20px;
+    margin-bottom: 5px;
     color: var(--text-color);
 }
 .menu-item {
@@ -118,6 +119,9 @@ header img { max-width: 200px; }
     display: block; /* Se muestra al agregar la clase 'visible' */
 }
 
+footer{
+    margin-top: 50px;
+}
 
 footer p{
     color: var(--text-color);
