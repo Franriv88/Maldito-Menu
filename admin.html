@@ -9,13 +9,15 @@
 </head>
 <body class="admin-page">
     <div class="save-container">
-    <button id="saveMenuBtn">Guardar Menú</button>
-</div>
+        <button id="saveMenuBtn">Guardar Menú</button>
+    </div>
+
     <div class="maldito">
         <span>
-            <img src="./img/img/MalditoCafeName2.png" alt="">
+            <img src="./img/img/MalditoCafeName2.png" alt="Logo Maldito Café">
         </span>
     </div>
+
     <div class="container">
         <div class="container__block block--row1">
             <div class="block__item item--product1">
@@ -23,54 +25,59 @@
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_especialidad[]"/></td>
-                        <td class="col-price"><input type="number" name="price_especialidad[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
                 <h2>CAFÉ FRÍO</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_especialidad[]"/></td>
-                        <td class="col-price"><input type="number" name="price_especialidad[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
             <div class="block__graphic graphic--img1">
-                <img src="./img/img/coffee.png" alt="">
+                <img src="./img/img/coffee.png" alt="Café">
             </div>
         </div>
+
         <div class="container__block block--row2">
             <div class="block__graphic graphic--img2">
-                <img src="./img/img/tea.png" alt="">
+                <img src="./img/img/tea.png" alt="Té">
             </div>
             <div class="block__item item--product2">
                 <h2>BEBIDAS</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_frio[]"/></td>
-                        <td class="col-price"><input type="number" name="price_frio[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
                 <h2>EXTRAS</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_frio[]"/></td>
-                        <td class="col-price"><input type="number" name="price_frio[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -82,57 +89,57 @@
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_salado[]"/></td>
-                        <td class="col-price"><input type="number" name="price_salado[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
                 <h2>LAMINADOS</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
                     <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_salado[]"/></td>
-                        <td class="col-price"><input type="number" name="price_salado[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
             <div class="block__graphic graphic--img3">
-                <img src="./img/img/croissant.png" alt="">
+                <img src="./img/img/croissant.png" alt="Croissant">
             </div>
         </div>
         
         <div class="container__block block--row4">
             <div class="block__graphic graphic--img4">
-                <img src="./img/img/cookie.png" alt="">
+                <img src="./img/img/cookie.png" alt="Cookie">
             </div>
             <div class="block__item item--product4">
                 <h2>DULCES</h2>
                 <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
                 <table>
-                <tbody>
-                    <tr>
-                        <td class="col-product"><input type="text" name="product_dulce[]"/></td>
-                        <td class="col-price"><input type="number" name="price_dulce[]"/></td>
-                        <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                    </tr>
-                </tbody>
+                    <tbody>
+                        <tr>
+                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
+                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
+                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
+                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-
-
-    <!-- Carga las librerías de Firebase SDK compat PRIMERO para el admin -->
+    </div>
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> <script src="./Js/firebase-config.js"></script>
 
-    <!-- Luego, carga tu script de configuración de Firebase (¡aquí se inicializa 'db' para el admin!) -->
-    <script src="./Js/firebase-config.js"></script> <!-- RUTA CORREGIDA: Asume que está en Js/ -->
-
-    <!-- Finalmente, carga tu script de administración -->
     <script src="script.js"></script>
 </body>
 </html>
