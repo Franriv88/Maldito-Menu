@@ -9,7 +9,7 @@
 body {
     font-family: var(--main-font-family);
     margin: 0;
-    padding: 1rem;
+    padding: 0;
     background-color: var(--primary-color);
 }
 header { text-align: center; margin-bottom: 2rem; }
@@ -21,7 +21,7 @@ header img { max-width: 200px; }
 .menu-section {
     display: flex; /* ¡La clave! Habilita Flexbox */
     align-items: center; /* Centra verticalmente */
-    margin-bottom: 2rem;
+    margin-bottom: 0rem;
     background-color: var(--primary-color);
     overflow: hidden; /* Importante para el efecto de la imagen */
 }
@@ -30,6 +30,7 @@ header img { max-width: 200px; }
 .menu-content {
     flex: 0 1 60%; /* Base del 60% */
     /* Significa: flex-grow: 0, flex-shrink: 1, flex-basis: 60% */
+    padding: 1rem;
 }
 
 .menu-image {
@@ -64,7 +65,7 @@ header img { max-width: 200px; }
 /* --- ESTILOS PARA LAS IMÁGENES (EFECTO CORTADO) --- */
 .menu-image {
     padding: 0;
-    height: 350px; /* Ajusta la altura a tu gusto */
+    height: 300px; /* Ajusta la altura a tu gusto */
 }
 .menu-image img {
     width: 100%;
@@ -82,11 +83,10 @@ header img { max-width: 200px; }
     object-position: right center;
 }
 
-
-
-
-
-
+/*TABLAS*/
+.item--product2 + h2{
+    margin: 0;
+}
 
 /* En tu menu-styles.css */
 

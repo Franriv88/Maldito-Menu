@@ -69,12 +69,12 @@ async function guardarMenu() {
     // Objeto para definir el orden de las categorías
     const ordenes = {
         "CAFÉ DE ESPECIALIDAD": 1,
-        "CAFÉ FRÍO": 2,
-        "BEBIDAS": 3, 
-        "EXTRAS": 4,
-        "SALADOS": 5,
-        "LAMINADOS": 6,
-        "DULCES": 7
+        "CAFÉ FRÍO":            2,
+        "BEBIDAS":              3, 
+        "EXTRAS":               4,
+        "SALADOS":              5,
+        "LAMINADOS":            6,
+        "DULCES":               7
     };
 
     const productosParaGuardar = [];
