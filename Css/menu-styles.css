@@ -3,7 +3,7 @@
     padding:0;
     --main-font-family:sans-serif; 
     --text-color: #7C6C5C;
-    --primary-color: #FFF;
+    --primary-color: #1A1A1A;
 }
 
 body {
@@ -111,14 +111,21 @@ header img { max-width: 300px; }
 }
 
 .item-details {
-    display: none; /* Oculto por defecto */
-    margin-top: 0rem;
-    color: #555;
-    font-size: 0.8rem;
+    /* Estado inicial: oculto */
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-top: 0; /* Lo ajustamos para que no haya salto */
+    
+    /* La magia del rebote está en esta transición */
+    transition: all 0.5s cubic-bezier(.17,.67,.6,1.21);
 }
 
 .item-details.visible {
-    display: block; /* Se muestra al agregar la clase 'visible' */
+    /* Estado final: visible */
+    max-height: 100px; /* Un alto máximo suficiente para la descripción */
+    opacity: 1;
+    margin-top: 0.2rem;
 }
 
 /* DISCLAIMER */
