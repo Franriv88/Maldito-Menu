@@ -98,7 +98,7 @@ header img { max-width: 300px; }
     display: flex;
     flex-direction: column; /* <--- La solución clave: apila los elementos verticalmente */
     margin-bottom: 0.8rem;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: var(--text-color);
     margin-bottom: 0.2rem;
     padding: 0;
@@ -200,6 +200,6 @@ footer p{
     /* Para evitar que sea demasiado grande en tablets, podemos usar clamp() */
     /* Mínimo 1.2rem, ideal 2.5vw, máximo 1.8rem */
     .menu-item {
-        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        font-size: clamp(1.2rem, 3.5vw, 1.8rem);
     }
 }
