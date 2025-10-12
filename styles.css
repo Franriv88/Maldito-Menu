@@ -176,7 +176,7 @@ body{
     border-radius: 5px;
     cursor:pointer;
     width: fit-content;
-    box-shadow: -2px 2px 0 #9f0404; /* Sombra sólida 3D */
+    box-shadow: -2px 2px 0 #f9f3f3; /* Sombra sólida 3D */
     transition: transform 0.1s, box-shadow 0.1s;
     /* Evita que el texto se seleccione al hacer doble clic */
     user-select: none;

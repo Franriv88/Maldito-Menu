@@ -52,13 +52,13 @@ header img { max-width: 300px; }
     margin-bottom: 5px;
     color: var(--text-color);
 }
-.menu-item {
+/* .menu-item {
     display: flex;
     justify-content: space-between;
     margin-bottom: 0.8rem;
     font-size: 1.1rem;
     color: var(--text-color);
-}
+} */
 .producto { 
     font-weight: bold; 
     color: var(--text-color);
@@ -186,4 +186,20 @@ footer p{
 .copyright{
     margin-top: 1rem;
     font-size: 0.5rem;
+}
+
+/* Media Queries para pantalla modo horizontal */
+/* Alternativa más fluida dentro de la media query */
+@media (orientation: landscape) {
+    
+    /* El tamaño de la letra será el 2.5% del ancho de la pantalla */
+    .menu-item {
+        font-size: 2.5vw;
+    }
+
+    /* Para evitar que sea demasiado grande en tablets, podemos usar clamp() */
+    /* Mínimo 1.2rem, ideal 2.5vw, máximo 1.8rem */
+    .menu-item {
+        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    }
 }
