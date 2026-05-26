@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MenuApp — Mis restaurantes</title>
+    <link rel="icon" href="./img/icons/MalditoCaféIcon.jpg">
+    <link rel="stylesheet" href="./Css/auth.css">
+</head>
+<body>
+
+    <!-- Topbar -->
+    <nav class="dash-topbar">
+        <span class="app-name">MenuApp</span>
+        <div class="user-info">
+            <span class="user-name" id="userName"></span>
+            <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="dash-main">
+        <div class="dash-header">
+            <h2>Mis restaurantes</h2>
+            <button class="btn-new" id="newRestBtn">+ Nuevo restaurante</button>
+        </div>
+        <div class="restaurants-grid" id="restaurantsGrid">
+            <p class="empty-state">Cargando...</p>
+        </div>
+    </main>
+
+    <!-- Modal: Crear restaurante -->
+    <div class="modal-overlay" id="newRestModal">
+        <div class="modal-box">
+            <h3>Nuevo restaurante</h3>
+            <input type="text" id="newRestName" placeholder="Nombre del restaurante" maxlength="60">
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelNewRest">Cancelar</button>
+                <button class="btn-confirm" id="confirmNewRest">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: QR Code -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-box qr-content">
+            <h3 id="qrRestName"></h3>
+            <img id="qrImage" src="" alt="QR Code" width="200" height="200">
+            <div class="qr-url-row">
+                <input type="text" id="qrUrl" readonly>
+                <button class="btn-copy" id="copyUrlBtn">Copiar</button>
+            </div>
+            <div class="modal-actions" style="margin-top:1rem">
+                <button class="btn-cancel" id="closeQrModal">Cerrar</button>
+                <a id="qrDownloadBtn" class="btn-confirm" style="text-decoration:none;padding:8px 18px" download="qr-menu.png">Descargar QR</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="./Js/firebase-config.js"></script>
+    <script src="./Js/dashboard.js"></script>
+</body>
+</html>

@@ -15,11 +15,6 @@ const firebaseConfig = {
 // Inicializa Firebase usando la API de compatibilidad (ya que tu HTML carga los SDK compat)
 const app = firebase.initializeApp(firebaseConfig);
 
-// Obtiene una referencia a la instancia de Cloud Firestore usando la API de compatibilidad
-const db = firebase.firestore();
-
-// Opcional: Para depuración, puedes ver si db se inicializa correctamente
-console.log("Firestore inicializado en firebase-config.js. Instancia db:", db);
-
-// Si también quieres Analytics, puedes usarlo así con el SDK compat:
-// const analytics = firebase.analytics();
+const db      = typeof firebase.firestore === 'function' ? firebase.firestore() : null;
+const auth    = typeof firebase.auth      === 'function' ? firebase.auth()      : null;
+const storage = typeof firebase.storage   === 'function' ? firebase.storage()   : null;

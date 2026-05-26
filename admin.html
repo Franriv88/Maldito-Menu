@@ -3,143 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administración del Menú</title>
+    <title>Editor de Menú</title>
+    <script type="importmap">
+    {
+      "imports": {
+        "https://cdn.jsdelivr.net/npm/lodash@4.17.21/+esm": "https://cdn.jsdelivr.net/npm/lodash-es@4.17.21/+esm"
+      }
+    }
+    </script>
     <link rel="icon" href="./img/icons/MalditoCaféIcon.jpg">
+    <link rel="stylesheet" href="./Css/menu-styles.css">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-topbar {
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 1.2rem;
+            border-bottom: 1px solid rgba(124,108,92,0.2);
+            position: sticky; top: 0; z-index: 100;
+            flex-wrap: wrap; gap: 8px;
+        }
+        .topbar-left  { display: flex; align-items: center; gap: 12px; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .btn-back {
+            color: #7C6C5C; font-size: 0.85rem; text-decoration: none;
+            border: 1px solid rgba(124,108,92,0.25); padding: 4px 10px;
+            border-radius: 6px; transition: all 0.15s;
+        }
+        .btn-back:hover { border-color: #7C6C5C; color: #c8b89a; }
+        #topbarRestName { color: #c8b89a; font-size: 0.95rem; font-weight: 600; }
+        .topbar-right a, .topbar-right button {
+            color: #7C6C5C; font-size: 0.8rem; background: none;
+            border: 1px solid rgba(124,108,92,0.25); padding: 4px 10px;
+            border-radius: 6px; cursor: pointer; text-decoration: none;
+            transition: all 0.15s;
+        }
+        .topbar-right a:hover, .topbar-right button:hover { border-color: #7C6C5C; color: #c8b89a; }
+        #topbarUserName { color: rgba(124,108,92,0.5); font-size: 0.78rem; }
+    </style>
 </head>
 <body class="admin-page">
+
+    <!-- Topbar -->
+    <div class="admin-topbar">
+        <div class="topbar-left">
+            <a href="dashboard.html" class="btn-back">← Panel</a>
+            <span id="topbarRestName">Cargando...</span>
+        </div>
+        <div class="topbar-right">
+            <span id="topbarUserName"></span>
+            <a id="viewMenuLink" href="#" target="_blank">👁 Ver menú</a>
+            <button id="logoutBtn">Cerrar sesión</button>
+        </div>
+    </div>
+
+    <!-- Botón guardar (fijo) -->
     <div class="save-container">
         <button id="saveMenuBtn">Guardar Menú</button>
     </div>
 
-    <div class="maldito">
-        <span>
-            <img src="./img/img/MalditoCafeName2.png" alt="Logo Maldito Café">
-        </span>
+    <div class="admin-layout">
+
+        <div class="admin-menu-editor">
+            <header style="text-align:center;padding:1rem">
+                <h2 id="adminRestName" style="color:#7C6C5C;margin:0;font-size:1.3rem"></h2>
+            </header>
+            <main id="admin-menu-container">
+                <p class="loading-msg">Verificando sesión...</p>
+            </main>
+        </div>
+
+        <aside class="admin-sidebar">
+            <h3 class="sidebar-title">Diseño</h3>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Fuente</label>
+                <select id="cfg-fontFamily" class="ctrl-select">
+                    <option value="sans-serif">Sans-serif</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="'Arial', sans-serif">Arial</option>
+                </select>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Tamaño de fuente &nbsp;<span id="cfg-fontSizeVal" style="color:#c8b89a">14px</span></label>
+                <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Color de títulos</label>
+                <div class="color-row">
+                    <input type="color" id="cfg-titleColor" value="#7C6C5C" class="ctrl-color">
+                    <span class="color-hex" id="cfg-titleColorHex">#7C6C5C</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Color de productos</label>
+                <div class="color-row">
+                    <input type="color" id="cfg-textColor" value="#7C6C5C" class="ctrl-color">
+                    <span class="color-hex" id="cfg-textColorHex">#7C6C5C</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Fondo de página</label>
+                <div class="color-row">
+                    <input type="color" id="cfg-bgPage" value="#0e0e0e" class="ctrl-color">
+                    <span class="color-hex" id="cfg-bgPageHex">#0e0e0e</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Fondo del menú</label>
+                <div class="color-row">
+                    <input type="color" id="cfg-bgMenu" value="#1A1A1A" class="ctrl-color">
+                    <span class="color-hex" id="cfg-bgMenuHex">#1A1A1A</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Logo del restaurante</label>
+                <div class="mini-drop" id="logoDrop">
+                    <span>Arrastrá o clic</span>
+                    <img id="logoPreview" style="display:none;max-width:100%;max-height:80px;margin-top:6px;border-radius:4px;">
+                </div>
+                <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none">✕ Quitar logo</button>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Ícono de pestaña (favicon)</label>
+                <div class="mini-drop" id="faviconDrop">
+                    <span>Arrastrá o clic</span>
+                    <img id="faviconPreview" style="display:none;width:32px;height:32px;margin-top:6px;border-radius:4px;">
+                </div>
+                <button class="btn-remove-asset" id="faviconRemoveBtn" style="display:none">✕ Quitar ícono</button>
+            </div>
+        </aside>
+
     </div>
 
-    <div class="container">
-        <div class="container__block block--row1">
-            <div class="block__item item--product1">
-                <h2>CAFÉ DE ESPECIALIDAD</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <h2>CAFÉ FRÍO</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="block__graphic graphic--img1">
-                <img src="./img/img/coffee.png" alt="Café">
-            </div>
-        </div>
-
-        <div class="container__block block--row2">
-            <div class="block__graphic graphic--img2">
-                <img src="./img/img/tea.png" alt="Té">
-            </div>
-            <div class="block__item item--product2">
-                <h2>BEBIDAS</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <h2>EXTRAS</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="container__block block--row3">
-            <div class="block__item item--product3">
-                <h2>SALADOS</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <h2>LAMINADOS</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="block__graphic graphic--img3">
-                <img src="./img/img/croissant.png" alt="Croissant">
-            </div>
-        </div>
-        
-        <div class="container__block block--row4">
-            <div class="block__graphic graphic--img4">
-                <img src="./img/img/cookie.png" alt="Cookie">
-            </div>
-            <div class="block__item item--product4">
-                <h2>DULCES</h2>
-                <button class="add-btn" type="button" onclick="agregarFila(this)">+</button>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td class="col-product"><input type="text" name="product[]" placeholder="Nombre"/></td>
-                            <td class="col-price"><input type="number" name="price[]" placeholder="Precio"/></td>
-                            <td class="col-description"><input type="text" name="description[]" placeholder="Descripción (opcional)"/></td>
-                            <td><button class="delete-btn" onclick="eliminarFila(this)">X</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> <script src="./Js/firebase-config.js"></script>
-
-    <script src="script.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="./Js/firebase-config.js?v=3"></script>
+    <script src="script.js?v=7"></script>
 </body>
 </html>

@@ -1,17 +1,40 @@
 :root{
     margin:0;
     padding:0;
-    --main-font-family:sans-serif; 
-    --text-color: #7C6C5C;
-    --primary-color: #1A1A1A;
+    --main-font-family: sans-serif;
+    --text-color:       #7C6C5C;
+    --title-color:      #7C6C5C;
+    --primary-color:    #1A1A1A;
+    --bg-page:          #0e0e0e;
+    --base-font-size:   14px;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
 body {
     font-family: var(--main-font-family);
     margin: 0;
     padding: 0;
+    background-color: var(--bg-page);
+}
+
+.page-wrapper {
+    max-width: 860px;
+    margin: 0 auto;
     background-color: var(--primary-color);
 }
+
+@media (min-width: 861px) {
+    body {
+        padding: 2rem 0 3rem;
+    }
+    .page-wrapper {
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+    }
+}
+
 header { text-align: center; margin-top: 1rem; margin-bottom: 1rem; }
 header img { max-width: 300px; }
 
@@ -20,11 +43,10 @@ header img { max-width: 300px; }
 
 /* El contenedor principal de cada sección (Ej: Café de especialidad) */
 .menu-section {
-    display: flex; /* ¡La clave! Habilita Flexbox */
-    align-items: center; /* Centra verticalmente */
+    display: flex;
+    align-items: stretch;
     margin-bottom: 0rem;
     background-color: var(--primary-color);
-    overflow: hidden; /* Importante para el efecto de la imagen */
 }
 
 /* Las dos columnas interiores: contenido e imagen */
@@ -50,7 +72,7 @@ header img { max-width: 300px; }
     padding-bottom: 0.5rem;
     margin-top: 20px;
     margin-bottom: 5px;
-    color: var(--text-color);
+    color: var(--title-color);
 }
 /* .menu-item {
     display: flex;
@@ -64,26 +86,24 @@ header img { max-width: 300px; }
     color: var(--text-color);
 }
 
-/* --- ESTILOS PARA LAS IMÁGENES (EFECTO CORTADO) --- */
+/* --- IMÁGENES: fondo CSS — sin cálculos JS, sin flicker al cargar --- */
 .menu-image {
     padding: 0;
-    height: 300px; /* Ajusta la altura a tu gusto */
-}
-.menu-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Rellena el contenedor sin deformarse */
-}
-
-/* Hacemos que la imagen de la primera sección se ancle a la izquierda */
-.menu-section:not(.layout-reversed) .menu-image img {
-    object-position: left center;
+    overflow: hidden;
+    position: relative;
+    min-height: 220px;
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-position: 50% center;
 }
 
-/* Hacemos que la imagen de la sección invertida se ancle a la derecha */
-.menu-section.layout-reversed .menu-image img {
-    object-position: right center;
-    width: 10rem;
+.menu-image img { display: none; }
+
+/* Mobile: imagen al costado, cubre su área */
+@media (max-width: 768px) {
+    .menu-image {
+        background-size: cover;
+    }
 }
 
 /*TABLAS*/
@@ -96,11 +116,10 @@ header img { max-width: 300px; }
 .menu-item {
     cursor: pointer;
     display: flex;
-    flex-direction: column; /* <--- La solución clave: apila los elementos verticalmente */
-    margin-bottom: 0.8rem;
-    font-size: 0.9rem;
-    color: var(--text-color);
+    flex-direction: column;
     margin-bottom: 0.2rem;
+    font-size: var(--base-font-size, 14px);
+    color: var(--text-color);
     padding: 0;
 }
 
@@ -188,18 +207,57 @@ footer p{
     font-size: 0.5rem;
 }
 
-/* Media Queries para pantalla modo horizontal */
-/* Alternativa más fluida dentro de la media query */
-@media (orientation: landscape) {
-    
-    /* El tamaño de la letra será el 2.5% del ancho de la pantalla */
+/* ============================================================ */
+/*                  DISEÑO RESPONSIVO (Index)                   */
+/* ============================================================ */
+
+/* Tablet grande / landscape */
+@media (orientation: landscape) and (max-width: 1100px) {
     .menu-item {
-        font-size: 2.5vw;
+        font-size: clamp(1rem, 2.5vw, 1.4rem);
+    }
+}
+
+/* Tablet portrait */
+@media (max-width: 1024px) {
+    header img { max-width: 240px; }
+    .menu-content { padding: 0.8rem; }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    header img { max-width: 190px; }
+
+    .menu-content {
+        padding: 0.5rem 0.6rem;
     }
 
-    /* Para evitar que sea demasiado grande en tablets, podemos usar clamp() */
-    /* Mínimo 1.2rem, ideal 2.5vw, máximo 1.8rem */
-    .menu-item {
-        font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+    .menu-content h2 {
+        font-size: 0.9rem;
+        margin-top: 10px;
     }
+
+    .menu-item { font-size: 0.78rem; }
+
+    .disclaimer p {
+        font-size: 11px;
+        margin: 0.4rem 0.5rem;
+    }
+
+    .iconFooter {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .iconFooter a:first-child { margin-left: 0.5rem; }
+    .iconFooter a:last-child  { margin-right: 0; }
+
+    footer { margin-top: 30px; }
+}
+
+/* Mobile pequeño */
+@media (max-width: 480px) {
+    header img { max-width: 160px; }
+    .menu-item { font-size: 0.8rem; }
 }
