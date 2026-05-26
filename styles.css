@@ -431,6 +431,23 @@
     flex-shrink: 0;
 }
 
+.btn-remove-bg-now {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    background: none;
+    border: none;
+    color: rgba(40,167,69,0.65);
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-align: left;
+    padding: 2px 0;
+    transition: color 0.15s;
+    font-family: inherit;
+}
+.btn-remove-bg-now:hover:not(:disabled) { color: #28a745; }
+.btn-remove-bg-now:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .btn-remove-asset {
     display: block;
     width: 100%;

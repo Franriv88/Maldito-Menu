@@ -131,26 +131,28 @@
             <div class="sidebar-section">
                 <label class="ctrl-label">Logo del restaurante</label>
                 <div class="mini-drop" id="logoDrop">
-                    <span>Arrastrá o clic</span>
+                    <span id="logoDropText">Arrastrá o clic</span>
                     <img id="logoPreview" style="display:none;max-width:100%;max-height:80px;margin-top:6px;border-radius:4px;">
                 </div>
                 <label class="bg-remove-toggle">
-                    <input type="checkbox" id="logoBgRemove">
+                    <input type="checkbox" id="logoBgRemove" checked>
                     <span>Quitar fondo al subir</span>
                 </label>
+                <button class="btn-remove-bg-now" id="logoRemoveBgNowBtn" style="display:none">✦ Quitar fondo ahora</button>
                 <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none">✕ Quitar logo</button>
             </div>
 
             <div class="sidebar-section">
                 <label class="ctrl-label">Ícono de pestaña (favicon)</label>
                 <div class="mini-drop" id="faviconDrop">
-                    <span>Arrastrá o clic</span>
+                    <span id="faviconDropText">Arrastrá o clic</span>
                     <img id="faviconPreview" style="display:none;width:32px;height:32px;margin-top:6px;border-radius:4px;">
                 </div>
                 <label class="bg-remove-toggle">
-                    <input type="checkbox" id="faviconBgRemove">
+                    <input type="checkbox" id="faviconBgRemove" checked>
                     <span>Quitar fondo al subir</span>
                 </label>
+                <button class="btn-remove-bg-now" id="faviconRemoveBgNowBtn" style="display:none">✦ Quitar fondo ahora</button>
                 <button class="btn-remove-asset" id="faviconRemoveBtn" style="display:none">✕ Quitar ícono</button>
             </div>
         </aside>

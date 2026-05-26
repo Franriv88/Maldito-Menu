@@ -371,14 +371,22 @@ function applyStyles(cfg) {
         if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
         link.href = cfg.faviconBase64;
     }
-    const logoPreview = document.getElementById('logoPreview');
-    const logoRemove  = document.getElementById('logoRemoveBtn');
-    if (logoPreview && cfg.logoBase64)   { logoPreview.src = cfg.logoBase64; logoPreview.style.display = 'block'; }
-    if (logoRemove  && cfg.logoBase64)   logoRemove.style.display = 'block';
-    const favPreview = document.getElementById('faviconPreview');
-    const favRemove  = document.getElementById('faviconRemoveBtn');
-    if (favPreview && cfg.faviconBase64) { favPreview.src = cfg.faviconBase64; favPreview.style.display = 'block'; }
-    if (favRemove  && cfg.faviconBase64) favRemove.style.display = 'block';
+    const logoPreview    = document.getElementById('logoPreview');
+    const logoRemove     = document.getElementById('logoRemoveBtn');
+    const logoRemoveBgNow = document.getElementById('logoRemoveBgNowBtn');
+    if (cfg.logoBase64) {
+        if (logoPreview)    { logoPreview.src = cfg.logoBase64; logoPreview.style.display = 'block'; }
+        if (logoRemove)     logoRemove.style.display     = 'block';
+        if (logoRemoveBgNow) logoRemoveBgNow.style.display = 'block';
+    }
+    const favPreview     = document.getElementById('faviconPreview');
+    const favRemove      = document.getElementById('faviconRemoveBtn');
+    const favRemoveBgNow = document.getElementById('faviconRemoveBgNowBtn');
+    if (cfg.faviconBase64) {
+        if (favPreview)     { favPreview.src = cfg.faviconBase64; favPreview.style.display = 'block'; }
+        if (favRemove)      favRemove.style.display      = 'block';
+        if (favRemoveBgNow) favRemoveBgNow.style.display = 'block';
+    }
 }
 
 function populateStyleControls(cfg) {
@@ -498,17 +506,26 @@ function initStyleControls() {
     initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false, 'logoBgRemove');
     initMiniDrop('faviconDrop', 'faviconPreview', 'faviconRemoveBtn', 'faviconBase64', true,  'faviconBgRemove');
 
+    document.getElementById('logoRemoveBgNowBtn')?.addEventListener('click', function () {
+        removeBgFromPreview('logoPreview', 'logoBase64', false, this);
+    });
+    document.getElementById('faviconRemoveBgNowBtn')?.addEventListener('click', function () {
+        removeBgFromPreview('faviconPreview', 'faviconBase64', true, this);
+    });
+
     document.getElementById('logoRemoveBtn')?.addEventListener('click', async () => {
         await restRef().collection('config').doc('styles').update({ logoBase64: firebase.firestore.FieldValue.delete() });
-        const p = document.getElementById('logoPreview'), b = document.getElementById('logoRemoveBtn');
+        const p = document.getElementById('logoPreview'), b = document.getElementById('logoRemoveBtn'), g = document.getElementById('logoRemoveBgNowBtn');
         if (p) { p.src = ''; p.style.display = 'none'; }
         if (b) b.style.display = 'none';
+        if (g) g.style.display = 'none';
     });
     document.getElementById('faviconRemoveBtn')?.addEventListener('click', async () => {
         await restRef().collection('config').doc('styles').update({ faviconBase64: firebase.firestore.FieldValue.delete() });
-        const p = document.getElementById('faviconPreview'), b = document.getElementById('faviconRemoveBtn');
+        const p = document.getElementById('faviconPreview'), b = document.getElementById('faviconRemoveBtn'), g = document.getElementById('faviconRemoveBgNowBtn');
         if (p) { p.src = ''; p.style.display = 'none'; }
         if (b) b.style.display = 'none';
+        if (g) g.style.display = 'none';
         const link = document.querySelector('link[rel="icon"]');
         if (link) link.href = './img/icons/MalditoCaféIcon.jpg';
     });
@@ -517,57 +534,101 @@ function initStyleControls() {
 function initMiniDrop(dropId, previewId, removeBtnId, firestoreKey, isFavicon, bgCheckId) {
     const zone = document.getElementById(dropId);
     if (!zone) return;
-    const getBgRemove = () => bgCheckId ? document.getElementById(bgCheckId)?.checked : false;
+    const dropTextId  = dropId.replace('Drop', 'DropText');
+    const getBgRemove = () => bgCheckId ? (document.getElementById(bgCheckId)?.checked ?? false) : false;
+
+    const handleFile = file => uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, getBgRemove(), dropTextId);
 
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
     zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
     zone.addEventListener('drop', async e => {
         e.preventDefault(); zone.classList.remove('drag-over');
         const file = e.dataTransfer.files[0];
-        if (file?.type.startsWith('image/')) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, getBgRemove(), zone);
+        if (file?.type.startsWith('image/')) await handleFile(file);
     });
     zone.addEventListener('click', () => {
         const inp = document.createElement('input');
         inp.type = 'file'; inp.accept = 'image/*';
-        inp.onchange = async ev => {
-            const file = ev.target.files[0];
-            if (file) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, getBgRemove(), zone);
-        };
+        inp.onchange = async ev => { const file = ev.target.files[0]; if (file) await handleFile(file); };
         inp.click();
     });
 }
 
-async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, removeBg, zone) {
+async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, removeBg, dropTextId) {
+    const statusEl = dropTextId ? document.getElementById(dropTextId) : null;
+    const setStatus = txt => { if (statusEl) statusEl.textContent = txt; };
+    const origText = statusEl?.textContent || 'Arrastrá o clic';
+
     let fileToProcess = file;
 
     if (removeBg) {
-        const span = zone?.querySelector('span');
-        const originalText = span?.textContent;
-        if (span) span.textContent = 'Quitando fondo…';
-        zone?.classList.add('uploading');
+        setStatus('Quitando fondo…');
         try {
             const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
             const blob = await removeBackground(file, { debug: true });
             fileToProcess = new File([blob], 'img.png', { type: 'image/png' });
         } catch (bgErr) {
             console.error('Background removal falló:', bgErr);
-        } finally {
-            if (span) span.textContent = originalText;
-            zone?.classList.remove('uploading');
+            setStatus('Error al quitar fondo');
+            await new Promise(r => setTimeout(r, 2500));
         }
     }
 
+    setStatus('Guardando…');
     const size = isFavicon ? 64 : 400;
     const mime = (removeBg || fileToProcess.type === 'image/png') ? 'image/png' : 'image/jpeg';
     const base64 = await compressToBase64(fileToProcess, size, size, mime, 0.9);
     await saveStyleField(firestoreKey, base64);
-    const prev = document.getElementById(previewId);
-    const btn  = document.getElementById(removeBtnId);
-    if (prev) { prev.src = base64; prev.style.display = 'block'; }
-    if (btn)  btn.style.display = 'block';
+
+    const prev   = document.getElementById(previewId);
+    const rmvBtn = document.getElementById(removeBtnId);
+    const bgBtn  = document.getElementById(removeBtnId.replace('RemoveBtn', 'RemoveBgNowBtn'));
+    if (prev)   { prev.src = base64; prev.style.display = 'block'; }
+    if (rmvBtn) rmvBtn.style.display = 'block';
+    if (bgBtn)  bgBtn.style.display  = 'block';
+    setStatus(origText);
+
     if (isFavicon) {
         let link = document.querySelector('link[rel="icon"]');
         if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
         link.href = base64;
+    }
+}
+
+async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
+    const prev = document.getElementById(previewId);
+    if (!prev?.src || prev.style.display === 'none') return;
+
+    const origLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Procesando…';
+
+    try {
+        const res  = await fetch(prev.src);
+        const blob = await res.blob();
+        const file = new File([blob], 'image.png', { type: blob.type || 'image/png' });
+
+        const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+        const resultBlob  = await removeBackground(file, { debug: true });
+        const processed   = new File([resultBlob], 'img.png', { type: 'image/png' });
+
+        const size   = isFavicon ? 64 : 400;
+        const base64 = await compressToBase64(processed, size, size, 'image/png', 0.9);
+        await saveStyleField(firestoreKey, base64);
+        prev.src = base64;
+
+        btn.textContent = '✓ Listo';
+        setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 2000);
+
+        if (isFavicon) {
+            const link = document.querySelector('link[rel="icon"]') || document.createElement('link');
+            link.rel  = 'icon';
+            link.href = base64;
+            if (!link.parentNode) document.head.appendChild(link);
+        }
+    } catch (err) {
+        console.error('Error al quitar fondo:', err);
+        btn.textContent = 'Error — reintentá';
+        setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 3000);
     }
 }
