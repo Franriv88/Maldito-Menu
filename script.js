@@ -495,8 +495,8 @@ function initStyleControls() {
     }
 
     // ── Logo y favicon ────────────────────────────────────────
-    initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false);
-    initMiniDrop('faviconDrop', 'faviconPreview', 'faviconRemoveBtn', 'faviconBase64', true);
+    initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false, 'logoBgRemove');
+    initMiniDrop('faviconDrop', 'faviconPreview', 'faviconRemoveBtn', 'faviconBase64', true,  'faviconBgRemove');
 
     document.getElementById('logoRemoveBtn')?.addEventListener('click', async () => {
         await restRef().collection('config').doc('styles').update({ logoBase64: firebase.firestore.FieldValue.delete() });
@@ -514,31 +514,52 @@ function initStyleControls() {
     });
 }
 
-function initMiniDrop(dropId, previewId, removeBtnId, firestoreKey, isFavicon) {
+function initMiniDrop(dropId, previewId, removeBtnId, firestoreKey, isFavicon, bgCheckId) {
     const zone = document.getElementById(dropId);
     if (!zone) return;
+    const getBgRemove = () => bgCheckId ? document.getElementById(bgCheckId)?.checked : false;
+
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
     zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
     zone.addEventListener('drop', async e => {
         e.preventDefault(); zone.classList.remove('drag-over');
         const file = e.dataTransfer.files[0];
-        if (file?.type.startsWith('image/')) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon);
+        if (file?.type.startsWith('image/')) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, getBgRemove(), zone);
     });
     zone.addEventListener('click', () => {
         const inp = document.createElement('input');
         inp.type = 'file'; inp.accept = 'image/*';
         inp.onchange = async ev => {
             const file = ev.target.files[0];
-            if (file) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon);
+            if (file) await uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, getBgRemove(), zone);
         };
         inp.click();
     });
 }
 
-async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon) {
-    const size   = isFavicon ? 64  : 400;
-    const mime   = isFavicon ? 'image/png' : (file.type === 'image/png' ? 'image/png' : 'image/jpeg');
-    const base64 = await compressToBase64(file, size, size, mime, 0.9);
+async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, removeBg, zone) {
+    let fileToProcess = file;
+
+    if (removeBg) {
+        const span = zone?.querySelector('span');
+        const originalText = span?.textContent;
+        if (span) span.textContent = 'Quitando fondo…';
+        zone?.classList.add('uploading');
+        try {
+            const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+            const blob = await removeBackground(file, { debug: true });
+            fileToProcess = new File([blob], 'img.png', { type: 'image/png' });
+        } catch (bgErr) {
+            console.error('Background removal falló:', bgErr);
+        } finally {
+            if (span) span.textContent = originalText;
+            zone?.classList.remove('uploading');
+        }
+    }
+
+    const size = isFavicon ? 64 : 400;
+    const mime = (removeBg || fileToProcess.type === 'image/png') ? 'image/png' : 'image/jpeg';
+    const base64 = await compressToBase64(fileToProcess, size, size, mime, 0.9);
     await saveStyleField(firestoreKey, base64);
     const prev = document.getElementById(previewId);
     const btn  = document.getElementById(removeBtnId);

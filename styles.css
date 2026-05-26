@@ -415,6 +415,22 @@
 }
 .mini-drop:hover, .mini-drop.drag-over { border-color: #7C6C5C; color: #7C6C5C; }
 
+.bg-remove-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: rgba(124,108,92,0.55);
+    cursor: pointer;
+    user-select: none;
+}
+.bg-remove-toggle input[type="checkbox"] {
+    accent-color: #7C6C5C;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .btn-remove-asset {
     display: block;
     width: 100%;
