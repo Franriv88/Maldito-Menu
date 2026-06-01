@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /restaurants/{restaurantId}/{fileName} {
+      allow read;
+      allow write, delete: if request.auth != null;
+    }
+  }
+}

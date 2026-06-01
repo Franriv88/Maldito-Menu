@@ -609,7 +609,9 @@ function initStyleControls() {
     });
 
     document.getElementById('logoRemoveBtn')?.addEventListener('click', async () => {
-        await restRef().collection('config').doc('styles').update({ logoBase64: firebase.firestore.FieldValue.delete() });
+        const del = firebase.firestore.FieldValue.delete();
+        await restRef().collection('config').doc('styles').update({ logoBase64: del, logoStorageUrl: del });
+        if (storage) storage.ref(`restaurants/${restaurantId}/logo.png`).delete().catch(() => {});
         const p = document.getElementById('logoPreview'), b = document.getElementById('logoRemoveBtn'), g = document.getElementById('logoRemoveBgNowBtn');
         if (p) { p.src = ''; p.style.display = 'none'; }
         if (b) b.style.display = 'none';
@@ -617,7 +619,9 @@ function initStyleControls() {
         updateAdminHeader();
     });
     document.getElementById('faviconRemoveBtn')?.addEventListener('click', async () => {
-        await restRef().collection('config').doc('styles').update({ faviconBase64: firebase.firestore.FieldValue.delete() });
+        const del = firebase.firestore.FieldValue.delete();
+        await restRef().collection('config').doc('styles').update({ faviconBase64: del, faviconStorageUrl: del });
+        if (storage) storage.ref(`restaurants/${restaurantId}/favicon.png`).delete().catch(() => {});
         const p = document.getElementById('faviconPreview'), b = document.getElementById('faviconRemoveBtn'), g = document.getElementById('faviconRemoveBgNowBtn');
         if (p) { p.src = ''; p.style.display = 'none'; }
         if (b) b.style.display = 'none';
@@ -648,6 +652,22 @@ function initMiniDrop(dropId, previewId, removeBtnId, firestoreKey, isFavicon, b
         inp.onchange = async ev => { const file = ev.target.files[0]; if (file) await handleFile(file); };
         inp.click();
     });
+}
+
+// Sube el logo/favicon a Firebase Storage y devuelve la URL pública HTTP
+async function uploadLogoToStorage(base64DataUrl, isFavicon) {
+    if (!storage || !restaurantId) return null;
+    try {
+        const filename = isFavicon ? 'favicon.png' : 'logo.png';
+        const resp = await fetch(base64DataUrl);
+        const blob = await resp.blob();
+        const ref  = storage.ref(`restaurants/${restaurantId}/${filename}`);
+        await ref.put(blob, { contentType: 'image/png' });
+        return await ref.getDownloadURL();
+    } catch (e) {
+        console.warn('Storage upload falló (no crítico):', e);
+        return null;
+    }
 }
 
 async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFavicon, removeBg, dropTextId) {
@@ -693,6 +713,12 @@ async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFav
     setStatus(origText);
     updateAdminHeader();
 
+    // Sube a Storage en segundo plano para tener URL pública (og:image, favicon real)
+    const storageKey = isFavicon ? 'faviconStorageUrl' : 'logoStorageUrl';
+    uploadLogoToStorage(base64, isFavicon).then(url => {
+        if (url) saveStyleField(storageKey, url);
+    });
+
     if (isFavicon) {
         let link = document.querySelector('link[rel="icon"]');
         if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
@@ -723,6 +749,11 @@ async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
         await saveStyleField(firestoreKey, base64);
         prev.src = base64;
         updateAdminHeader();
+
+        const storageKey = isFavicon ? 'faviconStorageUrl' : 'logoStorageUrl';
+        uploadLogoToStorage(base64, isFavicon).then(url => {
+            if (url) saveStyleField(storageKey, url);
+        });
 
         btn.textContent = '✓ Listo';
         setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 2000);

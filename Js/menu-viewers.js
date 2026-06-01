@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cfg.bgMenu)     r.style.setProperty('--primary-color',    cfg.bgMenu);
         if (cfg.fontSize)   r.style.setProperty('--base-font-size',   cfg.fontSize + 'px');
 
-        // Favicon: favicon personalizado, o logo como fallback
-        const iconSrc = cfg.faviconBase64 || cfg.logoBase64;
+        // Favicon: preferir URL HTTP real (Storage) → fallback a base64
+        const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
         if (iconSrc) setFavicon(iconSrc);
     }
 
@@ -106,9 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setMeta('og:description',  `Mirá el menú de ${nombre}`);
         setMeta('og:url',          location.href);
         setMeta('twitter:title',   nombre, true);
-        if (logoSrc) {
-            setMeta('og:image',      logoSrc);
-            setMeta('twitter:image', logoSrc, true);
+        // og:image necesita URL HTTP real (no data URL) para WhatsApp, Windows Share, etc.
+        const ogImgUrl = stylesConfig.logoStorageUrl || stylesConfig.faviconStorageUrl || '';
+        if (ogImgUrl) {
+            setMeta('og:image',      ogImgUrl);
+            setMeta('twitter:image', ogImgUrl, true);
         }
     }
 
