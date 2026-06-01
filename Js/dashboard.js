@@ -191,9 +191,9 @@ async function showQR(id, nombre) {
     const url = `${location.origin}/menu.html?r=${id}`;
     document.getElementById('qrRestName').textContent = nombre;
     document.getElementById('qrUrl').value = url;
+    document.getElementById('qrDownloadBtn').removeAttribute('href');
     qrModal.classList.add('visible');
 
-    // Loading placeholder
     const canvas = document.getElementById('qrCanvas');
     const ctx    = canvas.getContext('2d');
     ctx.fillStyle = '#1a1a1a';
@@ -208,43 +208,60 @@ async function showQR(id, nombre) {
     const dataUrl = await buildQRDataUrl(url, logoBase64);
     if (!dataUrl) return;
 
-    const img = new Image();
-    img.onload = () => {
+    try {
+        const img = await loadImage(dataUrl);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         document.getElementById('qrDownloadBtn').href = dataUrl;
-    };
-    img.src = dataUrl;
+    } catch (_) {}
 }
 
-function buildQRDataUrl(url, logoBase64) {
+// Genera el QR con el logo centrado usando async/await
+async function buildQRDataUrl(url, logoBase64) {
     const SIZE = 300;
-    const offscreen = document.createElement('canvas');
-    offscreen.width = SIZE; offscreen.height = SIZE;
-
-    return new Promise(resolve => {
-        QRCode.toCanvas(offscreen, url, {
+    try {
+        // 1. Genera el QR como data URL (QRCode.toDataURL devuelve Promise)
+        const qrDataUrl = await QRCode.toDataURL(url, {
             width: SIZE, margin: 2,
             errorCorrectionLevel: 'H',
             color: { dark: '#000000', light: '#ffffff' }
-        }, err => {
-            if (err) { resolve(null); return; }
-            if (!logoBase64) { resolve(offscreen.toDataURL('image/png')); return; }
-
-            const LOGO = Math.round(SIZE * 0.22);
-            const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
-            const logoImg = new Image();
-            logoImg.onerror = () => resolve(offscreen.toDataURL('image/png'));
-            logoImg.onload  = () => {
-                const ctx = offscreen.getContext('2d');
-                ctx.fillStyle = '#ffffff';
-                qrRoundRect(ctx, x - pad, y - pad, LOGO + pad * 2, LOGO + pad * 2, 8);
-                ctx.fill();
-                ctx.drawImage(logoImg, x, y, LOGO, LOGO);
-                resolve(offscreen.toDataURL('image/png'));
-            };
-            logoImg.src = logoBase64;
         });
+
+        if (!logoBase64) return qrDataUrl;
+
+        // 2. Compone QR + logo en un canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+
+        const qrImg = await loadImage(qrDataUrl);
+        ctx.drawImage(qrImg, 0, 0, SIZE, SIZE);
+
+        const LOGO = Math.round(SIZE * 0.22);
+        const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
+
+        const logoImg = await loadImage(logoBase64);
+
+        // Fondo blanco redondeado detrás del logo
+        ctx.fillStyle = '#ffffff';
+        qrRoundRect(ctx, x - pad, y - pad, LOGO + pad * 2, LOGO + pad * 2, 8);
+        ctx.fill();
+
+        ctx.drawImage(logoImg, x, y, LOGO, LOGO);
+
+        return canvas.toDataURL('image/png');
+    } catch (err) {
+        console.error('Error generando QR:', err);
+        return null;
+    }
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload  = () => resolve(img);
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+        img.src = src;
     });
 }
 
