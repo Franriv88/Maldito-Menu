@@ -216,28 +216,48 @@ async function showQR(id, nombre) {
     } catch (_) {}
 }
 
-// Genera el QR con el logo centrado.
-// Usa fetch() para convertir la imagen de qrserver.com a data URL,
-// evitando el problema de CORS al exportar el canvas.
 async function buildQRDataUrl(url, logoBase64) {
-    const SIZE = 300;
-    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${SIZE}x${SIZE}&ecc=H&data=${encodeURIComponent(url)}`;
+    const SIZE = 340;
 
+    // ── Intento 1: QRCodeStyling (módulos redondeados, logo nativo) ──
+    if (typeof QRCodeStyling !== 'undefined') {
+        try {
+            const opts = {
+                width: SIZE, height: SIZE,
+                data: url,
+                margin: 12,
+                qrOptions: { errorCorrectionLevel: 'H' },
+                dotsOptions:          { color: '#000000', type: 'extra-rounded' },
+                cornersSquareOptions: { color: '#000000', type: 'extra-rounded' },
+                cornersDotOptions:    { color: '#000000', type: 'dot' },
+                backgroundOptions:    { color: '#ffffff' },
+            };
+            if (logoBase64) {
+                opts.image = logoBase64;
+                opts.imageOptions = { margin: 6, imageSize: 0.3, hideBackgroundDots: true };
+            }
+            const qr   = new QRCodeStyling(opts);
+            const blob = await qr.getRawData('png');
+            if (blob) return await blobToDataUrl(blob);
+        } catch (e) {
+            console.warn('QRCodeStyling falló, usando fallback:', e);
+        }
+    }
+
+    // ── Fallback: qrserver.com + logo manual en canvas ──────────────
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${SIZE}x${SIZE}&ecc=H&data=${encodeURIComponent(url)}`;
     try {
-        // 1. Descarga el QR como blob y lo convierte a data URL
         const resp = await fetch(apiUrl);
         if (!resp.ok) throw new Error('QR API error');
         const qrDataUrl = await blobToDataUrl(await resp.blob());
 
-        // 2. Dibuja el QR en canvas
         const canvas = document.createElement('canvas');
         canvas.width = SIZE; canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(await loadImage(qrDataUrl), 0, 0, SIZE, SIZE);
 
-        // 3. Superpone el logo si existe
         if (logoBase64) {
-            const LOGO = Math.round(SIZE * 0.22);
+            const LOGO = Math.round(SIZE * 0.2);
             const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
             const logoImg = await loadImage(logoBase64);
             ctx.fillStyle = '#ffffff';
@@ -245,7 +265,6 @@ async function buildQRDataUrl(url, logoBase64) {
             ctx.fill();
             ctx.drawImage(logoImg, x, y, LOGO, LOGO);
         }
-
         return canvas.toDataURL('image/png');
     } catch (err) {
         console.error('Error generando QR:', err);
