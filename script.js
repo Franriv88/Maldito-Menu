@@ -72,6 +72,7 @@ async function renderAdminMenu() {
         applyStyles(styleConfig);
         populateStyleControls(styleConfig);
         initStyleControls();
+        updateAdminHeader();
 
         const byCategory = {};
         productsSnap.forEach(doc => {
@@ -410,6 +411,26 @@ function populateStyleControls(cfg) {
     }
 }
 
+function updateAdminHeader() {
+    const mode    = document.getElementById('headerModeCtrl')
+        ?.querySelector('.seg-btn.active')?.dataset.value ?? 'text';
+    const logoPrev = document.getElementById('logoPreview');
+    const logoSrc  = (logoPrev?.style.display !== 'none' && logoPrev?.src) ? logoPrev.src : null;
+
+    const nameEl   = document.getElementById('adminRestName');
+    const logoEl   = document.getElementById('adminLogoPreview');
+    if (!nameEl || !logoEl) return;
+
+    if (mode === 'logo' && logoSrc) {
+        nameEl.style.display = 'none';
+        logoEl.src            = logoSrc;
+        logoEl.style.display  = 'block';
+    } else {
+        nameEl.style.display  = '';
+        logoEl.style.display  = 'none';
+    }
+}
+
 async function saveStyleField(key, value) {
     try {
         await restRef().collection('config').doc('styles').set({ [key]: value }, { merge: true });
@@ -513,6 +534,7 @@ function initStyleControls() {
             btn.addEventListener('click', async () => {
                 headerModeCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                updateAdminHeader();
                 await saveStyleField('headerMode', btn.dataset.value);
             });
         });
@@ -535,6 +557,7 @@ function initStyleControls() {
         if (p) { p.src = ''; p.style.display = 'none'; }
         if (b) b.style.display = 'none';
         if (g) g.style.display = 'none';
+        updateAdminHeader();
     });
     document.getElementById('faviconRemoveBtn')?.addEventListener('click', async () => {
         await restRef().collection('config').doc('styles').update({ faviconBase64: firebase.firestore.FieldValue.delete() });
@@ -603,6 +626,7 @@ async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFav
     if (rmvBtn) rmvBtn.style.display = 'block';
     if (bgBtn)  bgBtn.style.display  = 'block';
     setStatus(origText);
+    updateAdminHeader();
 
     if (isFavicon) {
         let link = document.querySelector('link[rel="icon"]');
@@ -632,6 +656,7 @@ async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
         const base64 = await compressToBase64(processed, size, size, 'image/png', 0.9);
         await saveStyleField(firestoreKey, base64);
         prev.src = base64;
+        updateAdminHeader();
 
         btn.textContent = '✓ Listo';
         setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 2000);
