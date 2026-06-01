@@ -420,10 +420,14 @@ function applyStyles(cfg) {
     if (cfg.bgPage)        document.body.style.backgroundColor = cfg.bgPage;
     if (cfg.bgMenu)        r.style.setProperty('--primary-color',   cfg.bgMenu);
     if (cfg.fontSize)      r.style.setProperty('--base-font-size',  cfg.fontSize + 'px');
-    if (cfg.faviconBase64) {
-        let link = document.querySelector('link[rel="icon"]');
-        if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-        link.href = cfg.faviconBase64;
+    // Favicon: favicon personalizado, o logo como fallback — fuerza recarga
+    const iconSrc = cfg.faviconBase64 || cfg.logoBase64;
+    if (iconSrc) {
+        const old = document.querySelector('link[rel="icon"]');
+        if (old) old.remove();
+        const link = document.createElement('link');
+        link.rel = 'icon'; link.href = iconSrc;
+        document.head.appendChild(link);
     }
     const logoPreview    = document.getElementById('logoPreview');
     const logoRemove     = document.getElementById('logoRemoveBtn');

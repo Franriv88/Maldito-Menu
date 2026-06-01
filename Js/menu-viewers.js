@@ -71,14 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cfg.bgMenu)     r.style.setProperty('--primary-color',    cfg.bgMenu);
         if (cfg.fontSize)   r.style.setProperty('--base-font-size',   cfg.fontSize + 'px');
 
-        // Favicon: usa el favicon personalizado, o el logo como fallback
+        // Favicon: favicon personalizado, o logo como fallback
         const iconSrc = cfg.faviconBase64 || cfg.logoBase64;
-        if (iconSrc) {
-            const link = document.getElementById('favicon-link')
-                      || Object.assign(document.createElement('link'), { rel: 'icon', id: 'favicon-link' });
-            link.href = iconSrc;
-            if (!link.parentNode) document.head.appendChild(link);
-        }
+        if (iconSrc) setFavicon(iconSrc);
+    }
+
+    // ── Favicon (fuerza recarga para evitar caché del browser) ──
+    function setFavicon(src) {
+        const old = document.getElementById('favicon-link');
+        if (old) old.remove();
+        const link = document.createElement('link');
+        link.rel = 'icon'; link.id = 'favicon-link'; link.href = src;
+        document.head.appendChild(link);
     }
 
     // ── Meta tags para compartir (og:image, og:title, favicon) ─
