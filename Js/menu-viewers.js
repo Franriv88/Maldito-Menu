@@ -163,7 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasProducts = sec.categorias.some(cat => (byCategory[cat] || []).length > 0);
             if (!hasProducts) return;
 
-            const layoutClass = sec.layout === 'reversed' ? 'layout-reversed' : '';
+            const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
+            const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
             const posVal  = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
