@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mise — Presentación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+    --gold:#c8b89a;
+    --gold-dim:rgba(200,184,154,.45);
+    --gold-faint:rgba(200,184,154,.1);
+    --dark:#0b0b0b;
+    --card:#161616;
+    --surface:#1e1e1e;
+    --text:#c8b89a;
+    --muted:rgba(200,184,154,.45);
+    --serif:'Cormorant Garant',serif;
+    --sans:'Inter',sans-serif;
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:var(--text);font-family:var(--sans)}
+
+/* ── SLIDES ─────────────────────────────────── */
+.deck{width:100vw;height:100vh;position:relative}
+
+.slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:4rem 5vw;
+    opacity:0;transform:translateY(18px);
+    transition:opacity .55s cubic-bezier(.22,1,.36,1),transform .55s cubic-bezier(.22,1,.36,1);
+    pointer-events:none;
+}
+.slide.active{opacity:1;transform:translateY(0);pointer-events:auto}
+.slide.exit-up{opacity:0;transform:translateY(-18px);pointer-events:none}
+
+/* ── NAV ────────────────────────────────────── */
+.nav{
+    position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:1.2rem;z-index:100;
+}
+.dot{
+    width:6px;height:6px;border-radius:50%;
+    background:rgba(200,184,154,.2);cursor:pointer;
+    transition:background .3s,transform .3s;
+}
+.dot.active{background:var(--gold);transform:scale(1.4)}
+
+.arr{
+    position:fixed;top:50%;transform:translateY(-50%);
+    background:rgba(200,184,154,.05);border:1px solid rgba(200,184,154,.1);
+    color:rgba(200,184,154,.4);width:42px;height:42px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:1.1rem;z-index:100;
+    transition:all .2s;user-select:none;
+}
+.arr:hover{background:rgba(200,184,154,.1);color:var(--gold)}
+.arr-l{left:1.5rem}
+.arr-r{right:1.5rem}
+
+.slide-counter{
+    position:fixed;top:1.4rem;right:2rem;
+    font-size:.65rem;letter-spacing:2px;
+    color:rgba(200,184,154,.25);font-family:var(--sans);
+}
+
+/* ── TYPOGRAPHY ─────────────────────────────── */
+.display{font-family:var(--serif);font-size:clamp(3.5rem,8vw,7rem);font-weight:300;line-height:1;color:var(--gold)}
+.display-italic{font-style:italic}
+.h2{font-family:var(--serif);font-size:clamp(2rem,4.5vw,3.8rem);font-weight:300;line-height:1.1}
+.h3{font-family:var(--serif);font-size:clamp(1.4rem,3vw,2.2rem);font-weight:300;font-style:italic}
+.label{font-size:.62rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--muted)}
+.body{font-size:.9rem;line-height:1.75;color:var(--muted);font-weight:300}
+.big-body{font-size:1.05rem;line-height:1.8;color:var(--muted);font-weight:300}
+
+/* ── DECORATIVE LINE ────────────────────────── */
+.rule{width:40px;height:1px;background:rgba(200,184,154,.25);margin:.8rem 0}
+
+/* ── LAYOUT HELPERS ─────────────────────────── */
+.cols{display:flex;gap:clamp(2rem,5vw,5rem);align-items:center;width:100%;max-width:1100px}
+.col{flex:1}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center}
+
+/* ── CARDS ──────────────────────────────────── */
+.glass{
+    background:var(--card);
+    border:1px solid rgba(200,184,154,.08);
+    border-radius:16px;padding:1.6rem 1.8rem;
+    position:relative;overflow:hidden;
+}
+.glass::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(200,184,154,.15),transparent);
+}
+
+/* ── FEATURE LIST ───────────────────────────── */
+.feat-list{display:flex;flex-direction:column;gap:.9rem}
+.feat{display:flex;align-items:flex-start;gap:.9rem}
+.feat-icon{
+    width:32px;height:32px;border-radius:8px;flex-shrink:0;
+    background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.12);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold);font-size:.85rem;margin-top:.1rem;
+}
+.feat-text h4{font-size:.85rem;font-weight:500;color:var(--gold);margin-bottom:.15rem;letter-spacing:.2px}
+.feat-text p{font-size:.75rem;color:var(--muted);line-height:1.5}
+
+/* ── PAIN POINT ─────────────────────────────── */
+.pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;width:100%;max-width:780px}
+.pain{background:rgba(220,53,69,.04);border:1px solid rgba(220,53,69,.12);border-radius:14px;padding:1.4rem 1.5rem}
+.pain-icon{font-size:1.4rem;margin-bottom:.6rem}
+.pain h4{font-size:.82rem;font-weight:500;color:rgba(230,100,100,.8);margin-bottom:.3rem}
+.pain p{font-size:.72rem;color:rgba(200,184,154,.35);line-height:1.5}
+
+/* ── PILL / BADGE ───────────────────────────── */
+.pill{
+    display:inline-flex;align-items:center;gap:.4rem;
+    background:rgba(200,184,154,.07);border:1px solid rgba(200,184,154,.15);
+    border-radius:20px;padding:.3rem .9rem;
+    font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+}
+
+/* ── BIG NUMBER ─────────────────────────────── */
+.big-num{font-family:var(--serif);font-size:clamp(4rem,10vw,9rem);font-weight:300;color:var(--gold);line-height:1}
+
+/* ── DIFF TABLE ─────────────────────────────── */
+.diff{display:grid;grid-template-columns:1fr auto 1fr;gap:0;width:100%;max-width:860px;align-items:stretch}
+.diff-col{display:flex;flex-direction:column;gap:.6rem}
+.diff-row{
+    padding:.7rem 1.1rem;border-radius:8px;font-size:.78rem;
+    display:flex;align-items:center;gap:.5rem;line-height:1.4;
+}
+.diff-bad{background:rgba(220,53,69,.05);border:1px solid rgba(220,53,69,.1);color:rgba(200,140,140,.6)}
+.diff-good{background:rgba(40,167,69,.05);border:1px solid rgba(40,167,69,.12);color:rgba(140,200,140,.75)}
+.diff-label{writing-mode:horizontal-tb;text-align:center;padding:0 1.5rem;display:flex;align-items:center;justify-content:center}
+.diff-vs{
+    font-family:var(--serif);font-style:italic;font-size:2.2rem;
+    color:rgba(200,184,154,.2);
+}
+
+/* ── TECH BADGE ─────────────────────────────── */
+.tech-grid{display:flex;flex-wrap:wrap;gap:.65rem;max-width:720px}
+.tech-tag{
+    background:rgba(200,184,154,.05);border:1px solid rgba(200,184,154,.12);
+    border-radius:8px;padding:.45rem 1rem;font-size:.72rem;color:var(--muted);
+    display:flex;align-items:center;gap:.5rem;
+}
+.tech-tag svg{opacity:.6}
+
+/* ── MOCKUP: ADMIN ──────────────────────────── */
+.mock-admin{
+    background:#111;border:1px solid rgba(200,184,154,.12);
+    border-radius:12px;overflow:hidden;width:100%;max-width:640px;
+    font-size:.7rem;box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.mock-topbar{
+    background:#0d0d0d;border-bottom:1px solid rgba(200,184,154,.08);
+    padding:.55rem .9rem;display:flex;align-items:center;gap:.8rem;
+    font-size:.62rem;color:rgba(200,184,154,.4);
+}
+.mock-topbar .brand{color:#c8b89a;font-weight:600}
+.mock-body{display:flex;height:280px}
+.mock-menu{flex:1;padding:1rem;display:flex;flex-direction:column;gap:.4rem;overflow:hidden}
+.mock-logo-area{font-family:var(--serif);font-style:italic;font-size:1.4rem;color:#c8b89a;text-align:center;margin-bottom:.5rem}
+.mock-cat{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:rgba(200,184,154,.4);border-bottom:1px solid rgba(200,184,154,.08);padding-bottom:.3rem;margin-top:.4rem}
+.mock-item{display:flex;justify-content:space-between;font-size:.68rem;color:rgba(200,184,154,.7);padding:.15rem 0}
+.mock-item .price{color:rgba(200,184,154,.5)}
+.mock-sidebar{
+    width:140px;background:rgba(240,235,228,.97);border-left:1px solid rgba(0,0,0,.06);
+    padding:.8rem;font-size:.6rem;color:#555;display:flex;flex-direction:column;gap:.7rem;overflow:hidden;
+}
+.mock-sidebar .s-label{font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:#999;margin-bottom:.2rem}
+.mock-sidebar .s-select{
+    background:#fff;border:1px solid #ddd;border-radius:4px;padding:.2rem .4rem;
+    font-size:.55rem;color:#666;
+}
+.mock-sidebar .s-slider{height:3px;background:#ddd;border-radius:3px;position:relative}
+.mock-sidebar .s-slider::after{content:'';position:absolute;top:-4px;left:55%;width:10px;height:10px;background:#fff;border:1px solid #ccc;border-radius:50%}
+.mock-sidebar .s-colors{display:flex;gap:.3rem}
+.mock-sidebar .s-swatch{width:16px;height:16px;border-radius:3px;border:1px solid rgba(0,0,0,.1)}
+
+/* ── MOCKUP: PUBLIC MENU ────────────────────── */
+.mock-menu-pub{
+    background:#1a1a1a;border:1px solid rgba(200,184,154,.12);
+    border-radius:12px;overflow:hidden;width:100%;max-width:340px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.mock-pub-header{text-align:center;padding:1.2rem .8rem .6rem;font-family:var(--serif);font-style:italic;font-size:1.5rem;color:#c8b89a}
+.mock-pub-section{display:flex;margin:0}
+.mock-pub-content{flex:1;padding:.6rem .8rem;display:flex;flex-direction:column;gap:.25rem}
+.mock-pub-cat{font-size:.55rem;letter-spacing:2px;text-transform:uppercase;color:rgba(200,184,154,.5);border-bottom:1px solid rgba(200,184,154,.1);padding-bottom:.25rem;margin-bottom:.2rem}
+.mock-pub-item{display:flex;justify-content:space-between;font-size:.62rem;color:rgba(200,184,154,.7)}
+.mock-pub-img{width:80px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
+
+/* ── MOCKUP: DASHBOARD ──────────────────────── */
+.mock-dash{background:#111;border:1px solid rgba(200,184,154,.1);border-radius:10px;overflow:hidden;max-width:560px;width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.mock-dash-top{background:#0d0d0d;border-bottom:1px solid rgba(200,184,154,.06);padding:.5rem 1rem;font-size:.62rem;color:rgba(200,184,154,.4)}
+.mock-dash-body{padding:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.mock-card-mini{background:#1a1a1a;border:1px solid rgba(200,184,154,.1);border-radius:8px;padding:.7rem;display:flex;flex-direction:column;gap:.4rem}
+.mock-card-mini .title{font-size:.62rem;color:#c8b89a;font-weight:600}
+.mock-btn-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.mock-btn{font-size:.45rem;border-radius:4px;padding:.2rem .4rem;border:1px solid rgba(200,184,154,.2);color:rgba(200,184,154,.5)}
+.mock-btn.green{border-color:rgba(40,167,69,.4);color:rgba(100,200,100,.6);background:rgba(40,167,69,.06)}
+.mock-btn.red{border-color:rgba(220,53,69,.3);color:rgba(220,100,100,.6)}
+
+/* ── MOCKUP: QR ─────────────────────────────── */
+.mock-qr-wrap{
+    background:#1a1a1a;border:1px solid rgba(200,184,154,.1);border-radius:16px;
+    padding:2rem;display:flex;flex-direction:column;align-items:center;gap:1rem;
+    max-width:260px;box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+.mock-qr-title{font-family:var(--serif);font-style:italic;font-size:1.1rem;color:#c8b89a}
+.mock-qr-canvas{width:160px;height:160px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.qr-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;width:140px;height:140px}
+.qr-cell{background:#111;border-radius:1px}
+.qr-cell.w{background:#fff}
+.qr-logo{position:absolute;width:36px;height:36px;background:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;font-size:.7rem;color:#1a1a1a;border:2px solid #fff}
+.mock-qr-url{font-size:.52rem;color:rgba(200,184,154,.35);letter-spacing:.3px;text-align:center}
+.mock-qr-btn{background:#28a745;color:#fff;border:none;border-radius:20px;padding:.5rem 1.2rem;font-size:.65rem;cursor:default}
+
+/* ── SLIDE SPECIFIC ─────────────────────────── */
+
+/* S1: Cover */
+.s1-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 100%,rgba(200,184,154,.04) 0%,transparent 70%)}
+.s1-line{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:1px;height:30%;background:linear-gradient(to bottom,rgba(200,184,154,.15),transparent)}
+
+/* S3: solution */
+.sol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;width:100%;max-width:900px}
+.sol-card{background:var(--card);border:1px solid rgba(200,184,154,.07);border-radius:14px;padding:1.6rem;display:flex;flex-direction:column;gap:.6rem;transition:border-color .2s}
+.sol-num{font-family:var(--serif);font-size:2.8rem;font-weight:300;color:rgba(200,184,154,.18);line-height:1}
+.sol-h{font-size:.85rem;font-weight:500;color:var(--gold)}
+.sol-p{font-size:.72rem;color:var(--muted);line-height:1.6}
+
+/* S6: speed */
+.speed-center{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1.2rem}
+
+/* S9: tech */
+.tech-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;max-width:860px}
+.tech-group{background:var(--card);border:1px solid rgba(200,184,154,.07);border-radius:14px;padding:1.4rem 1.6rem}
+.tech-group h4{font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;padding-bottom:.6rem;border-bottom:1px solid rgba(200,184,154,.07)}
+.tech-item{display:flex;align-items:center;gap:.6rem;font-size:.76rem;color:rgba(200,184,154,.7);margin-bottom:.5rem}
+.tech-item::before{content:'✦';font-size:.5rem;color:rgba(200,184,154,.35)}
+
+/* S10: CTA */
+.cta-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(200,184,154,.04) 0%,transparent 70%);pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ────────────────────────────────────────────
+     S 1 — COVER
+──────────────────────────────────────────── -->
+<div class="slide active" data-slide="0">
+    <div class="s1-bg"></div>
+    <div class="s1-line"></div>
+    <div class="center" style="gap:1.4rem;position:relative">
+        <div class="pill">Menú digital para restaurantes</div>
+        <div class="display display-italic" style="font-size:clamp(5rem,14vw,10rem)">Mise</div>
+        <div class="rule"></div>
+        <p class="h3" style="color:var(--muted);font-size:1.3rem">"Todo listo. Solo falta servir."</p>
+        <p class="body" style="max-width:420px;text-align:center;margin-top:.5rem">
+            La plataforma que transforma cualquier restaurante en una marca digital, en minutos.
+        </p>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 2 — EL PROBLEMA
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="1">
+    <div class="center" style="gap:2rem;width:100%;max-width:860px">
+        <p class="label">El problema</p>
+        <div class="h2" style="text-align:center">El menú tradicional<br>ya no alcanza.</div>
+        <div class="pain-grid">
+            <div class="pain">
+                <div class="pain-icon">🖨</div>
+                <h4>Imprimir es caro y lento</h4>
+                <p>Cada cambio de precio requiere reimprimir. El costo se acumula y la carta queda desactualizada.</p>
+            </div>
+            <div class="pain">
+                <div class="pain-icon">📄</div>
+                <h4>El PDF no tiene tu marca</h4>
+                <p>El QR que lleva a un PDF estático no tiene identidad visual, no se actualiza y no genera confianza.</p>
+            </div>
+            <div class="pain">
+                <div class="pain-icon">📱</div>
+                <h4>WhatsApp no es un menú</h4>
+                <p>Enviar la foto del menú por WhatsApp es provisional, no escalable y difícil de mantener.</p>
+            </div>
+            <div class="pain">
+                <div class="pain-icon">💸</div>
+                <h4>Las plataformas cobran comisión</h4>
+                <p>PedidosYa, Rappi: te dan visibilidad pero se quedan con parte de cada venta y dictan las reglas.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 3 — LA SOLUCIÓN
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="2">
+    <div class="center" style="gap:2rem;width:100%;max-width:980px">
+        <p class="label">La solución</p>
+        <div class="h2" style="text-align:center">Un menú que vive en la nube.<br><span style="font-style:italic;color:var(--muted)">Siempre actualizado, siempre tuyo.</span></div>
+        <div class="sol-grid">
+            <div class="sol-card">
+                <div class="sol-num">01</div>
+                <div class="sol-h">Actualización instantánea</div>
+                <p class="sol-p">Cambiás un precio, agregás un plato o quitás una sección. El menú del cliente se actualiza en tiempo real, sin recargar.</p>
+            </div>
+            <div class="sol-card">
+                <div class="sol-num">02</div>
+                <div class="sol-h">Tu identidad visual</div>
+                <p class="sol-p">Logo, colores, tipografía, imágenes con fondo eliminado por IA. Tu menú refleja exactamente tu marca.</p>
+            </div>
+            <div class="sol-card">
+                <div class="sol-num">03</div>
+                <div class="sol-h">QR y link listos</div>
+                <p class="sol-p">Un QR único con tu logo en el centro para cada mesa. Un link que podés compartir por WhatsApp, redes e Instagram.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 4 — PANEL DE ADMINISTRACIÓN
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="3">
+    <div class="cols" style="align-items:center;gap:clamp(2rem,5vw,5rem)">
+        <div style="flex:1;display:flex;flex-direction:column;gap:1.4rem">
+            <p class="label">Panel de administración</p>
+            <div class="h2">Tu menú,<br><span style="font-style:italic">en un panel.</span></div>
+            <div class="feat-list">
+                <div class="feat">
+                    <div class="feat-icon">✏</div>
+                    <div class="feat-text">
+                        <h4>Edición inline</h4>
+                        <p>Hacé clic sobre cualquier producto, precio o descripción y editalo directamente, sin formularios.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">＋</div>
+                    <div class="feat-text">
+                        <h4>Agregar y eliminar</h4>
+                        <p>Sumá productos por categoría con un clic. Eliminá con el botón ×.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">☁</div>
+                    <div class="feat-text">
+                        <h4>Guardado en la nube</h4>
+                        <p>Un botón "Guardar Menú" sincroniza todo con Firebase. Disponible al instante en el menú público.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="flex:1.2">
+            <div class="mock-admin">
+                <div class="mock-topbar">
+                    <span>← Panel</span>
+                    <span class="brand">PACoffee</span>
+                    <span style="margin-left:auto">Francisco Rivas &nbsp;|&nbsp; Ver menú &nbsp;|&nbsp; Cerrar sesión</span>
+                </div>
+                <div class="mock-body">
+                    <div class="mock-menu">
+                        <div class="mock-logo-area">PACoffee</div>
+                        <div class="mock-cat">Café de especialidad</div>
+                        <div class="mock-item"><span>Café</span><span class="price">$ 3500</span></div>
+                        <div class="mock-item"><span>Cortado</span><span class="price">$ 10000</span></div>
+                        <div class="mock-item"><span>Macchiato</span><span class="price">$ 6500</span></div>
+                        <div class="mock-item"><span>Mocaccino</span><span class="price">$ 4570</span></div>
+                        <div style="font-size:.52rem;color:rgba(200,184,154,.25);margin-top:.3rem;border:1px dashed rgba(200,184,154,.1);padding:.2rem .4rem;border-radius:4px">+ Agregar</div>
+                        <div class="mock-cat" style="margin-top:.6rem">Café Frío</div>
+                        <div class="mock-item"><span>Hice Latte</span><span class="price">$ 5000</span></div>
+                        <div class="mock-item"><span>Irlandés Volador</span><span class="price">$ 7500</span></div>
+                    </div>
+                    <div class="mock-sidebar">
+                        <div>
+                            <div class="s-label">Encabezado</div>
+                            <div class="s-select" style="display:flex;gap:.3rem">
+                                <span style="background:#555;color:#eee;border-radius:3px;padding:.1rem .4rem;font-size:.5rem">Título</span>
+                                <span style="background:#ddd;border-radius:3px;padding:.1rem .4rem;font-size:.5rem;color:#888">Logo</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="s-label">Fuente</div>
+                            <div class="s-select">Sans-serif ▾</div>
+                        </div>
+                        <div>
+                            <div class="s-label">Tamaño  14px</div>
+                            <div class="s-slider"></div>
+                        </div>
+                        <div>
+                            <div class="s-label">Colores</div>
+                            <div class="s-colors">
+                                <div class="s-swatch" style="background:#453423"></div>
+                                <div class="s-swatch" style="background:#dbc7b8"></div>
+                                <div class="s-swatch" style="background:#ffffff"></div>
+                                <div class="s-swatch" style="background:#1c1c1c"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="s-label">Logo</div>
+                            <div style="border:1px dashed #ccc;border-radius:4px;padding:.3rem;font-size:.48rem;color:#bbb;text-align:center">Arrastrá o clic</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 5 — PERSONALIZACIÓN
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="4">
+    <div class="cols" style="align-items:center">
+        <div style="flex:1.1">
+            <div class="mock-menu-pub">
+                <div class="mock-pub-header">PACoffee</div>
+                <div class="mock-pub-section">
+                    <div class="mock-pub-content">
+                        <div class="mock-pub-cat">Café de especialidad</div>
+                        <div class="mock-pub-item"><span>Café</span><span>$3500</span></div>
+                        <div class="mock-pub-item"><span>Cortado</span><span>$10000</span></div>
+                        <div class="mock-pub-item"><span>Macchiato</span><span>$6500</span></div>
+                        <div class="mock-pub-cat" style="margin-top:.5rem">Café Frío</div>
+                        <div class="mock-pub-item"><span>Hice Latte</span><span>$5000</span></div>
+                        <div class="mock-pub-item"><span>Irlandés Volador</span><span>$7500</span></div>
+                    </div>
+                    <div class="mock-pub-img">☕</div>
+                </div>
+                <div class="mock-pub-section" style="flex-direction:row-reverse">
+                    <div class="mock-pub-content">
+                        <div class="mock-pub-cat">Bebidas</div>
+                        <div class="mock-pub-item"><span>Exprimido</span><span>$3000</span></div>
+                        <div class="mock-pub-item"><span>Limonada</span><span>$2750</span></div>
+                        <div class="mock-pub-cat" style="margin-top:.4rem">Salados</div>
+                        <div class="mock-pub-item"><span>Croissant</span><span>$3000</span></div>
+                    </div>
+                    <div class="mock-pub-img">🌿</div>
+                </div>
+            </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:1.4rem">
+            <p class="label">Personalización</p>
+            <div class="h2">Tu marca,<br><span style="font-style:italic">no una plantilla.</span></div>
+            <div class="feat-list">
+                <div class="feat">
+                    <div class="feat-icon" style="font-size:.7rem">🎨</div>
+                    <div class="feat-text">
+                        <h4>Paleta de colores completa</h4>
+                        <p>Fondo de página, fondo del menú, color de títulos y productos. 4 pickers independientes.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon" style="font-size:.7rem">Aa</div>
+                    <div class="feat-text">
+                        <h4>Tipografía y tamaño</h4>
+                        <p>7 familias tipográficas. Slider de tamaño de 11 a 20px. Los cambios se ven en tiempo real.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon" style="font-size:.7rem">🖼</div>
+                    <div class="feat-text">
+                        <h4>Logo + eliminación de fondo IA</h4>
+                        <p>Subís tu logo, la IA elimina el fondo automáticamente. También para el favicon de la pestaña.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 6 — VELOCIDAD
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="5">
+    <div class="speed-center" style="gap:1.6rem">
+        <p class="label">Actualización en tiempo real</p>
+        <div style="display:flex;align-items:baseline;gap:1rem">
+            <div class="big-num">10</div>
+            <div style="display:flex;flex-direction:column;gap:.2rem">
+                <div class="h3" style="color:var(--gold)">segundos.</div>
+                <div class="body">De cambiar el precio a que<br>el cliente lo vea en su celular.</div>
+            </div>
+        </div>
+        <div class="rule" style="width:60px"></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:700px;width:100%">
+            <div class="glass" style="text-align:center;padding:1.4rem 1rem">
+                <div style="font-size:1.5rem;margin-bottom:.5rem">💰</div>
+                <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Subió el precio del café</div>
+                <div style="font-size:.68rem;color:var(--muted)">Editás el número → Guardar → Listo.</div>
+            </div>
+            <div class="glass" style="text-align:center;padding:1.4rem 1rem">
+                <div style="font-size:1.5rem;margin-bottom:.5rem">🚫</div>
+                <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Se agotó el croissant</div>
+                <div style="font-size:.68rem;color:var(--muted)">Lo eliminás del panel → Guardado.</div>
+            </div>
+            <div class="glass" style="text-align:center;padding:1.4rem 1rem">
+                <div style="font-size:1.5rem;margin-bottom:.5rem">✨</div>
+                <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Nuevo plato del día</div>
+                <div style="font-size:.68rem;color:var(--muted)">+ Agregar → nombre + precio → Guardar.</div>
+            </div>
+        </div>
+        <p class="body" style="max-width:500px;text-align:center">Sin reimprimir. Sin llamar a nadie. Sin esperar.<br>Desde el celular o la computadora.</p>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 7 — MENÚ PÚBLICO
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="6">
+    <div class="cols" style="align-items:center;gap:clamp(3rem,6vw,6rem)">
+        <div style="flex:1;display:flex;flex-direction:column;gap:1.4rem">
+            <p class="label">Lo que ve tu cliente</p>
+            <div class="h2">El menú que<br><span style="font-style:italic">representa tu local.</span></div>
+            <div class="feat-list">
+                <div class="feat">
+                    <div class="feat-icon">📱</div>
+                    <div class="feat-text">
+                        <h4>100% mobile-first</h4>
+                        <p>Diseñado para verse perfecto en el celular del cliente. Sin instalar ninguna app.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">🖼</div>
+                    <div class="feat-text">
+                        <h4>Imágenes por sección</h4>
+                        <p>Café, bebidas, salados, dulces: cada sección tiene su imagen con posición y altura ajustables.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">👆</div>
+                    <div class="feat-text">
+                        <h4>Acordeón interactivo</h4>
+                        <p>Cada producto despliega su descripción al toque. Experiencia limpia y ordenada.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">⬆</div>
+                    <div class="feat-text">
+                        <h4>Botón Compartir nativo</h4>
+                        <p>El cliente puede compartir el menú por WhatsApp, Instagram o cualquier app desde su celular.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="flex:.9;display:flex;justify-content:center">
+            <div class="mock-menu-pub" style="max-width:280px">
+                <div class="mock-pub-header" style="font-size:1.8rem">PACoffee</div>
+                <div class="mock-pub-section">
+                    <div class="mock-pub-content">
+                        <div class="mock-pub-cat">Café de especialidad</div>
+                        <div class="mock-pub-item"><span>Café</span><span>$3.500</span></div>
+                        <div class="mock-pub-item"><span>Cortado</span><span>$10.000</span></div>
+                        <div class="mock-pub-item"><span>Macchiato</span><span>$6.500</span></div>
+                        <div class="mock-pub-item"><span>Mocaccino</span><span>$4.570</span></div>
+                    </div>
+                    <div class="mock-pub-img">☕</div>
+                </div>
+                <div class="mock-pub-section" style="flex-direction:row-reverse">
+                    <div class="mock-pub-content">
+                        <div class="mock-pub-cat">Bebidas</div>
+                        <div class="mock-pub-item"><span>Exprimido</span><span>$3.000</span></div>
+                        <div class="mock-pub-item"><span>Limonada</span><span>$2.750</span></div>
+                        <div class="mock-pub-item"><span>Té Chai</span><span>$3.550</span></div>
+                    </div>
+                    <div class="mock-pub-img">🌿</div>
+                </div>
+                <div class="mock-pub-section">
+                    <div class="mock-pub-content">
+                        <div class="mock-pub-cat">Salados & Laminados</div>
+                        <div class="mock-pub-item"><span>Croissant</span><span>$3.000</span></div>
+                        <div class="mock-pub-item"><span>Pizza e quesos</span><span>$32.500</span></div>
+                    </div>
+                    <div class="mock-pub-img">🥐</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 8 — QR Y LINK
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="7">
+    <div class="cols" style="align-items:center;justify-content:center;gap:clamp(3rem,6vw,7rem)">
+        <div class="mock-qr-wrap">
+            <div class="mock-qr-title">PACoffee</div>
+            <div class="mock-qr-canvas">
+                <!-- QR pattern approximation -->
+                <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Finder patterns -->
+                    <rect x="8" y="8" width="30" height="30" rx="3" fill="#111"/>
+                    <rect x="12" y="12" width="22" height="22" rx="2" fill="#fff"/>
+                    <rect x="16" y="16" width="14" height="14" rx="1" fill="#111"/>
+                    <rect x="102" y="8" width="30" height="30" rx="3" fill="#111"/>
+                    <rect x="106" y="12" width="22" height="22" rx="2" fill="#fff"/>
+                    <rect x="110" y="16" width="14" height="14" rx="1" fill="#111"/>
+                    <rect x="8" y="102" width="30" height="30" rx="3" fill="#111"/>
+                    <rect x="12" y="106" width="22" height="22" rx="2" fill="#fff"/>
+                    <rect x="16" y="110" width="14" height="14" rx="1" fill="#111"/>
+                    <!-- Data modules (simplified) -->
+                    <rect x="46" y="8" width="5" height="5" fill="#111"/><rect x="56" y="8" width="5" height="5" fill="#111"/>
+                    <rect x="66" y="8" width="5" height="5" fill="#111"/><rect x="76" y="8" width="5" height="5" fill="#111"/>
+                    <rect x="86" y="8" width="5" height="5" fill="#111"/><rect x="46" y="18" width="5" height="5" fill="#111"/>
+                    <rect x="66" y="18" width="5" height="5" fill="#111"/><rect x="86" y="18" width="5" height="5" fill="#111"/>
+                    <rect x="46" y="28" width="5" height="5" fill="#111"/><rect x="56" y="28" width="5" height="5" fill="#111"/>
+                    <rect x="76" y="28" width="5" height="5" fill="#111"/><rect x="8" y="46" width="5" height="5" fill="#111"/>
+                    <rect x="18" y="46" width="5" height="5" fill="#111"/><rect x="28" y="46" width="5" height="5" fill="#111"/>
+                    <rect x="46" y="46" width="5" height="5" fill="#111"/><rect x="56" y="46" width="5" height="5" fill="#111"/>
+                    <rect x="86" y="46" width="5" height="5" fill="#111"/><rect x="96" y="46" width="5" height="5" fill="#111"/>
+                    <rect x="106" y="46" width="5" height="5" fill="#111"/><rect x="116" y="46" width="5" height="5" fill="#111"/>
+                    <rect x="126" y="46" width="5" height="5" fill="#111"/><rect x="8" y="56" width="5" height="5" fill="#111"/>
+                    <rect x="46" y="56" width="5" height="5" fill="#111"/><rect x="66" y="56" width="5" height="5" fill="#111"/>
+                    <rect x="76" y="56" width="5" height="5" fill="#111"/><rect x="96" y="56" width="5" height="5" fill="#111"/>
+                    <rect x="116" y="56" width="5" height="5" fill="#111"/><rect x="8" y="66" width="5" height="5" fill="#111"/>
+                    <rect x="18" y="66" width="5" height="5" fill="#111"/><rect x="36" y="66" width="5" height="5" fill="#111"/>
+                    <!-- Logo center white box -->
+                    <rect x="52" y="52" width="36" height="36" rx="4" fill="#fff"/>
+                    <!-- Logo text -->
+                    <text x="70" y="74" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="11" fill="#1a1a1a">M</text>
+                    <!-- More data -->
+                    <rect x="96" y="66" width="5" height="5" fill="#111"/><rect x="116" y="66" width="5" height="5" fill="#111"/>
+                    <rect x="126" y="66" width="5" height="5" fill="#111"/><rect x="8" y="76" width="5" height="5" fill="#111"/>
+                    <rect x="28" y="76" width="5" height="5" fill="#111"/><rect x="36" y="76" width="5" height="5" fill="#111"/>
+                    <rect x="106" y="76" width="5" height="5" fill="#111"/><rect x="126" y="76" width="5" height="5" fill="#111"/>
+                    <rect x="8" y="86" width="5" height="5" fill="#111"/><rect x="18" y="86" width="5" height="5" fill="#111"/>
+                    <rect x="36" y="86" width="5" height="5" fill="#111"/><rect x="96" y="86" width="5" height="5" fill="#111"/>
+                    <rect x="116" y="86" width="5" height="5" fill="#111"/><rect x="46" y="96" width="5" height="5" fill="#111"/>
+                    <rect x="56" y="96" width="5" height="5" fill="#111"/><rect x="76" y="96" width="5" height="5" fill="#111"/>
+                    <rect x="86" y="96" width="5" height="5" fill="#111"/><rect x="96" y="96" width="5" height="5" fill="#111"/>
+                    <rect x="116" y="96" width="5" height="5" fill="#111"/><rect x="46" y="106" width="5" height="5" fill="#111"/>
+                    <rect x="66" y="106" width="5" height="5" fill="#111"/><rect x="86" y="106" width="5" height="5" fill="#111"/>
+                    <rect x="126" y="106" width="5" height="5" fill="#111"/><rect x="46" y="116" width="5" height="5" fill="#111"/>
+                    <rect x="56" y="116" width="5" height="5" fill="#111"/><rect x="76" y="116" width="5" height="5" fill="#111"/>
+                    <rect x="106" y="116" width="5" height="5" fill="#111"/><rect x="116" y="116" width="5" height="5" fill="#111"/>
+                    <rect x="46" y="126" width="5" height="5" fill="#111"/><rect x="66" y="126" width="5" height="5" fill="#111"/>
+                    <rect x="86" y="126" width="5" height="5" fill="#111"/><rect x="96" y="126" width="5" height="5" fill="#111"/>
+                </svg>
+            </div>
+            <div class="mock-qr-url">maldito-cafe.web.app/menu.html?r=PACoffee</div>
+            <button class="mock-qr-btn">⬇ Descargar QR</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.6rem;max-width:400px">
+            <p class="label">QR + Link para compartir</p>
+            <div class="h2">Un QR para<br><span style="font-style:italic">cada mesa.</span></div>
+            <div class="feat-list">
+                <div class="feat">
+                    <div class="feat-icon">⬛</div>
+                    <div class="feat-text">
+                        <h4>QR con tu logo en el centro</h4>
+                        <p>Generado automáticamente con corrección de error alta. Tu logo ocupa el centro.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">🔗</div>
+                    <div class="feat-text">
+                        <h4>Link listo para compartir</h4>
+                        <p>Un URL único por restaurante. Funciona en Instagram bio, WhatsApp, Google Maps.</p>
+                    </div>
+                </div>
+                <div class="feat">
+                    <div class="feat-icon">⬇</div>
+                    <div class="feat-text">
+                        <h4>Descargable en alta calidad</h4>
+                        <p>El QR se descarga en PNG listo para imprimir en mesas, pizarras o packaging.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 9 — FUNCIONALIDADES TÉCNICAS
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="8">
+    <div class="center" style="gap:1.8rem;width:100%;max-width:960px">
+        <p class="label">Bajo el capó</p>
+        <div class="h2" style="text-align:center">Tecnología de nivel enterprise,<br><span style="font-style:italic">operada por cualquier restaurante.</span></div>
+        <div class="tech-col-grid">
+            <div class="tech-group">
+                <h4>Base de datos & backend</h4>
+                <div class="tech-item">Firebase Firestore — actualizaciones en &lt;1 segundo</div>
+                <div class="tech-item">Autenticación segura con Google (OAuth 2.0)</div>
+                <div class="tech-item">Arquitectura multi-tenant — cada restaurante aislado</div>
+                <div class="tech-item">Firebase Hosting — CDN global, HTTPS automático</div>
+            </div>
+            <div class="tech-group">
+                <h4>Inteligencia artificial</h4>
+                <div class="tech-item">Eliminación de fondo por IA (@imgly background removal)</div>
+                <div class="tech-item">Detección de transparencia — no reprocesa lo que ya es PNG</div>
+                <div class="tech-item">Auto-contraste de texto según el color de fondo elegido</div>
+                <div class="tech-item">Generación de QR con logo embebido en el browser</div>
+            </div>
+            <div class="tech-group">
+                <h4>Diseño & frontend</h4>
+                <div class="tech-item">100% responsive — mobile-first, sin apps nativas</div>
+                <div class="tech-item">Variables CSS en tiempo real — cambios sin recargar</div>
+                <div class="tech-item">PWA-ready — funciona sin conexión (caché local)</div>
+                <div class="tech-item">Open Graph dinámico — preview en redes sociales</div>
+            </div>
+            <div class="tech-group">
+                <h4>Gestión para el admin</h4>
+                <div class="tech-item">Dashboard multi-restaurante por cuenta</div>
+                <div class="tech-item">Edición de nombre inline desde el panel</div>
+                <div class="tech-item">Logo y favicon personalizados con eliminación de fondo</div>
+                <div class="tech-item">Preview en tiempo real en el editor admin</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────────────────────────────────────
+     S 10 — CTA
+──────────────────────────────────────────── -->
+<div class="slide" data-slide="9">
+    <div class="cta-glow"></div>
+    <div class="center" style="gap:1.6rem;position:relative">
+        <p class="label">Mise — Menú digital</p>
+        <div class="display display-italic" style="font-size:clamp(4rem,12vw,9rem)">Mise</div>
+        <div class="rule" style="width:50px;margin:.2rem 0"></div>
+        <p class="h3" style="color:var(--muted);font-size:1.3rem;font-style:italic">
+            "Todo listo. Solo falta servir."
+        </p>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin-top:.8rem">
+            <div class="glass" style="padding:1rem 1.6rem;text-align:center;min-width:160px">
+                <div style="font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem">Menú listo en</div>
+                <div style="font-family:var(--serif);font-size:2rem;font-weight:300">5 min</div>
+            </div>
+            <div class="glass" style="padding:1rem 1.6rem;text-align:center;min-width:160px">
+                <div style="font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem">Actualización en</div>
+                <div style="font-family:var(--serif);font-size:2rem;font-weight:300">10 seg</div>
+            </div>
+            <div class="glass" style="padding:1rem 1.6rem;text-align:center;min-width:160px">
+                <div style="font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem">QR para mesas</div>
+                <div style="font-family:var(--serif);font-size:2rem;font-weight:300">∞</div>
+            </div>
+        </div>
+        <p class="body" style="max-width:380px;text-align:center;margin-top:.6rem;font-size:.8rem">
+            Sin comisiones. Sin contratos. Sin técnicos.<br>Solo tu menú, tu marca, tu identidad.
+        </p>
+    </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- ── NAVIGATION ── -->
+<div class="arr arr-l" id="arrL">‹</div>
+<div class="arr arr-r" id="arrR">›</div>
+<div class="nav" id="nav"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+const TOTAL = 10;
+let cur = 0;
+
+const deck  = document.getElementById('deck');
+const nav   = document.getElementById('nav');
+const ctr   = document.getElementById('counter');
+const slides = Array.from(document.querySelectorAll('.slide'));
+
+// Build dots
+slides.forEach((_,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = ()=> go(i);
+    nav.appendChild(d);
+});
+
+function go(next){
+    if(next===cur) return;
+    const prev = cur;
+    slides[prev].classList.remove('active');
+    slides[prev].classList.add('exit-up');
+    setTimeout(()=> slides[prev].classList.remove('exit-up'), 600);
+    cur = Math.max(0, Math.min(TOTAL-1, next));
+    slides[cur].classList.add('active');
+    nav.children[prev].classList.remove('active');
+    nav.children[cur].classList.add('active');
+    ctr.textContent = `${cur+1} / ${TOTAL}`;
+}
+
+go(0);
+ctr.textContent = `1 / ${TOTAL}`;
+
+document.getElementById('arrL').onclick = ()=> go(cur-1);
+document.getElementById('arrR').onclick = ()=> go(cur+1);
+
+document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') go(cur+1);
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(cur-1);
+});
+
+// Touch swipe
+let tx=0;
+document.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; }, {passive:true});
+document.addEventListener('touchend',   e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    if(Math.abs(dx)>50){ dx<0 ? go(cur+1) : go(cur-1); }
+}, {passive:true});
+</script>
+</body>
+</html>
