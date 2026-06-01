@@ -82,7 +82,9 @@ async function renderAdminMenu() {
         });
 
         const sectionsHTML = SECCIONES_CONFIG.map(sec => {
-            const layoutClass = sec.layout === 'reversed' ? 'layout-reversed' : '';
+            const savedLayout = imageConfig[`${sec.imgKey}_layout`];
+            const effectiveLayout = savedLayout || sec.layout;
+            const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
             const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
@@ -99,7 +101,8 @@ async function renderAdminMenu() {
             }).join('');
 
             return `
-            <div class="menu-section ${layoutClass}">
+            <div class="menu-section ${layoutClass}" style="position:relative">
+                <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image drop-zone" data-img-key="${sec.imgKey}"
                      style="background-image:url('${imgSrc}');background-position:${posVal}% center;height:${heightVal}px;min-height:0;">
@@ -146,6 +149,19 @@ function buildItemHTML(p) {
 function handleContainerClick(e) {
     const deleteBtn = e.target.closest('.delete-item-btn');
     if (deleteBtn) { deleteBtn.closest('.admin-item').remove(); return; }
+
+    const layoutBtn = e.target.closest('.layout-toggle-btn');
+    if (layoutBtn) {
+        const section = layoutBtn.closest('.menu-section');
+        const imgKey  = layoutBtn.dataset.imgKey;
+        section.classList.toggle('layout-reversed');
+        const newLayout = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
+        restRef().collection('config').doc('images').set(
+            { [`${imgKey}_layout`]: newLayout }, { merge: true }
+        ).catch(err => console.error('Error guardando layout:', err));
+        return;
+    }
+
     if (e.target.classList.contains('add-item-btn')) {
         const catDiv = e.target.previousElementSibling;
         catDiv.insertAdjacentHTML('beforeend', buildItemHTML({}));
@@ -324,6 +340,13 @@ async function guardarMenu() {
         const heightSlider = zone.querySelector('.height-slider');
         if (posSlider)    imageConfigActual[`${key}_pos`]    = parseInt(posSlider.value);
         if (heightSlider) imageConfigActual[`${key}_height`] = parseInt(heightSlider.value);
+    });
+    document.querySelectorAll('.layout-toggle-btn[data-img-key]').forEach(btn => {
+        const key = btn.dataset.imgKey;
+        const section = btn.closest('.menu-section');
+        if (key && section) {
+            imageConfigActual[`${key}_layout`] = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
+        }
     });
 
     try {
