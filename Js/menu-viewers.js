@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.title = restData.nombre || 'Menú';
         renderHeader();
         renderFooter();
+        updateShareMeta();
     }, err => console.error('Error restaurante:', err));
 
     // ── Listener 2: configuración de imágenes ──────────────────
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stylesConfig = doc.exists ? doc.data() : {};
         applyStyles(stylesConfig);
         if (Object.keys(restData).length) renderHeader();
+        updateShareMeta();
     }, err => console.error('Error estilos:', err));
 
     // ── Listener 3: productos ──────────────────────────────────
@@ -62,16 +64,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Estilos dinámicos ──────────────────────────────────────
     function applyStyles(cfg) {
         const r = document.documentElement;
-        if (cfg.fontFamily)    r.style.setProperty('--main-font-family', cfg.fontFamily);
-        if (cfg.titleColor)    r.style.setProperty('--title-color',      cfg.titleColor);
-        if (cfg.textColor)     r.style.setProperty('--text-color',       cfg.textColor);
-        if (cfg.bgPage)        document.body.style.backgroundColor = cfg.bgPage;
-        if (cfg.bgMenu)        r.style.setProperty('--primary-color',    cfg.bgMenu);
-        if (cfg.fontSize)      r.style.setProperty('--base-font-size',   cfg.fontSize + 'px');
-        if (cfg.faviconBase64) {
-            let link = document.querySelector('link[rel="icon"]');
-            if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-            link.href = cfg.faviconBase64;
+        if (cfg.fontFamily) r.style.setProperty('--main-font-family', cfg.fontFamily);
+        if (cfg.titleColor) r.style.setProperty('--title-color',      cfg.titleColor);
+        if (cfg.textColor)  r.style.setProperty('--text-color',       cfg.textColor);
+        if (cfg.bgPage)     document.body.style.backgroundColor = cfg.bgPage;
+        if (cfg.bgMenu)     r.style.setProperty('--primary-color',    cfg.bgMenu);
+        if (cfg.fontSize)   r.style.setProperty('--base-font-size',   cfg.fontSize + 'px');
+
+        // Favicon: usa el favicon personalizado, o el logo como fallback
+        const iconSrc = cfg.faviconBase64 || cfg.logoBase64;
+        if (iconSrc) {
+            const link = document.getElementById('favicon-link')
+                      || Object.assign(document.createElement('link'), { rel: 'icon', id: 'favicon-link' });
+            link.href = iconSrc;
+            if (!link.parentNode) document.head.appendChild(link);
+        }
+    }
+
+    // ── Meta tags para compartir (og:image, og:title, favicon) ─
+    function updateShareMeta() {
+        const nombre  = restData.nombre || 'Menú';
+        const logoSrc = stylesConfig.faviconBase64 || stylesConfig.logoBase64 || '';
+
+        const setMeta = (prop, val, isName) => {
+            const attr = isName ? 'name' : 'property';
+            let el = document.querySelector(`meta[${attr}="${prop}"]`);
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute(attr, prop);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('content', val);
+        };
+
+        document.title = nombre;
+        setMeta('og:title',        nombre);
+        setMeta('og:description',  `Mirá el menú de ${nombre}`);
+        setMeta('og:url',          location.href);
+        setMeta('twitter:title',   nombre, true);
+        if (logoSrc) {
+            setMeta('og:image',      logoSrc);
+            setMeta('twitter:image', logoSrc, true);
         }
     }
 
