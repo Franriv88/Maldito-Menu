@@ -420,13 +420,13 @@ function applyStyles(cfg) {
     if (cfg.bgPage)        document.body.style.backgroundColor = cfg.bgPage;
     if (cfg.bgMenu)        r.style.setProperty('--primary-color',   cfg.bgMenu);
     if (cfg.fontSize)      r.style.setProperty('--base-font-size',  cfg.fontSize + 'px');
-    // Favicon: favicon personalizado, o logo como fallback — fuerza recarga
-    const iconSrc = cfg.faviconBase64 || cfg.logoBase64;
+    // Favicon: preferir URL Storage (HTTP real) → fallback a base64
+    const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
     if (iconSrc) {
-        const old = document.querySelector('link[rel="icon"]');
+        const old = document.getElementById('favicon-link') || document.querySelector('link[rel="icon"]');
         if (old) old.remove();
         const link = document.createElement('link');
-        link.rel = 'icon'; link.href = iconSrc;
+        link.rel = 'icon'; link.id = 'favicon-link'; link.href = iconSrc;
         document.head.appendChild(link);
     }
     const logoPreview    = document.getElementById('logoPreview');
