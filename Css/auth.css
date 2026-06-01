@@ -217,10 +217,45 @@ body {
 }
 .rest-card:hover { border-color: rgba(124,108,92,0.4); }
 
-.rest-card h3 {
+.card-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rest-card h3, .rest-name {
     color: #c8b89a;
     margin: 0;
     font-size: 1rem;
+}
+
+.btn-rename {
+    background: none;
+    border: none;
+    color: rgba(124,108,92,0.3);
+    cursor: pointer;
+    padding: 3px 4px;
+    line-height: 1;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+}
+.btn-rename:hover { color: #c8b89a; background: rgba(124,108,92,0.1); }
+
+.rename-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(200,184,154,0.5);
+    color: #c8b89a;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    outline: none;
+    min-width: 0;
+    flex: 1;
+    padding: 1px 0;
 }
 
 .rest-card .card-actions {

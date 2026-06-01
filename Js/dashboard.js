@@ -48,7 +48,15 @@ function buildCard(id, data) {
     const card = document.createElement('div');
     card.className = 'rest-card';
     card.innerHTML = `
-        <h3>${esc(data.nombre)}</h3>
+        <div class="card-name-row">
+            <h3 class="rest-name">${esc(data.nombre)}</h3>
+            <button class="btn-rename" data-rename="${id}" title="Renombrar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+            </button>
+        </div>
         <div class="card-actions">
             <a href="admin.html?r=${id}" class="btn-card btn-edit">✏ Editar menú</a>
             <a href="${menuUrl}" target="_blank" class="btn-card">👁 Ver menú</a>
@@ -60,11 +68,53 @@ function buildCard(id, data) {
 
 // Delegación de clicks en la grilla
 grid.addEventListener('click', e => {
-    const qrBtn  = e.target.closest('[data-qr]');
-    const delBtn = e.target.closest('[data-del]');
-    if (qrBtn)  showQR(qrBtn.dataset.qr, qrBtn.dataset.name);
-    if (delBtn) deleteRestaurant(delBtn.dataset.del, delBtn.dataset.name);
+    const qrBtn     = e.target.closest('[data-qr]');
+    const delBtn    = e.target.closest('[data-del]');
+    const renameBtn = e.target.closest('[data-rename]');
+    if (qrBtn)     showQR(qrBtn.dataset.qr, qrBtn.dataset.name);
+    if (delBtn)    deleteRestaurant(delBtn.dataset.del, delBtn.dataset.name);
+    if (renameBtn) startRename(renameBtn);
 });
+
+function startRename(btn) {
+    const row  = btn.closest('.card-name-row');
+    const h3   = row.querySelector('.rest-name');
+    const id   = btn.dataset.rename;
+    const prev = h3.textContent.trim();
+
+    const input = document.createElement('input');
+    input.type      = 'text';
+    input.value     = prev;
+    input.className = 'rename-input';
+    h3.replaceWith(input);
+    btn.style.visibility = 'hidden';
+    input.focus();
+    input.select();
+
+    const finish = async () => {
+        const next = input.value.trim() || prev;
+        const newH3 = document.createElement('h3');
+        newH3.className   = 'rest-name';
+        newH3.textContent = next;
+        input.replaceWith(newH3);
+        btn.style.visibility = '';
+
+        if (next !== prev) {
+            try {
+                await db.collection('restaurants').doc(id).update({ nombre: next });
+            } catch (err) {
+                console.error('Error al renombrar:', err);
+                newH3.textContent = prev;
+            }
+        }
+    };
+
+    input.addEventListener('blur', finish);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  input.blur();
+        if (e.key === 'Escape') { input.value = prev; input.blur(); }
+    });
+}
 
 // ── Crear restaurante ──────────────────────────────────────────
 
