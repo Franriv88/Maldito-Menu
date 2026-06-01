@@ -45,7 +45,7 @@
     <div class="modal-overlay" id="qrModal">
         <div class="modal-box qr-content">
             <h3 id="qrRestName"></h3>
-            <img id="qrImage" src="" alt="QR Code" width="200" height="200">
+            <canvas id="qrCanvas" width="200" height="200" style="display:block;margin:0 auto;border-radius:6px;"></canvas>
             <div class="qr-url-row">
                 <input type="text" id="qrUrl" readonly>
                 <button class="btn-copy" id="copyUrlBtn">Copiar</button>
@@ -61,6 +61,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="./Js/firebase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="./Js/dashboard.js"></script>
 </body>
 </html>

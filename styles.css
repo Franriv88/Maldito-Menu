@@ -356,6 +356,31 @@
     margin-bottom: 6px;
 }
 
+.seg-control {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(124,108,92,0.25);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.seg-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: rgba(124,108,92,0.5);
+    font-size: 0.78rem;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.seg-btn.active {
+    background: rgba(124,108,92,0.25);
+    color: #c8b89a;
+}
+
 .ctrl-select {
     width: 100%;
     background: rgba(255,255,255,0.04);

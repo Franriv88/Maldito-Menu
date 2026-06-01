@@ -404,6 +404,10 @@ function populateStyleControls(cfg) {
         const inp = document.getElementById(inpId), span = document.getElementById(spanId);
         if (inp && span) span.textContent = inp.value;
     });
+    if (cfg.headerMode) {
+        const ctrl = document.getElementById('headerModeCtrl');
+        ctrl?.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === cfg.headerMode));
+    }
 }
 
 async function saveStyleField(key, value) {
@@ -499,6 +503,18 @@ function initStyleControls() {
                 saveStyleField('titleColor',  contrast),
                 saveStyleField('textColor',   contrast),
             ]);
+        });
+    }
+
+    // ── Encabezado del menú ───────────────────────────────────
+    const headerModeCtrl = document.getElementById('headerModeCtrl');
+    if (headerModeCtrl) {
+        headerModeCtrl.querySelectorAll('.seg-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                headerModeCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                await saveStyleField('headerMode', btn.dataset.value);
+            });
         });
     }
 

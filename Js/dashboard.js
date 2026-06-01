@@ -137,16 +137,75 @@ async function deleteRestaurant(id, nombre) {
 
 // ── QR Modal ──────────────────────────────────────────────────
 
-function showQR(id, nombre) {
-    const url    = `${location.origin}/menu.html?r=${id}`;
-    const qrSrc  = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-
+async function showQR(id, nombre) {
+    const url = `${location.origin}/menu.html?r=${id}`;
     document.getElementById('qrRestName').textContent = nombre;
-    document.getElementById('qrImage').src = qrSrc;
     document.getElementById('qrUrl').value = url;
-    document.getElementById('qrDownloadBtn').href = qrSrc;
-
     qrModal.classList.add('visible');
+
+    // Loading placeholder
+    const canvas = document.getElementById('qrCanvas');
+    const ctx    = canvas.getContext('2d');
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let logoBase64 = null;
+    try {
+        const doc = await db.collection('restaurants').doc(id).collection('config').doc('styles').get();
+        if (doc.exists) logoBase64 = doc.data().logoBase64 || null;
+    } catch (_) {}
+
+    const dataUrl = await buildQRDataUrl(url, logoBase64);
+    if (!dataUrl) return;
+
+    const img = new Image();
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        document.getElementById('qrDownloadBtn').href = dataUrl;
+    };
+    img.src = dataUrl;
+}
+
+function buildQRDataUrl(url, logoBase64) {
+    const SIZE = 300;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = SIZE; offscreen.height = SIZE;
+
+    return new Promise(resolve => {
+        QRCode.toCanvas(offscreen, url, {
+            width: SIZE, margin: 2,
+            errorCorrectionLevel: 'H',
+            color: { dark: '#000000', light: '#ffffff' }
+        }, err => {
+            if (err) { resolve(null); return; }
+            if (!logoBase64) { resolve(offscreen.toDataURL('image/png')); return; }
+
+            const LOGO = Math.round(SIZE * 0.22);
+            const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
+            const logoImg = new Image();
+            logoImg.onerror = () => resolve(offscreen.toDataURL('image/png'));
+            logoImg.onload  = () => {
+                const ctx = offscreen.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                qrRoundRect(ctx, x - pad, y - pad, LOGO + pad * 2, LOGO + pad * 2, 8);
+                ctx.fill();
+                ctx.drawImage(logoImg, x, y, LOGO, LOGO);
+                resolve(offscreen.toDataURL('image/png'));
+            };
+            logoImg.src = logoBase64;
+        });
+    });
+}
+
+function qrRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);     ctx.arcTo(x + w, y,     x + w, y + r,     r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);     ctx.arcTo(x, y + h,     x, y + h - r,     r);
+    ctx.lineTo(x, y + r);         ctx.arcTo(x, y,         x + r, y,         r);
+    ctx.closePath();
 }
 
 document.getElementById('closeQrModal').addEventListener('click', () => qrModal.classList.remove('visible'));

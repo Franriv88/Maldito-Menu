@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const header = document.getElementById('restaurant-header');
         if (!header) return;
         const logoSrc = stylesConfig.logoBase64 || restData.logoUrl;
-        if (logoSrc) {
+        const mode    = stylesConfig.headerMode || (logoSrc ? 'logo' : 'text');
+        if (mode === 'logo' && logoSrc) {
             header.innerHTML = `<img src="${logoSrc}" alt="${restData.nombre || ''}">`;
         } else {
             header.innerHTML = `<h1>${restData.nombre || ''}</h1>`;
