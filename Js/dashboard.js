@@ -216,44 +216,50 @@ async function showQR(id, nombre) {
     } catch (_) {}
 }
 
-// Genera el QR con el logo centrado usando async/await
+// Genera el QR con el logo centrado.
+// Usa fetch() para convertir la imagen de qrserver.com a data URL,
+// evitando el problema de CORS al exportar el canvas.
 async function buildQRDataUrl(url, logoBase64) {
     const SIZE = 300;
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${SIZE}x${SIZE}&ecc=H&data=${encodeURIComponent(url)}`;
+
     try {
-        // 1. Genera el QR como data URL (QRCode.toDataURL devuelve Promise)
-        const qrDataUrl = await QRCode.toDataURL(url, {
-            width: SIZE, margin: 2,
-            errorCorrectionLevel: 'H',
-            color: { dark: '#000000', light: '#ffffff' }
-        });
+        // 1. Descarga el QR como blob y lo convierte a data URL
+        const resp = await fetch(apiUrl);
+        if (!resp.ok) throw new Error('QR API error');
+        const qrDataUrl = await blobToDataUrl(await resp.blob());
 
-        if (!logoBase64) return qrDataUrl;
-
-        // 2. Compone QR + logo en un canvas
+        // 2. Dibuja el QR en canvas
         const canvas = document.createElement('canvas');
         canvas.width = SIZE; canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
+        ctx.drawImage(await loadImage(qrDataUrl), 0, 0, SIZE, SIZE);
 
-        const qrImg = await loadImage(qrDataUrl);
-        ctx.drawImage(qrImg, 0, 0, SIZE, SIZE);
-
-        const LOGO = Math.round(SIZE * 0.22);
-        const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
-
-        const logoImg = await loadImage(logoBase64);
-
-        // Fondo blanco redondeado detrás del logo
-        ctx.fillStyle = '#ffffff';
-        qrRoundRect(ctx, x - pad, y - pad, LOGO + pad * 2, LOGO + pad * 2, 8);
-        ctx.fill();
-
-        ctx.drawImage(logoImg, x, y, LOGO, LOGO);
+        // 3. Superpone el logo si existe
+        if (logoBase64) {
+            const LOGO = Math.round(SIZE * 0.22);
+            const x = (SIZE - LOGO) / 2, y = (SIZE - LOGO) / 2, pad = 6;
+            const logoImg = await loadImage(logoBase64);
+            ctx.fillStyle = '#ffffff';
+            qrRoundRect(ctx, x - pad, y - pad, LOGO + pad * 2, LOGO + pad * 2, 8);
+            ctx.fill();
+            ctx.drawImage(logoImg, x, y, LOGO, LOGO);
+        }
 
         return canvas.toDataURL('image/png');
     } catch (err) {
         console.error('Error generando QR:', err);
         return null;
     }
+}
+
+function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
 }
 
 function loadImage(src) {
