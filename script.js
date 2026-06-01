@@ -226,7 +226,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
     try {
         overlaySpan.textContent = 'Eliminando fondo…';
         const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-        const blob = await removeBackground(file, { debug: true });
+        let blob      = await removeBackground(file, { debug: true });
+        blob          = await cleanAlphaEdges(blob);
         fileToProcess = new File([blob], 'img.png', { type: 'image/png' });
     } catch (bgErr) {
         console.error('❌ Background removal error:', bgErr);
@@ -345,6 +346,58 @@ async function guardarMenu() {
 }
 
 // ── Estilos del menú ──────────────────────────────────────────
+
+// Devuelve true si el archivo PNG/WebP ya tiene píxeles transparentes
+function checkTransparency(file) {
+    if (!file.type.includes('png') && !file.type.includes('webp')) return Promise.resolve(false);
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onerror = () => resolve(false);
+        reader.onload = e => {
+            const img = new Image();
+            img.onerror = () => resolve(false);
+            img.onload = () => {
+                const S = 150;
+                const c = document.createElement('canvas');
+                c.width = S; c.height = S;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, S, S);
+                const d = ctx.getImageData(0, 0, S, S).data;
+                for (let i = 3; i < d.length; i += 4) {
+                    if (d[i] < 240) { resolve(true); return; }
+                }
+                resolve(false);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Elimina halos y semitransparencias residuales del algoritmo de remoción
+function cleanAlphaEdges(blob) {
+    const url = URL.createObjectURL(blob);
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const c = document.createElement('canvas');
+            c.width = img.width; c.height = img.height;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const id = ctx.getImageData(0, 0, c.width, c.height);
+            const d  = id.data;
+            for (let i = 3; i < d.length; i += 4) {
+                if (d[i] < 25)       d[i] = 0;    // elimina halo invisible
+                else if (d[i] > 230) d[i] = 255;  // solidifica bordes opacos
+            }
+            ctx.putImageData(id, 0, 0);
+            c.toBlob(b => resolve(b ?? blob), 'image/png');
+        };
+        img.src = url;
+    });
+}
 
 function hexToRgb(hex) {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -601,20 +654,28 @@ async function uploadMiniImage(file, previewId, removeBtnId, firestoreKey, isFav
     let fileToProcess = file;
 
     if (removeBg) {
-        setStatus('Quitando fondo…');
-        try {
-            const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-            const blob = await removeBackground(file, { debug: true });
-            fileToProcess = new File([blob], 'img.png', { type: 'image/png' });
-        } catch (bgErr) {
-            console.error('Background removal falló:', bgErr);
-            setStatus('Error al quitar fondo');
-            await new Promise(r => setTimeout(r, 2500));
+        setStatus('Analizando…');
+        const alreadyTransparent = await checkTransparency(file);
+        if (alreadyTransparent) {
+            setStatus('Sin fondo detectado, usando original');
+            await new Promise(r => setTimeout(r, 800));
+        } else {
+            setStatus('Quitando fondo…');
+            try {
+                const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+                let resultBlob = await removeBackground(file, { debug: true });
+                resultBlob     = await cleanAlphaEdges(resultBlob);
+                fileToProcess  = new File([resultBlob], 'img.png', { type: 'image/png' });
+            } catch (bgErr) {
+                console.error('Background removal falló:', bgErr);
+                setStatus('Error al quitar fondo');
+                await new Promise(r => setTimeout(r, 2500));
+            }
         }
     }
 
     setStatus('Guardando…');
-    const size = isFavicon ? 64 : 400;
+    const size = isFavicon ? 64 : 600;
     const mime = (removeBg || fileToProcess.type === 'image/png') ? 'image/png' : 'image/jpeg';
     const base64 = await compressToBase64(fileToProcess, size, size, mime, 0.9);
     await saveStyleField(firestoreKey, base64);
@@ -649,8 +710,9 @@ async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
         const file = new File([blob], 'image.png', { type: blob.type || 'image/png' });
 
         const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-        const resultBlob  = await removeBackground(file, { debug: true });
-        const processed   = new File([resultBlob], 'img.png', { type: 'image/png' });
+        let resultBlob  = await removeBackground(file, { debug: true });
+        resultBlob      = await cleanAlphaEdges(resultBlob);
+        const processed = new File([resultBlob], 'img.png', { type: 'image/png' });
 
         const size   = isFavicon ? 64 : 400;
         const base64 = await compressToBase64(processed, size, size, 'image/png', 0.9);
