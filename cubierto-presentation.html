@@ -11,14 +11,14 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-    --gold:#c8b89a;
-    --gold-dim:rgba(200,184,154,.45);
-    --gold-faint:rgba(200,184,154,.1);
+    --gold:#ddd0bb;
+    --gold-dim:rgba(220,208,187,.65);
+    --gold-faint:rgba(220,208,187,.12);
     --dark:#0b0b0b;
-    --card:#161616;
-    --surface:#1e1e1e;
-    --text:#c8b89a;
-    --muted:rgba(200,184,154,.45);
+    --card:#1a1a1a;
+    --surface:#222;
+    --text:#ede4d8;
+    --muted:rgba(230,215,195,.78);
     --serif:'Cormorant Garant',serif;
     --sans:'Inter',sans-serif;
 }
@@ -75,9 +75,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 .display-italic{font-style:italic}
 .h2{font-family:var(--serif);font-size:clamp(2rem,4.5vw,3.8rem);font-weight:300;line-height:1.1}
 .h3{font-family:var(--serif);font-size:clamp(1.4rem,3vw,2.2rem);font-weight:300;font-style:italic}
-.label{font-size:.62rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--muted)}
-.body{font-size:.9rem;line-height:1.75;color:var(--muted);font-weight:300}
-.big-body{font-size:1.05rem;line-height:1.8;color:var(--muted);font-weight:300}
+.label{font-size:.72rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--muted)}
+.body{font-size:1.05rem;line-height:1.75;color:var(--muted);font-weight:300}
+.big-body{font-size:1.18rem;line-height:1.8;color:var(--muted);font-weight:300}
 
 /* ── DECORATIVE LINE ────────────────────────── */
 .rule{width:40px;height:1px;background:rgba(200,184,154,.25);margin:.8rem 0}
@@ -108,15 +108,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
     display:flex;align-items:center;justify-content:center;
     color:var(--gold);font-size:.85rem;margin-top:.1rem;
 }
-.feat-text h4{font-size:.85rem;font-weight:500;color:var(--gold);margin-bottom:.15rem;letter-spacing:.2px}
-.feat-text p{font-size:.75rem;color:var(--muted);line-height:1.5}
+.feat-text h4{font-size:.95rem;font-weight:500;color:var(--gold);margin-bottom:.15rem;letter-spacing:.2px}
+.feat-text p{font-size:.87rem;color:var(--muted);line-height:1.6}
 
 /* ── PAIN POINT ─────────────────────────────── */
 .pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;width:100%;max-width:780px}
-.pain{background:rgba(220,53,69,.04);border:1px solid rgba(220,53,69,.12);border-radius:14px;padding:1.4rem 1.5rem}
-.pain-icon{font-size:1.4rem;margin-bottom:.6rem}
-.pain h4{font-size:.82rem;font-weight:500;color:rgba(230,100,100,.8);margin-bottom:.3rem}
-.pain p{font-size:.72rem;color:rgba(200,184,154,.35);line-height:1.5}
+.pain{background:rgba(180,45,60,.1);border:1px solid rgba(220,80,80,.3);border-radius:14px;padding:1.4rem 1.5rem}
+.pain-icon{font-size:1.6rem;margin-bottom:.6rem}
+.pain h4{font-size:.92rem;font-weight:600;color:rgba(255,140,140,1);margin-bottom:.35rem}
+.pain p{font-size:.82rem;color:rgba(230,215,195,.75);line-height:1.6}
 
 /* ── PILL / BADGE ───────────────────────────── */
 .pill{
@@ -234,8 +234,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 .sol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;width:100%;max-width:900px}
 .sol-card{background:var(--card);border:1px solid rgba(200,184,154,.07);border-radius:14px;padding:1.6rem;display:flex;flex-direction:column;gap:.6rem;transition:border-color .2s}
 .sol-num{font-family:var(--serif);font-size:2.8rem;font-weight:300;color:rgba(200,184,154,.18);line-height:1}
-.sol-h{font-size:.85rem;font-weight:500;color:var(--gold)}
-.sol-p{font-size:.72rem;color:var(--muted);line-height:1.6}
+.sol-h{font-size:.95rem;font-weight:500;color:var(--gold)}
+.sol-p{font-size:.84rem;color:var(--muted);line-height:1.6}
 
 /* S6: speed */
 .speed-center{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1.2rem}
