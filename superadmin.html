@@ -264,6 +264,7 @@
     </div>
     <div class="topbar-right">
         <span id="topbarUserName"></span>
+        <button class="theme-btn" id="themeBtn">☀️</button>
         <button id="saLogoutBtn">Cerrar sesión</button>
     </div>
 </div>
@@ -323,6 +324,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=3"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -344,6 +346,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('saLogoutBtn').addEventListener('click', () =>
         auth.signOut().then(() => window.location.href = './index.html')
     );
+    initThemeToggle('themeBtn');
 
     await loadData();
 });

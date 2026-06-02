@@ -394,3 +394,81 @@ body {
 }
 .btn-copy:hover { background: rgba(124,108,92,0.25); }
 .btn-copy.copied { color: #5cb85c; border-color: rgba(40,167,69,0.4); }
+
+/* ── THEME TOGGLE BUTTON ────────────────────────────────────── */
+.theme-btn {
+    background: none;
+    border: 1px solid rgba(124,108,92,0.3);
+    color: #7C6C5C;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.theme-btn:hover { border-color: #7C6C5C; color: #c8b89a; }
+
+/* ── LIGHT MODE ─────────────────────────────────────────────── */
+body.light {
+    background-color: #f2ede6;
+    color: #3a2e22;
+}
+body.light .login-card {
+    background: #fff;
+    border-color: rgba(100,80,50,.1);
+    box-shadow: 0 8px 40px rgba(100,80,50,.12);
+}
+body.light .login-card h1 { color: #6b5135; }
+body.light .login-card .subtitle { color: rgba(60,42,20,.5); }
+body.light .login-disclaimer { color: rgba(60,42,20,.4); }
+
+body.light .dash-topbar {
+    background: #ede6dc;
+    border-bottom-color: rgba(100,80,50,.15);
+}
+body.light .dash-topbar .app-name { color: #6b5135; }
+body.light .dash-topbar .user-name { color: rgba(60,42,20,.6); }
+body.light .btn-logout { color: #7a6248; border-color: rgba(100,80,50,.3); }
+body.light .btn-logout:hover { color: #6b5135; border-color: #7a6248; }
+body.light .theme-btn { color: #7a6248; border-color: rgba(100,80,50,.3); }
+body.light .theme-btn:hover { color: #6b5135; border-color: #7a6248; }
+body.light #superAdminLink { color: #7a6248; border-color: rgba(100,80,50,.3); }
+
+body.light .dash-main { }
+body.light .dash-header h2 { color: #6b5135; }
+body.light .rest-card {
+    background: #fff;
+    border-color: rgba(100,80,50,.15);
+}
+body.light .rest-card:hover { border-color: rgba(100,80,50,.35); }
+body.light .rest-card h3, body.light .rest-name { color: #6b5135; }
+body.light .btn-card { color: #7a6248; border-color: rgba(100,80,50,.25); }
+body.light .btn-card:hover { color: #6b5135; border-color: #7a6248; }
+body.light .btn-rename { color: rgba(100,80,50,.3); }
+body.light .btn-rename:hover { color: #6b5135; background: rgba(100,80,50,.08); }
+body.light .rename-input { color: #6b5135; border-bottom-color: rgba(100,80,50,.4); }
+body.light .empty-state { color: rgba(60,42,20,.4); }
+
+body.light .modal-overlay { background: rgba(60,42,20,.4); }
+body.light .modal-box {
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(60,42,20,.15);
+}
+body.light .modal-box h3 { color: #6b5135; }
+body.light .modal-box input[type="text"] {
+    background: #f5f0ea;
+    border-color: rgba(100,80,50,.3);
+    color: #3a2e22;
+}
+body.light .btn-cancel { color: #7a6248; border-color: rgba(100,80,50,.3); }
+body.light .qr-url-row input {
+    background: #f5f0ea;
+    border-color: rgba(100,80,50,.25);
+    color: #7a6248;
+}
+body.light .btn-copy {
+    background: rgba(100,80,50,.08);
+    border-color: rgba(100,80,50,.25);
+    color: #7a6248;
+}

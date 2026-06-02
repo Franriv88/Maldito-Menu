@@ -528,3 +528,85 @@
     .save-container { bottom: 16px; right: 16px; }
     #saveMenuBtn { padding: 12px 18px; font-size: 0.9rem; }
 }
+
+/* ── THEME BUTTON (topbar) ──────────────────────────────────── */
+.theme-btn {
+    background: none;
+    border: 1px solid rgba(124,108,92,0.25);
+    color: #7C6C5C;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.theme-btn:hover { border-color: #7C6C5C; color: #c8b89a; }
+
+/* ── LIGHT MODE — admin + superadmin ────────────────────────── */
+body.light { background-color: #f2ede6; color: #3a2e22; }
+
+/* topbar */
+body.light .admin-topbar {
+    background: #ede6dc;
+    border-bottom-color: rgba(100,80,50,.15);
+}
+body.light .topbar-right a,
+body.light .topbar-right button { color: #7a6248; border-color: rgba(100,80,50,.25); }
+body.light .topbar-right a:hover,
+body.light .topbar-right button:hover { color: #6b5135; border-color: #7a6248; }
+body.light #topbarRestName { color: #6b5135; }
+body.light #topbarUserName { color: rgba(60,42,20,.45); }
+body.light .btn-back { color: #7a6248; border-color: rgba(100,80,50,.25); }
+body.light .btn-back:hover { color: #6b5135; border-color: #7a6248; }
+body.light .theme-btn { color: #7a6248; border-color: rgba(100,80,50,.25); }
+body.light .theme-btn:hover { color: #6b5135; border-color: #7a6248; }
+
+/* save button */
+body.light #saveMenuBtn { background: #6b5135; }
+body.light #saveMenuBtn:hover { background: #5a4229; }
+
+/* sidebar */
+body.light .admin-sidebar { background: #f2ede6; }
+body.light .sidebar-title { color: rgba(60,42,20,.5); border-bottom-color: rgba(100,80,50,.15); }
+body.light .ctrl-label { color: rgba(60,42,20,.6); }
+body.light .ctrl-select {
+    background: #fff;
+    border-color: rgba(100,80,50,.25);
+    color: #3a2e22;
+}
+body.light .ctrl-slider { accent-color: #6b5135; }
+body.light .color-hex { color: rgba(60,42,20,.5); }
+body.light .seg-btn { background: none; border-color: rgba(100,80,50,.25); color: #7a6248; }
+body.light .seg-btn.active { background: rgba(100,80,50,.12); border-color: #7a6248; color: #6b5135; }
+body.light .mini-drop {
+    border-color: rgba(100,80,50,.25);
+    background: rgba(100,80,50,.04);
+    color: rgba(60,42,20,.5);
+}
+body.light .bg-remove-toggle { color: rgba(60,42,20,.55); }
+body.light .btn-remove-bg-now { color: #6b5135; border-color: rgba(100,80,50,.3); }
+body.light .btn-remove-asset { color: #c0392b; border-color: rgba(192,57,43,.3); }
+
+/* superadmin specific */
+body.light .sa-stat { background: #fff; border-color: rgba(100,80,50,.12); }
+body.light .sa-stat-num { color: #6b5135; }
+body.light .sa-stat-label { color: rgba(60,42,20,.45); }
+body.light .sa-chart-card { background: #fff; border-color: rgba(100,80,50,.12); }
+body.light .sa-chart-title { color: rgba(60,42,20,.45); }
+body.light .sa-section { background: #fff; border-color: rgba(100,80,50,.12); }
+body.light .sa-section-head { border-bottom-color: rgba(100,80,50,.1); }
+body.light .sa-section-title { color: rgba(60,42,20,.45); }
+body.light .sa-search { background: #f5f0ea; border-color: rgba(100,80,50,.2); color: #3a2e22; }
+body.light .sa-tab { border-color: rgba(100,80,50,.2); color: rgba(60,42,20,.45); }
+body.light .sa-tab.active, body.light .sa-tab:hover { border-color: rgba(100,80,50,.45); color: #6b5135; background: rgba(100,80,50,.07); }
+body.light .sa-table thead th { color: rgba(60,42,20,.4); border-bottom-color: rgba(100,80,50,.1); }
+body.light .sa-table tbody tr { border-bottom-color: rgba(100,80,50,.07); }
+body.light .sa-table tbody tr:hover { background: rgba(100,80,50,.04); }
+body.light .sa-table td { color: rgba(60,42,20,.75); }
+body.light .sa-user-name { color: #6b5135; }
+body.light .sa-user-email { color: rgba(60,42,20,.4); }
+body.light .sa-badge-rest { background: rgba(100,80,50,.1); color: rgba(60,42,20,.65); border-color: rgba(100,80,50,.2); }
+body.light .sa-avatar { opacity: .85; }
+body.light .sa-empty { color: rgba(60,42,20,.3); }
+body.light .sa-loading { color: rgba(60,42,20,.4); }

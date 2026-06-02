@@ -14,6 +14,7 @@ auth.onAuthStateChanged(async user => {
     if (user.email === 'frivasv2388@gmail.com') {
         document.getElementById('superAdminLink').style.display = 'inline-flex';
     }
+    initThemeToggle('themeBtn');
 
     // Registrar/actualizar perfil en Firestore
     try {

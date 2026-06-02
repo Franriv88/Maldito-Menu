@@ -40,6 +40,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('viewMenuLink').href = `./menu.html?r=${restaurantId}`;
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = './index.html'));
         document.getElementById('saveMenuBtn').addEventListener('click', guardarMenu);
+        initThemeToggle('themeBtn');
 
         await renderAdminMenu();
     } catch (err) {
