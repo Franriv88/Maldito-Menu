@@ -355,6 +355,53 @@ body.light .mock-qr-wrap{background:#fff;border-color:rgba(80,55,25,.12)}
 body.light .mock-qr-title{color:#6b5135}
 body.light .mock-qr-url{color:rgba(80,55,25,.4)}
 body.light .feat-icon{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.15);color:#6b5135}
+
+/* ── ROTATE OVERLAY ─────────────────────────── */
+#rotateOverlay{
+    display:none;
+    position:fixed;inset:0;z-index:99999;
+    background:#0b0b0b;
+    flex-direction:column;align-items:center;justify-content:center;
+    gap:1.2rem;text-align:center;padding:2rem;
+}
+.rot-icon{
+    font-size:3.2rem;
+    animation:rotPhone 2.8s ease-in-out infinite;
+    display:block;
+    transform-origin:center;
+}
+@keyframes rotPhone{
+    0%  {transform:rotate(0deg)}
+    20% {transform:rotate(0deg)}
+    50% {transform:rotate(90deg)}
+    80% {transform:rotate(90deg)}
+    100%{transform:rotate(0deg)}
+}
+.rot-arrow{
+    font-size:1.8rem;color:var(--gold);
+    animation:rotFade 2.8s ease-in-out infinite;
+    opacity:0;
+}
+@keyframes rotFade{
+    0%,20%{opacity:0}35%,65%{opacity:1}80%,100%{opacity:0}
+}
+.rot-title{
+    font-family:var(--serif);font-size:1.5rem;font-weight:300;
+    color:var(--gold);margin:0;
+}
+.rot-sub{
+    font-size:.8rem;color:var(--muted);max-width:260px;line-height:1.6;margin:0;
+}
+.rot-btn{
+    margin-top:.5rem;
+    background:rgba(200,184,154,.07);
+    border:1px solid rgba(200,184,154,.25);
+    color:var(--gold);
+    border-radius:24px;padding:.55rem 1.4rem;
+    font-size:.78rem;cursor:pointer;
+    transition:background .2s;
+}
+.rot-btn:hover{background:rgba(200,184,154,.15)}
 </style>
 </head>
 <body>
@@ -862,6 +909,15 @@ body.light .feat-icon{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.
 
 </div><!-- /deck -->
 
+<!-- ── ROTATE OVERLAY ── -->
+<div id="rotateOverlay">
+    <span class="rot-icon">📱</span>
+    <span class="rot-arrow">↻</span>
+    <p class="rot-title">Rotá tu dispositivo</p>
+    <p class="rot-sub">Esta presentación está diseñada para verse en pantalla horizontal</p>
+    <button class="rot-btn" id="rotFullscreenBtn">Ver en pantalla completa</button>
+</div>
+
 <!-- ── THEME TOGGLE ── -->
 <div class="theme-toggle" id="themeToggle">
     <span class="t-icon" id="themeIcon">🌙</span>
@@ -950,6 +1006,49 @@ setTimeout(()=>{
         });
     }, 600);
 }, 800);
+
+// ── Orientación móvil ────────────────────────────────────────
+(async function initOrientation(){
+    const overlay = document.getElementById('rotateOverlay');
+    const isPortrait = () => window.innerWidth < window.innerHeight;
+
+    async function tryLock(){
+        if(screen.orientation?.lock){
+            try{
+                await screen.orientation.lock('landscape-primary');
+                return true;
+            } catch(e){ return false; }
+        }
+        return false;
+    }
+
+    function checkAndShow(){
+        if(window.innerWidth < 768 && isPortrait()){
+            overlay.style.display = 'flex';
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // Al cargar
+    if(window.innerWidth < 768){
+        const locked = await tryLock();
+        if(!locked) checkAndShow();
+    }
+
+    // Al rotar
+    window.addEventListener('orientationchange', ()=> setTimeout(checkAndShow, 120));
+    window.addEventListener('resize', ()=> setTimeout(checkAndShow, 120));
+
+    // Botón pantalla completa → intenta lockear
+    document.getElementById('rotFullscreenBtn').addEventListener('click', async ()=>{
+        try{
+            await document.documentElement.requestFullscreen?.();
+        } catch(e){}
+        const locked = await tryLock();
+        if(locked) overlay.style.display = 'none';
+    });
+})();
 
 // Touch swipe
 let tx=0;
