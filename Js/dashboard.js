@@ -11,6 +11,9 @@ auth.onAuthStateChanged(async user => {
 
     document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+    if (user.email === 'frivasv2388@gmail.com') {
+        document.getElementById('superAdminLink').style.display = 'inline-flex';
+    }
 
     // Registrar/actualizar perfil en Firestore
     try {
