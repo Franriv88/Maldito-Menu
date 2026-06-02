@@ -249,6 +249,88 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 
 /* S10: CTA */
 .cta-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(200,184,154,.04) 0%,transparent 70%);pointer-events:none}
+
+/* ── THEME TOGGLE ───────────────────────────── */
+.theme-toggle{
+    position:fixed;top:1.3rem;left:1.5rem;z-index:200;
+    display:flex;align-items:center;gap:.55rem;
+    background:rgba(200,184,154,.07);
+    border:1px solid rgba(200,184,154,.18);
+    border-radius:30px;padding:.35rem .6rem .35rem .5rem;
+    cursor:pointer;transition:background .2s,border-color .2s;
+    user-select:none;
+}
+.theme-toggle:hover{background:rgba(200,184,154,.13);border-color:rgba(200,184,154,.35)}
+.theme-toggle .t-icon{font-size:.85rem;line-height:1;transition:transform .4s}
+.theme-toggle .t-track{
+    width:30px;height:16px;border-radius:10px;
+    background:rgba(200,184,154,.15);border:1px solid rgba(200,184,154,.25);
+    position:relative;transition:background .3s;flex-shrink:0;
+}
+.theme-toggle .t-thumb{
+    position:absolute;top:2px;left:2px;
+    width:10px;height:10px;border-radius:50%;
+    background:var(--gold);transition:transform .3s,background .3s;
+}
+body.light .theme-toggle .t-thumb{transform:translateX(14px)}
+body.light .theme-toggle .t-track{background:rgba(100,80,50,.2);border-color:rgba(100,80,50,.3)}
+
+/* ── LIGHT MODE ─────────────────────────────── */
+body.light{
+    --gold:#6b5135;
+    --gold-dim:rgba(80,55,25,.6);
+    --gold-faint:rgba(80,55,25,.08);
+    --dark:#f2ede6;
+    --card:#ffffff;
+    --surface:#e8e0d5;
+    --text:#1e160c;
+    --muted:rgba(60,42,20,.72);
+    background:#f2ede6;color:#1e160c;
+}
+body.light .arr{
+    background:rgba(80,55,25,.06);
+    border-color:rgba(80,55,25,.18);
+    color:rgba(80,55,25,.5);
+}
+body.light .arr:hover{background:rgba(80,55,25,.12);color:#6b5135}
+body.light .dot{background:rgba(80,55,25,.18)}
+body.light .dot.active{background:#6b5135}
+body.light .slide-counter{color:rgba(80,55,25,.35)}
+body.light .theme-toggle{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.2)}
+body.light .theme-toggle:hover{background:rgba(80,55,25,.13)}
+body.light .glass{background:#fff;border-color:rgba(80,55,25,.12)}
+body.light .glass::before{background:linear-gradient(90deg,transparent,rgba(80,55,25,.1),transparent)}
+body.light .sol-card{background:#fff;border-color:rgba(80,55,25,.1)}
+body.light .sol-num{color:rgba(80,55,25,.15)}
+body.light .tech-group{background:#fff;border-color:rgba(80,55,25,.1)}
+body.light .tech-group h4{color:rgba(80,55,25,.5);border-bottom-color:rgba(80,55,25,.1)}
+body.light .tech-item{color:rgba(50,35,15,.7)}
+body.light .tech-item::before{color:rgba(80,55,25,.35)}
+body.light .pain{background:rgba(180,30,40,.07);border-color:rgba(180,30,40,.25)}
+body.light .pain h4{color:rgba(180,40,40,1)}
+body.light .pain p{color:rgba(60,42,20,.7)}
+body.light .pill{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.2)}
+body.light .s1-bg{background:radial-gradient(ellipse 60% 70% at 50% 100%,rgba(80,55,25,.06) 0%,transparent 70%)}
+body.light .s1-line{background:linear-gradient(to bottom,rgba(80,55,25,.2),transparent)}
+body.light .cta-glow{background:radial-gradient(circle,rgba(80,55,25,.06) 0%,transparent 70%)}
+body.light .rule{background:rgba(80,55,25,.2)}
+body.light .mock-admin{background:#f8f4ee;border-color:rgba(80,55,25,.15)}
+body.light .mock-topbar{background:#efe8de;border-bottom-color:rgba(80,55,25,.1);color:rgba(80,55,25,.5)}
+body.light .mock-topbar .brand{color:#6b5135}
+body.light .mock-menu-pub{background:#f8f4ee;border-color:rgba(80,55,25,.15)}
+body.light .mock-pub-header{color:#6b5135}
+body.light .mock-pub-img{background:#ece5da}
+body.light .mock-pub-cat{color:rgba(80,55,25,.5);border-bottom-color:rgba(80,55,25,.12)}
+body.light .mock-pub-item{color:rgba(50,35,15,.7)}
+body.light .mock-dash{background:#f8f4ee;border-color:rgba(80,55,25,.12)}
+body.light .mock-dash-top{background:#efe8de;border-bottom-color:rgba(80,55,25,.08);color:rgba(80,55,25,.5)}
+body.light .mock-card-mini{background:#fff;border-color:rgba(80,55,25,.12)}
+body.light .mock-card-mini .title{color:#6b5135}
+body.light .mock-btn{border-color:rgba(80,55,25,.2);color:rgba(80,55,25,.5)}
+body.light .mock-qr-wrap{background:#fff;border-color:rgba(80,55,25,.12)}
+body.light .mock-qr-title{color:#6b5135}
+body.light .mock-qr-url{color:rgba(80,55,25,.4)}
+body.light .feat-icon{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.15);color:#6b5135}
 </style>
 </head>
 <body>
@@ -756,6 +838,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 
 </div><!-- /deck -->
 
+<!-- ── THEME TOGGLE ── -->
+<div class="theme-toggle" id="themeToggle">
+    <span class="t-icon" id="themeIcon">🌙</span>
+    <div class="t-track"><div class="t-thumb"></div></div>
+    <span class="t-icon" id="themeIconSun">☀️</span>
+</div>
+
 <!-- ── NAVIGATION ── -->
 <div class="arr arr-l" id="arrL">‹</div>
 <div class="arr arr-r" id="arrR">›</div>
@@ -801,6 +890,16 @@ document.getElementById('arrR').onclick = ()=> go(cur+1);
 document.addEventListener('keydown', e=>{
     if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') go(cur+1);
     if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(cur-1);
+});
+
+// Theme toggle
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon   = document.getElementById('themeIcon');
+if(localStorage.getItem('theme')==='light') document.body.classList.add('light');
+function updateIcon(){ themeIcon.textContent = document.body.classList.contains('light') ? '🌙' : '🌙'; }
+themeToggle.addEventListener('click', ()=>{
+    document.body.classList.toggle('light');
+    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
 });
 
 // Touch swipe
