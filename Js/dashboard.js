@@ -36,8 +36,19 @@ auth.onAuthStateChanged(async user => {
         console.warn('Error actualizando perfil:', err);
     }
 
+    watchSubscriptionStatus(user.uid);
     await loadRestaurants(user.uid);
 });
+
+function watchSubscriptionStatus(uid) {
+    db.collection('users').doc(uid).onSnapshot(snap => {
+        if (snap.exists && snap.data().subscription?.status === 'blocked') {
+            auth.signOut().then(() => {
+                window.location.href = './index.html?reason=blocked';
+            });
+        }
+    }, err => console.warn('Error watching subscription:', err));
+}
 
 function showBlockedScreen() {
     document.querySelector('.dash-main').innerHTML = `

@@ -42,6 +42,13 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('saveMenuBtn').addEventListener('click', guardarMenu);
         initThemeToggle('themeBtn');
 
+        // Listener en tiempo real — cierra sesión si el admin bloquea la cuenta
+        db.collection('users').doc(user.uid).onSnapshot(snap => {
+            if (snap.exists && snap.data().subscription?.status === 'blocked') {
+                auth.signOut().then(() => window.location.href = './index.html?reason=blocked');
+            }
+        }, err => console.warn('Error watching subscription:', err));
+
         await renderAdminMenu();
     } catch (err) {
         console.error('Error verificando acceso:', err);
