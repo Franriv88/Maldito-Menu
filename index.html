@@ -34,7 +34,12 @@
     <script src="./Js/firebase-config.js"></script>
     <script>
         auth.onAuthStateChanged(user => {
-            if (user) window.location.href = './dashboard.html';
+            if (!user) return;
+            if (user.email === 'frivasv2388@gmail.com') {
+                window.location.href = './superadmin.html';
+            } else {
+                window.location.href = './dashboard.html';
+            }
         });
 
         document.getElementById('googleSignInBtn').addEventListener('click', function () {
