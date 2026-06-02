@@ -12,8 +12,43 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
+    // Registrar/actualizar perfil en Firestore
+    try {
+        const userRef = db.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
+        await userRef.set({
+            email:       user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
+            ...(!userDoc.exists && { createdAt: firebase.firestore.FieldValue.serverTimestamp() }),
+        }, { merge: true });
+
+        // Verificar suscripción
+        if (userDoc.exists && userDoc.data().subscription?.status === 'blocked') {
+            showBlockedScreen();
+            return;
+        }
+    } catch (err) {
+        console.warn('Error actualizando perfil:', err);
+    }
+
     await loadRestaurants(user.uid);
 });
+
+function showBlockedScreen() {
+    document.querySelector('.dash-main').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:1.2rem;text-align:center;padding:2rem">
+            <div style="font-size:2.5rem">🚫</div>
+            <h2 style="color:#c8b89a;font-size:1.3rem;margin:0">Cuenta suspendida</h2>
+            <p style="color:rgba(200,184,154,.5);max-width:380px;font-size:.9rem;line-height:1.6;margin:0">
+                Tu suscripción está vencida o fue suspendida.<br>
+                Contactá al administrador para regularizar tu cuenta.
+            </p>
+            <a href="mailto:frivasv2388@gmail.com" style="margin-top:.5rem;color:#c8b89a;font-size:.85rem;border:1px solid rgba(200,184,154,.25);padding:.5rem 1.2rem;border-radius:8px;text-decoration:none">
+                Contactar soporte
+            </a>
+        </div>`;
+}
 
 // ── Cargar restaurantes ────────────────────────────────────────
 

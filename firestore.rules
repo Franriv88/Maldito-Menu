@@ -2,18 +2,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSuperAdmin() {
+      return request.auth != null &&
+             request.auth.token.email == 'frivasv2388@gmail.com';
+    }
+
     match /restaurants/{restaurantId} {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if request.auth != null
-                            && resource.data.ownerId == request.auth.uid;
+                            && (resource.data.ownerId == request.auth.uid || isSuperAdmin());
 
       match /{sub}/{docId} {
         allow read: if true;
         allow write: if request.auth != null
-                     && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid;
+                     && (get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid || isSuperAdmin());
       }
     }
+
+    match /users/{userId} {
+      allow read:   if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+    }
+
   }
 }
