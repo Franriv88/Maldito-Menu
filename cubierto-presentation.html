@@ -944,14 +944,11 @@ setTimeout(()=>{
     themeToggle.classList.add('pulsing');
     themeToggle.addEventListener('animationend', ()=> themeToggle.classList.remove('pulsing'), { once: true });
 
-    if(!localStorage.getItem('theme-tip-shown')){
-        localStorage.setItem('theme-tip-shown','1');
-        setTimeout(()=>{
-            themeToast.fire({
-                html: '<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.5">🌙 &nbsp;Podés alternar entre<br><b style="color:#ddd0bb">modo oscuro y claro</b> con este botón</span>'
-            });
-        }, 600);
-    }
+    setTimeout(()=>{
+        themeToast.fire({
+            html: '<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.5">🌙 &nbsp;Podés alternar entre<br><b style="color:#ddd0bb">modo oscuro y claro</b> con este botón</span>'
+        });
+    }, 600);
 }, 800);
 
 // Touch swipe
