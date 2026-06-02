@@ -264,7 +264,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 /* S10: CTA */
 .cta-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(200,184,154,.04) 0%,transparent 70%);pointer-events:none}
 
-/* ── THEME TOGGLE ───────────────────────────── */
+/* ── THEME PANEL (retráctil) ────────────────── */
 @keyframes pulse-glow{
     0%  { box-shadow: 0 0 8px  2px rgba(255,255,255,.0); }
     30% { box-shadow: 0 0 22px 5px rgba(255,255,255,.28); }
@@ -272,12 +272,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
     80% { box-shadow: 0 0 26px 5px rgba(255,255,255,.24); }
     100%{ box-shadow: 0 0 8px  2px rgba(255,255,255,.0); }
 }
+#themePanel{
+    position:fixed;left:0;top:50%;z-index:200;
+    display:flex;align-items:stretch;
+    transform:translateY(-50%) translateX(calc(-100% + 30px));
+    transition:transform .4s cubic-bezier(.4,0,.2,1);
+}
+#themePanel.open{
+    transform:translateY(-50%) translateX(0);
+}
 .theme-toggle{
-    position:fixed;top:1.3rem;left:1.5rem;z-index:200;
     display:flex;align-items:center;gap:.75rem;
     background:rgba(200,184,154,.1);
     border:1px solid rgba(200,184,154,.3);
-    border-radius:40px;padding:.55rem 1rem .55rem .8rem;
+    border-right:none;
+    border-radius:12px 0 0 12px;
+    padding:.55rem 1rem .55rem .8rem;
     cursor:pointer;transition:background .2s,border-color .2s,box-shadow .2s;
     user-select:none;
 }
@@ -295,9 +305,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
     background:var(--gold);transition:transform .3s,background .3s;
     box-shadow:0 1px 4px rgba(0,0,0,.4);
 }
+#themePanelTab{
+    width:30px;
+    background:rgba(200,184,154,.08);
+    border:1px solid rgba(200,184,154,.25);
+    border-left:none;
+    border-radius:0 10px 10px 0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:rgba(200,184,154,.55);
+    font-size:.9rem;user-select:none;
+    transition:background .2s,color .2s;
+}
+#themePanelTab:hover{background:rgba(200,184,154,.18);color:var(--gold)}
 body.light .theme-toggle .t-thumb{transform:translateX(20px)}
 body.light .theme-toggle .t-track{background:rgba(100,80,50,.2);border-color:rgba(100,80,50,.3)}
 body.light .theme-toggle.pulsing{animation:none}
+body.light #themePanelTab{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.2);color:rgba(80,55,25,.5)}
+body.light #themePanelTab:hover{background:rgba(80,55,25,.15);color:#6b5135}
 
 /* ── LIGHT MODE ─────────────────────────────── */
 body.light{
@@ -918,11 +942,14 @@ body.light .feat-icon{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.
     <button class="rot-btn" id="rotFullscreenBtn">Ver en pantalla completa</button>
 </div>
 
-<!-- ── THEME TOGGLE ── -->
-<div class="theme-toggle" id="themeToggle">
-    <span class="t-icon" id="themeIcon">🌙</span>
-    <div class="t-track"><div class="t-thumb"></div></div>
-    <span class="t-icon" id="themeIconSun">☀️</span>
+<!-- ── THEME PANEL ── -->
+<div id="themePanel">
+    <div class="theme-toggle" id="themeToggle">
+        <span class="t-icon">🌙</span>
+        <div class="t-track"><div class="t-thumb"></div></div>
+        <span class="t-icon">☀️</span>
+    </div>
+    <div id="themePanelTab" title="Modo claro / oscuro"><span id="tabIcon">›</span></div>
 </div>
 
 <!-- ── NAVIGATION ── -->
@@ -972,39 +999,75 @@ document.addEventListener('keydown', e=>{
     if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(cur-1);
 });
 
-// Theme toggle
+// ── Escala automática de la presentación ─────────────────────
+function scalePresentation(){
+    const W = 1280, H = 720;
+    const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    const ox = (window.innerWidth  - W * scale) / 2;
+    const oy = (window.innerHeight - H * scale) / 2;
+    deck.style.width           = W + 'px';
+    deck.style.height          = H + 'px';
+    deck.style.transform       = `translate(${ox}px,${oy}px) scale(${scale})`;
+    deck.style.transformOrigin = 'top left';
+    deck.style.position        = 'absolute';
+    deck.style.top             = '0';
+    deck.style.left            = '0';
+}
+scalePresentation();
+window.addEventListener('resize', scalePresentation);
+
+// ── Theme panel retráctil ─────────────────────────────────────
 const themeToggle = document.getElementById('themeToggle');
+const themePanel  = document.getElementById('themePanel');
+const tabIcon     = document.getElementById('tabIcon');
+let   panelTimer;
+
 if(localStorage.getItem('theme')==='light') document.body.classList.add('light');
+
 themeToggle.addEventListener('click', ()=>{
     document.body.classList.toggle('light');
     localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
 });
-// Pulso + tooltip al cargar (solo la primera visita)
+
+function openPanel(){
+    themePanel.classList.add('open');
+    tabIcon.textContent = '‹';
+    clearTimeout(panelTimer);
+    panelTimer = setTimeout(closePanel, 5000);
+}
+function closePanel(){
+    themePanel.classList.remove('open');
+    tabIcon.textContent = '›';
+}
+
+document.getElementById('themePanelTab').addEventListener('click', ()=>{
+    themePanel.classList.contains('open') ? closePanel() : openPanel();
+});
+
+// Tooltip
 const themeToast = Swal.mixin({
     toast: true,
-    position: 'top-start',
+    position: 'center',
     showConfirmButton: false,
     timer: 4000,
     timerProgressBar: true,
-    customClass: {
-        popup:          'swal-theme-popup',
-        timerProgressBar: 'swal-theme-bar',
-    },
-    didOpen: toast => {
-        toast.addEventListener('mouseenter', Swal.stopTimer);
-        toast.addEventListener('mouseleave', Swal.resumeTimer);
+    customClass: { popup: 'swal-theme-popup', timerProgressBar: 'swal-theme-bar' },
+    didOpen: t => {
+        t.addEventListener('mouseenter', Swal.stopTimer);
+        t.addEventListener('mouseleave', Swal.resumeTimer);
     }
 });
 
+// Al cargar: abrir panel, pulsar, tooltip, luego cerrar
 setTimeout(()=>{
+    openPanel();
     themeToggle.classList.add('pulsing');
     themeToggle.addEventListener('animationend', ()=> themeToggle.classList.remove('pulsing'), { once: true });
-
     setTimeout(()=>{
         themeToast.fire({
-            html: '<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.5">🌙 &nbsp;Podés alternar entre<br><b style="color:#ddd0bb">modo oscuro y claro</b> con este botón</span>'
+            html:'<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.6">🌙 &nbsp;Usá el panel lateral para<br><b style="color:#ddd0bb">cambiar modo oscuro / claro</b></span>'
         });
-    }, 600);
+    }, 500);
 }, 800);
 
 // ── Orientación móvil ────────────────────────────────────────
