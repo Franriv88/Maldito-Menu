@@ -23,7 +23,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read:   if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
     }
 

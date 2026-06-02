@@ -367,9 +367,12 @@ async function loadData() {
             restsByOwner[d.ownerId].push({ id: doc.id, nombre: d.nombre || 'Sin nombre' });
         });
 
-        // Include owners without a users doc
+        // Include owners without a users doc — show restaurant names as identifier
         Object.keys(restsByOwner).forEach(uid => {
-            if (!usersMap[uid]) usersMap[uid] = { uid, email: '(sin registro)', displayName: '' };
+            if (!usersMap[uid]) {
+                const restNames = restsByOwner[uid].map(r => r.nombre).join(', ');
+                usersMap[uid] = { uid, email: `UID: ${uid.slice(0,10)}…`, displayName: `Sin registro (${restNames})` };
+            }
         });
 
         allUsers = Object.values(usersMap).map(u => ({
