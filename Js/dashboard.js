@@ -62,6 +62,7 @@ function showBlockedScreen() {
             <a href="mailto:frivasv2388@gmail.com" style="margin-top:.5rem;color:#c8b89a;font-size:.85rem;border:1px solid rgba(200,184,154,.25);padding:.5rem 1.2rem;border-radius:8px;text-decoration:none">
                 Contactar soporte
             </a>
+            <span style="color:rgba(200,184,154,.3);font-size:.78rem">frivasv2388@gmail.com</span>
         </div>`;
 }
 
