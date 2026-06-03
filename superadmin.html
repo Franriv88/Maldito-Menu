@@ -549,9 +549,15 @@ async function deletePlan(idx) {
 }
 
 async function deleteUser(uid, name) {
+    const userEntry = allUsers.find(u => u.uid === uid);
+    const restCount = userEntry?.restaurants?.length || 0;
+    const restNote  = restCount > 0
+        ? `También se eliminarán sus <b>${restCount}</b> restaurante${restCount > 1 ? 's' : ''}.<br>`
+        : '';
+
     const { isConfirmed } = await Swal.fire({
         title: `¿Eliminar a ${name}?`,
-        html: `Se eliminarán sus datos y suscripción.<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
+        html: `${restNote}Se eliminarán sus datos y suscripción.<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Eliminar',
@@ -563,11 +569,16 @@ async function deleteUser(uid, name) {
     });
     if (!isConfirmed) return;
     try {
-        await db.collection('users').doc(uid).delete();
+        const restaurants = userEntry?.restaurants || [];
+        await Promise.all([
+            db.collection('users').doc(uid).delete(),
+            ...restaurants.map(r => db.collection('restaurants').doc(r.id).delete()),
+        ]);
         allUsers = allUsers.filter(u => u.uid !== uid);
         renderStats(); renderCharts(); renderTable();
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Usuario eliminado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
     } catch(err) {
+        console.error(err);
         Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al eliminar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
     }
 }
