@@ -610,3 +610,73 @@ body.light .sa-badge-rest { background: rgba(100,80,50,.1); color: rgba(60,42,20
 body.light .sa-avatar { opacity: .85; }
 body.light .sa-empty { color: rgba(60,42,20,.3); }
 body.light .sa-loading { color: rgba(60,42,20,.4); }
+
+/* ── EDITOR REDES SOCIALES (admin sidebar) ──────────────────── */
+.ctrl-input-text {
+    width: 100%;
+    background: #111;
+    border: 1px solid rgba(124,108,92,.25);
+    border-radius: 6px;
+    color: #c8b89a;
+    font-size: .75rem;
+    padding: 6px 8px;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.ctrl-input-text:focus { border-color: rgba(124,108,92,.5); }
+.ctrl-input-text::placeholder { color: rgba(200,184,154,.3); }
+
+.socials-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; min-height: 4px; }
+.social-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 2px; border-radius: 6px;
+    border: 1px solid transparent; cursor: grab;
+    transition: background .15s;
+}
+.social-row:hover { background: rgba(124,108,92,.08); }
+.social-row.drag-over { border-color: rgba(124,108,92,.4); background: rgba(124,108,92,.06); }
+.social-row.dragging  { opacity: .4; }
+.social-drag { color: rgba(124,108,92,.35); font-size: 11px; cursor: grab; flex-shrink:0; user-select:none; }
+.social-url-input {
+    flex: 1; min-width: 0;
+    background: #111;
+    border: 1px solid rgba(124,108,92,.2);
+    border-radius: 4px;
+    color: #c8b89a;
+    font-size: .65rem;
+    padding: 3px 5px;
+    outline: none;
+    font-family: inherit;
+}
+.social-url-input:focus { border-color: rgba(124,108,92,.45); }
+.social-url-input::placeholder { color: rgba(200,184,154,.25); }
+.social-color-input {
+    width: 22px; height: 22px; border: none;
+    padding: 0; cursor: pointer; border-radius: 3px;
+    background: none; flex-shrink: 0;
+}
+.social-remove-btn {
+    background: none; border: none;
+    color: rgba(200,100,100,.55);
+    cursor: pointer; font-size: 1rem; line-height: 1;
+    padding: 0 2px; flex-shrink: 0;
+}
+.social-remove-btn:hover { color: rgba(220,80,80,.9); }
+.social-picker-row {
+    display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;
+}
+.social-pick-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    background: rgba(124,108,92,.08);
+    border: 1px solid rgba(124,108,92,.2);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; padding: 5px; flex-shrink: 0;
+}
+.social-pick-btn:hover { background: rgba(124,108,92,.2); border-color: rgba(124,108,92,.45); }
+.social-pick-btn[disabled] { opacity: .25; cursor: not-allowed; pointer-events: none; }
+.sidebar-divider {
+    border: none; border-top: 1px solid rgba(124,108,92,.15);
+    margin: .2rem 0 1rem;
+}
