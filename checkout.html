@@ -212,8 +212,8 @@
         <!-- SUCCESS -->
         <div class="co-success" id="successState">
             <div class="s-icon">✅</div>
-            <h2>¡Pago iniciado!</h2>
-            <p>Recibimos tu pago. En breve el administrador activará tu cuenta.</p>
+            <h2 id="successTitle">¡Suscripción activada!</h2>
+            <p id="successMsg">Tu suscripción está activa.</p>
             <p class="redirect-msg" id="redirectMsg">Redirigiendo al panel en <span id="countdown">5</span>s...</p>
         </div>
 
@@ -260,10 +260,54 @@ auth.onAuthStateChanged(async user => {
 
     document.getElementById('loadingState').style.display = 'none';
 
-    // ── Volvió de MP con pago aprobado ─────────────────────────
-    if (paymentStatus === 'approved' || paymentStatus === 'success') {
-        await userRef.set({ subscription: { status: 'pending_payment', paidAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
-        document.getElementById('successState').style.display = 'block';
+    // ── Volvió de MP ───────────────────────────────────────────
+    if (paymentStatus) {
+        if (paymentStatus === 'approved' || paymentStatus === 'success') {
+            // Activación automática
+            const planType = userData.subscription?.planType;
+            const plan     = plans.find(p => p.id === planType);
+            const days     = plan?.durationDays || 30;
+
+            const paidUntil = new Date();
+            paidUntil.setDate(paidUntil.getDate() + days);
+
+            await userRef.set({
+                subscription: {
+                    status:    'active',
+                    planType:  planType || null,
+                    paidAt:    firebase.firestore.FieldValue.serverTimestamp(),
+                    paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil),
+                }
+            }, { merge: true });
+
+            document.getElementById('successTitle').textContent = '¡Suscripción activada!';
+            document.getElementById('successMsg').textContent   =
+                `Tu plan ${plan?.label || 'de suscripción'} está activo por ${days} días.`;
+            document.getElementById('successState').style.display = 'block';
+
+        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+            // Pago en proceso (transferencia, efectivo, etc.)
+            await userRef.set({ subscription: { status: 'pending_payment', paidAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+
+            document.getElementById('successTitle').textContent = 'Pago en proceso';
+            document.getElementById('successMsg').textContent   =
+                'Tu pago está siendo procesado. El administrador confirmará tu acceso en breve.';
+            document.getElementById('redirectMsg').style.display = 'none';
+            document.getElementById('successState').style.display = 'block';
+            return; // no redirigir automáticamente
+
+        } else {
+            // rejected / failure / cancelado
+            document.getElementById('successTitle').textContent = 'Pago no completado';
+            document.getElementById('successMsg').textContent   =
+                'El pago fue rechazado o cancelado. Podés intentarlo nuevamente.';
+            document.getElementById('successState').querySelector('.s-icon').textContent = '❌';
+            document.getElementById('redirectMsg').textContent = 'Volviendo al selector de planes...';
+            document.getElementById('successState').style.display = 'block';
+            setTimeout(() => { window.location.href = './checkout.html'; }, 4000);
+            return;
+        }
+
         let n = 5;
         const t = setInterval(() => {
             document.getElementById('countdown').textContent = --n;
