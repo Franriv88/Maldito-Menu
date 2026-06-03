@@ -197,27 +197,8 @@
                 <div class="co-benefit"><div class="co-check">✓</div><span>Soporte directo del administrador</span></div>
             </div>
 
-            <div class="co-plans">
-                <!-- Mensual -->
-                <div class="co-plan">
-                    <div class="co-plan-label">Mensual</div>
-                    <div class="co-plan-price">$20.000 <span>ARS</span></div>
-                    <div class="co-plan-sub">por mes<br>renovación manual</div>
-                    <button class="btn-pay" id="payBtnMonthly" style="margin-top:auto">
-                        <span class="mp-logo">mp</span> Pagar
-                    </button>
-                </div>
-                <!-- Trimestral -->
-                <div class="co-plan recommended">
-                    <div class="co-rec-badge">✦ Recomendado</div>
-                    <div class="co-plan-label">Trimestral</div>
-                    <div class="co-plan-price">$54.000 <span>ARS</span></div>
-                    <div class="co-plan-sub">$18.000/mes<br>3 meses incluidos</div>
-                    <span class="co-plan-save">Ahorrás $6.000</span>
-                    <button class="btn-pay" id="payBtnQuarterly" style="margin-top:auto">
-                        <span class="mp-logo">mp</span> Pagar
-                    </button>
-                </div>
+            <div class="co-plans" id="dynamicPlans">
+                <!-- planes cargados dinámicamente -->
             </div>
 
             <div id="noConfigMsg" class="co-no-config" style="display:none">
@@ -256,19 +237,26 @@ const paymentStatus = params.get('status') || params.get('collection_status');
 auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = './index.html'; return; }
 
-    const userRef  = db.collection('users').doc(user.uid);
-    const configRef = db.collection('appConfig').doc('payments');
+    const userRef = db.collection('users').doc(user.uid);
 
-    const [userSnap, configSnap] = await Promise.all([
+    const [userSnap, plansSnap, paySnap] = await Promise.all([
         userRef.get(),
-        configRef.get().catch(() => ({ exists: false, data: () => ({}) }))
+        db.collection('appConfig').doc('plans').get().catch(() => null),
+        db.collection('appConfig').doc('payments').get().catch(() => null),
     ]);
 
-    const userData        = userSnap.exists ? userSnap.data() : {};
-    const configData      = configSnap.exists ? configSnap.data() : {};
-    const mpLinkMonthly   = configData.mpLinkMonthly   || null;
-    const mpLinkQuarterly = configData.mpLinkQuarterly || null;
-    const subStatus       = userData.subscription?.status;
+    const userData  = userSnap.exists ? userSnap.data() : {};
+    const subStatus = userData.subscription?.status;
+
+    // ── Cargar planes (nuevo doc o fallback al viejo) ──────────
+    let plans = [];
+    if (plansSnap && plansSnap.exists && (plansSnap.data().list || []).length) {
+        plans = plansSnap.data().list;
+    } else {
+        const d = paySnap && paySnap.exists ? paySnap.data() : {};
+        if (d.mpLinkMonthly)   plans.push({ id: 'monthly',   label: 'Mensual',    price: 20000, durationDays: 30, mpLink: d.mpLinkMonthly,   savingsLabel: '',              recommended: false });
+        if (d.mpLinkQuarterly) plans.push({ id: 'quarterly', label: 'Trimestral', price: 54000, durationDays: 90, mpLink: d.mpLinkQuarterly, savingsLabel: 'Ahorrás $6.000', recommended: true  });
+    }
 
     document.getElementById('loadingState').style.display = 'none';
 
@@ -285,48 +273,67 @@ auth.onAuthStateChanged(async user => {
     }
 
     // ── Ya tiene suscripción activa ────────────────────────────
-    if (subStatus === 'active') {
-        window.location.href = './dashboard.html'; return;
-    }
+    if (subStatus === 'active') { window.location.href = './dashboard.html'; return; }
 
     // ── Pago pendiente de confirmación ─────────────────────────
     if (subStatus === 'pending_payment') {
-        document.getElementById('planState').style.display = 'block';
+        document.getElementById('planState').style.display  = 'block';
         document.getElementById('pendingState').style.display = 'block';
-        document.getElementById('payBtn').style.display = 'none';
+        document.getElementById('dynamicPlans').style.display = 'none';
         document.getElementById('skipBtn').textContent = 'Ir al panel →';
         document.getElementById('skipBtn').onclick = () => window.location.href = './dashboard.html';
         return;
     }
 
-    // ── Mostrar plan ───────────────────────────────────────────
+    // ── Mostrar selector de planes ─────────────────────────────
     document.getElementById('planState').style.display = 'block';
 
-    if (!mpLinkMonthly && !mpLinkQuarterly) {
+    if (!plans.length) {
         document.getElementById('noConfigMsg').style.display = 'block';
-        document.getElementById('payBtnMonthly').disabled   = true;
-        document.getElementById('payBtnQuarterly').disabled = true;
+        document.getElementById('dynamicPlans').style.display = 'none';
     } else {
-        if (!mpLinkMonthly)   document.getElementById('payBtnMonthly').disabled   = true;
-        if (!mpLinkQuarterly) document.getElementById('payBtnQuarterly').disabled = true;
+        renderPlans(plans);
+        if (plans.every(p => !p.mpLink)) {
+            document.getElementById('noConfigMsg').style.display = 'block';
+        }
     }
-
-    async function initiatePay(mpLink, planType) {
-        if (!mpLink) return;
-        try {
-            await userRef.set({ subscription: { status: 'pending_payment', planType, paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
-        } catch(e) { console.warn(e); }
-        const url = new URL(mpLink);
-        if (user.email) url.searchParams.set('payer[email]', user.email);
-        window.location.href = url.toString();
-    }
-
-    document.getElementById('payBtnMonthly').addEventListener('click',   () => initiatePay(mpLinkMonthly,   'monthly'));
-    document.getElementById('payBtnQuarterly').addEventListener('click', () => initiatePay(mpLinkQuarterly, 'quarterly'));
 
     document.getElementById('skipBtn').addEventListener('click', () => {
         window.location.href = './dashboard.html';
     });
+
+    function renderPlans(plans) {
+        const container = document.getElementById('dynamicPlans');
+        container.style.gridTemplateColumns = plans.length === 1 ? '1fr' : '';
+        container.innerHTML = plans.map(p => {
+            const price = Number(p.price).toLocaleString('es-AR');
+            return `
+                <div class="co-plan ${p.recommended ? 'recommended' : ''}">
+                    ${p.recommended ? '<div class="co-rec-badge">✦ Recomendado</div>' : ''}
+                    <div class="co-plan-label">${p.label}</div>
+                    <div class="co-plan-price">$${price} <span>ARS</span></div>
+                    <div class="co-plan-sub">${p.durationDays} días de acceso</div>
+                    ${p.savingsLabel ? `<span class="co-plan-save">${p.savingsLabel}</span>` : ''}
+                    <button class="btn-pay co-pay-btn" data-id="${p.id}" ${!p.mpLink ? 'disabled' : ''} style="margin-top:auto">
+                        <span class="mp-logo">mp</span> Pagar
+                    </button>
+                </div>`;
+        }).join('');
+
+        container.querySelectorAll('.co-pay-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const plan = plans.find(p => p.id === btn.dataset.id);
+                if (!plan) return;
+                btn.disabled = true; btn.textContent = 'Redirigiendo...';
+                try {
+                    await userRef.set({ subscription: { status: 'pending_payment', planType: plan.id, paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+                } catch(e) { console.warn(e); }
+                const url = new URL(plan.mpLink);
+                if (user.email) url.searchParams.set('payer[email]', user.email);
+                window.location.href = url.toString();
+            });
+        });
+    }
 });
 </script>
 </body>
