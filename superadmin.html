@@ -206,6 +206,11 @@
             color: #e06070;
             border: 1px solid rgba(220,53,69,.25);
         }
+        .sa-badge-pending {
+            background: rgba(0,158,227,.1);
+            color: #4dbfe8;
+            border: 1px solid rgba(0,158,227,.25);
+        }
 
         /* ── ACTIONS ───────────────────────────────── */
         .sa-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
@@ -272,6 +277,20 @@
 <div id="saLoading" class="sa-loading">Cargando datos...</div>
 
 <div class="sa-wrap" id="saContent" style="display:none">
+
+    <!-- Config pagos MP -->
+    <div class="sa-section" style="padding:1.2rem 1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+            <div>
+                <div class="sa-section-title" style="margin-bottom:.3rem">Link de Mercado Pago</div>
+                <div style="font-size:.72rem;color:rgba(200,184,154,.35)">Los usuarios nuevos son redirigidos a este link al registrarse</div>
+            </div>
+            <div style="display:flex;gap:.6rem;align-items:center;flex:1;max-width:560px">
+                <input id="mpLinkInput" type="url" placeholder="https://link.mercadopago.com.ar/..." style="flex:1;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.78rem;padding:.45rem .8rem;outline:none;min-width:0">
+                <button id="mpLinkSaveBtn" onclick="saveMpLink()" style="background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.35);color:#5cbf7a;border-radius:8px;padding:.45rem 1rem;font-size:.75rem;cursor:pointer;white-space:nowrap">Guardar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Stats -->
     <div class="sa-stats" id="statsRow"></div>
@@ -349,7 +368,31 @@ auth.onAuthStateChanged(async user => {
     initThemeToggle('themeBtn');
 
     await loadData();
+    loadMpConfig();
 });
+
+async function loadMpConfig() {
+    try {
+        const snap = await db.collection('appConfig').doc('payments').get();
+        if (snap.exists && snap.data().mpLink) {
+            document.getElementById('mpLinkInput').value = snap.data().mpLink;
+        }
+    } catch(e) {}
+}
+
+async function saveMpLink() {
+    const link = document.getElementById('mpLinkInput').value.trim();
+    const btn  = document.getElementById('mpLinkSaveBtn');
+    if (!link) return;
+    btn.textContent = 'Guardando...'; btn.disabled = true;
+    try {
+        await db.collection('appConfig').doc('payments').set({ mpLink: link }, { merge: true });
+        btn.textContent = '✓ Guardado';
+        setTimeout(() => { btn.textContent = 'Guardar'; btn.disabled = false; }, 2000);
+    } catch(e) {
+        btn.textContent = 'Error'; btn.disabled = false;
+    }
+}
 
 // ── Load all data ─────────────────────────────────────────────
 
@@ -527,8 +570,14 @@ function renderTable() {
 
     tbody.innerHTML = filtered.map(u => {
         const status    = u.subscription?.status || 'unpaid';
-        const badgeClass = status === 'active' ? 'sa-badge-active' : status === 'blocked' ? 'sa-badge-blocked' : 'sa-badge-unpaid';
-        const badgeText  = status === 'active' ? '✓ Activo' : status === 'blocked' ? '✗ Bloqueado' : '⚠ Impago';
+        const badgeClass = status === 'active' ? 'sa-badge-active'
+                         : status === 'blocked' ? 'sa-badge-blocked'
+                         : status === 'pending_payment' ? 'sa-badge-pending'
+                         : 'sa-badge-unpaid';
+        const badgeText  = status === 'active' ? '✓ Activo'
+                         : status === 'blocked' ? '✗ Bloqueado'
+                         : status === 'pending_payment' ? '⏳ Pago pendiente'
+                         : '⚠ Impago';
 
         const paidUntil = u.subscription?.paidUntil?.seconds
             ? new Date(u.subscription.paidUntil.seconds * 1000).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })
@@ -546,8 +595,11 @@ function renderTable() {
 
         const actions = status === 'blocked'
             ? `<button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">Desbloquear</button>`
-            : `<button class="sa-btn sa-btn-paid"    onclick="markPaid('${u.uid}')">Marcar pagado</button>
-               <button class="sa-btn sa-btn-block"   onclick="setStatus('${u.uid}','blocked')">Bloquear</button>`;
+            : status === 'pending_payment'
+            ? `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">✓ Confirmar pago</button>
+               <button class="sa-btn sa-btn-block" onclick="setStatus('${u.uid}','blocked')">Bloquear</button>`
+            : `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">Marcar pagado</button>
+               <button class="sa-btn sa-btn-block" onclick="setStatus('${u.uid}','blocked')">Bloquear</button>`;
 
         return `<tr>
             <td>

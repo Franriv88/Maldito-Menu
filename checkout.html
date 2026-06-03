@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cubierto — Suscripción</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88' font-family='Georgia,serif' font-style='italic' fill='%23c8b89a'>C</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{
+            font-family:'Inter',sans-serif;
+            background:#0b0b0b;color:#c8b89a;
+            min-height:100vh;display:flex;
+            align-items:center;justify-content:center;
+            padding:2rem 1rem;
+        }
+
+        /* ── LOGO ── */
+        .co-logo{
+            font-family:'Cormorant Garant',serif;
+            font-style:italic;font-weight:300;
+            font-size:2rem;color:#c8b89a;
+            text-align:center;margin-bottom:2rem;
+            letter-spacing:.5px;
+        }
+
+        /* ── CARD ── */
+        .co-card{
+            background:#161616;
+            border:1px solid rgba(200,184,154,.12);
+            border-radius:20px;
+            padding:2.5rem 2rem;
+            max-width:480px;width:100%;
+            box-shadow:0 24px 60px rgba(0,0,0,.6);
+        }
+
+        /* ── BADGE ── */
+        .co-badge{
+            display:inline-flex;align-items:center;gap:.4rem;
+            background:rgba(200,184,154,.07);
+            border:1px solid rgba(200,184,154,.18);
+            border-radius:20px;padding:.25rem .9rem;
+            font-size:.62rem;letter-spacing:2px;text-transform:uppercase;
+            color:rgba(200,184,154,.55);margin-bottom:1.5rem;
+        }
+
+        /* ── PRICE ── */
+        .co-price-block{
+            text-align:center;margin-bottom:2rem;
+            padding-bottom:1.8rem;
+            border-bottom:1px solid rgba(200,184,154,.08);
+        }
+        .co-price{
+            font-family:'Cormorant Garant',serif;
+            font-size:3.5rem;font-weight:300;
+            color:#ede4d8;line-height:1;
+        }
+        .co-price span{font-size:1.6rem;color:rgba(200,184,154,.5)}
+        .co-per-month{
+            font-size:.8rem;color:rgba(200,184,154,.4);
+            margin-top:.5rem;letter-spacing:.3px;
+        }
+        .co-saving{
+            display:inline-block;
+            margin-top:.6rem;
+            background:rgba(40,167,69,.1);
+            border:1px solid rgba(40,167,69,.2);
+            border-radius:20px;padding:.2rem .8rem;
+            font-size:.68rem;color:#5cbf7a;
+        }
+
+        /* ── BENEFITS ── */
+        .co-benefits{margin-bottom:2rem}
+        .co-benefit{
+            display:flex;align-items:flex-start;gap:.8rem;
+            padding:.55rem 0;
+            border-bottom:1px solid rgba(200,184,154,.05);
+            font-size:.85rem;color:rgba(200,184,154,.75);
+        }
+        .co-benefit:last-child{border-bottom:none}
+        .co-check{
+            width:18px;height:18px;border-radius:50%;flex-shrink:0;
+            background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.3);
+            display:flex;align-items:center;justify-content:center;
+            font-size:.6rem;color:#5cbf7a;margin-top:.1rem;
+        }
+
+        /* ── BUTTONS ── */
+        .btn-pay{
+            width:100%;padding:1rem;border:none;border-radius:12px;
+            background:#009ee3;color:#fff;
+            font-size:1rem;font-weight:600;font-family:'Inter',sans-serif;
+            cursor:pointer;display:flex;align-items:center;justify-content:center;
+            gap:.7rem;transition:background .2s,transform .1s;
+            margin-bottom:.8rem;
+        }
+        .btn-pay:hover{background:#0090d0}
+        .btn-pay:active{transform:scale(.98)}
+        .btn-pay:disabled{opacity:.5;cursor:default}
+        .mp-logo{
+            background:#fff;border-radius:4px;padding:2px 5px;
+            font-size:.7rem;font-weight:700;color:#009ee3;letter-spacing:-.3px;
+        }
+
+        .btn-skip{
+            width:100%;background:none;border:none;
+            color:rgba(200,184,154,.3);font-size:.78rem;
+            cursor:pointer;padding:.5rem;text-align:center;
+            transition:color .2s;font-family:'Inter',sans-serif;
+        }
+        .btn-skip:hover{color:rgba(200,184,154,.6)}
+
+        /* ── SUCCESS STATE ── */
+        .co-success{display:none;text-align:center;padding:1rem 0}
+        .co-success .s-icon{font-size:3rem;margin-bottom:1rem}
+        .co-success h2{font-family:'Cormorant Garant',serif;font-style:italic;font-size:1.8rem;color:#ede4d8;margin-bottom:.8rem}
+        .co-success p{font-size:.85rem;color:rgba(200,184,154,.5);line-height:1.6}
+        .co-success .redirect-msg{margin-top:1.2rem;font-size:.75rem;color:rgba(200,184,154,.3)}
+
+        /* ── PENDING STATE ── */
+        .co-pending{display:none;text-align:center;padding:.5rem 0 1rem}
+        .co-pending p{font-size:.82rem;color:rgba(200,184,154,.4);line-height:1.6}
+        .co-pending a{color:#c8b89a;text-decoration:none;font-weight:500}
+
+        /* ── LOADING ── */
+        .co-loading{text-align:center;padding:3rem;color:rgba(200,184,154,.3);font-size:.85rem}
+
+        /* ── NO CONFIG ── */
+        .co-no-config{
+            text-align:center;padding:1.5rem;
+            background:rgba(240,160,0,.06);
+            border:1px solid rgba(240,160,0,.2);
+            border-radius:10px;margin-bottom:1rem;
+            font-size:.8rem;color:#f0a500;line-height:1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div style="width:100%;max-width:480px">
+    <div class="co-logo">Cubierto</div>
+
+    <div class="co-card" id="mainCard">
+        <div id="loadingState" class="co-loading">Cargando...</div>
+
+        <!-- PLAN -->
+        <div id="planState" style="display:none">
+            <div class="co-badge">✦ &nbsp;Plan trimestral</div>
+
+            <div class="co-price-block">
+                <div class="co-price">$60.000 <span>ARS</span></div>
+                <div class="co-per-month">equivale a $20.000 / mes</div>
+                <span class="co-saving">Pagás 3 meses juntos</span>
+            </div>
+
+            <div class="co-benefits">
+                <div class="co-benefit"><div class="co-check">✓</div><span>Menú digital con tu identidad visual completa</span></div>
+                <div class="co-benefit"><div class="co-check">✓</div><span>Actualizaciones ilimitadas en tiempo real</span></div>
+                <div class="co-benefit"><div class="co-check">✓</div><span>QR personalizado con tu logo en el centro</span></div>
+                <div class="co-benefit"><div class="co-check">✓</div><span>Eliminación de fondo por IA en tus imágenes</span></div>
+                <div class="co-benefit"><div class="co-check">✓</div><span>Sin comisiones por ventas</span></div>
+                <div class="co-benefit"><div class="co-check">✓</div><span>Soporte directo del administrador</span></div>
+            </div>
+
+            <div id="noConfigMsg" class="co-no-config" style="display:none">
+                ⚠️ El link de pago aún no está configurado.<br>
+                Contactá al administrador: <a href="mailto:frivasv2388@gmail.com" style="color:#f0a500">frivasv2388@gmail.com</a>
+            </div>
+
+            <button class="btn-pay" id="payBtn">
+                <span class="mp-logo">mp</span>
+                Pagar con Mercado Pago
+            </button>
+            <button class="btn-skip" id="skipBtn">Explorar primero, pagar después →</button>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="co-success" id="successState">
+            <div class="s-icon">✅</div>
+            <h2>¡Pago iniciado!</h2>
+            <p>Recibimos tu pago. En breve el administrador activará tu cuenta.</p>
+            <p class="redirect-msg" id="redirectMsg">Redirigiendo al panel en <span id="countdown">5</span>s...</p>
+        </div>
+
+        <!-- PENDING -->
+        <div class="co-pending" id="pendingState">
+            <p>Tu pago está <b style="color:#f0a500">pendiente de confirmación</b>.<br>
+            Podés usar el sistema mientras tanto.<br>
+            Ante cualquier duda: <a href="mailto:frivasv2388@gmail.com">frivasv2388@gmail.com</a></p>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="./Js/firebase-config.js?v=3"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const paymentStatus = params.get('status') || params.get('collection_status');
+
+auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = './index.html'; return; }
+
+    const userRef  = db.collection('users').doc(user.uid);
+    const configRef = db.collection('appConfig').doc('payments');
+
+    const [userSnap, configSnap] = await Promise.all([
+        userRef.get(),
+        configRef.get().catch(() => ({ exists: false, data: () => ({}) }))
+    ]);
+
+    const userData   = userSnap.exists ? userSnap.data() : {};
+    const mpLink     = configSnap.exists ? configSnap.data().mpLink : null;
+    const subStatus  = userData.subscription?.status;
+
+    document.getElementById('loadingState').style.display = 'none';
+
+    // ── Volvió de MP con pago aprobado ─────────────────────────
+    if (paymentStatus === 'approved' || paymentStatus === 'success') {
+        await userRef.set({ subscription: { status: 'pending_payment', paidAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+        document.getElementById('successState').style.display = 'block';
+        let n = 5;
+        const t = setInterval(() => {
+            document.getElementById('countdown').textContent = --n;
+            if (n <= 0) { clearInterval(t); window.location.href = './dashboard.html'; }
+        }, 1000);
+        return;
+    }
+
+    // ── Ya tiene suscripción activa ────────────────────────────
+    if (subStatus === 'active') {
+        window.location.href = './dashboard.html'; return;
+    }
+
+    // ── Pago pendiente de confirmación ─────────────────────────
+    if (subStatus === 'pending_payment') {
+        document.getElementById('planState').style.display = 'block';
+        document.getElementById('pendingState').style.display = 'block';
+        document.getElementById('payBtn').style.display = 'none';
+        document.getElementById('skipBtn').textContent = 'Ir al panel →';
+        document.getElementById('skipBtn').onclick = () => window.location.href = './dashboard.html';
+        return;
+    }
+
+    // ── Mostrar plan ───────────────────────────────────────────
+    document.getElementById('planState').style.display = 'block';
+
+    if (!mpLink) {
+        document.getElementById('noConfigMsg').style.display = 'block';
+        document.getElementById('payBtn').disabled = true;
+    }
+
+    document.getElementById('payBtn').addEventListener('click', async () => {
+        if (!mpLink) return;
+        // Marcar pago iniciado en Firestore
+        try {
+            await userRef.set({ subscription: { status: 'pending_payment', paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+        } catch(e) { console.warn(e); }
+        // Construir URL de MP con email del usuario
+        const url = new URL(mpLink);
+        if (user.email) url.searchParams.set('payer[email]', user.email);
+        window.location.href = url.toString();
+    });
+
+    document.getElementById('skipBtn').addEventListener('click', () => {
+        window.location.href = './dashboard.html';
+    });
+});
+</script>
+</body>
+</html>
