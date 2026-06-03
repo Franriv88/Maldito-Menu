@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes serve . --listen 3000)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \"LISTEN\")",
+      "Bash(findstr \":5500\\\\|:3000\\\\|:8080\\\\|:8000\\\\|:4000\")",
+      "PowerShell(gsutil version)",
+      "PowerShell(if \\($?\\) { \"gsutil ok\" } else { \"gsutil no encontrado\" })",
+      "PowerShell(npx firebase-tools --version)",
+      "PowerShell(npx firebase-tools help storage 2>&1)",
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\Roaming\\\\configstore\" 2>$null | Select-Object Name; Get-ChildItem \"$env:APPDATA\\\\configstore\" 2>$null | Select-Object Name)",
+      "Read(//c/Users/Vaio/AppData/Roaming/**)",
+      "PowerShell(Get-ChildItem \"$home\\\\.config\" 2>$null | Select-Object Name; Get-ChildItem \"$home\\\\AppData\\\\Local\\\\configstore\" 2>$null | Select-Object Name; Get-ChildItem \"$home\\\\AppData\\\\Roaming\" | Select-Object Name | Sort-Object Name)",
+      "Read(//c/Users/Vaio/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); t=d.get\\('tokens',{}\\); print\\('refresh_token present:', bool\\(t.get\\('refresh_token'\\)\\)\\)\")",
+      "Bash(node -e \"const d=require\\('/c/Users/Vaio/.config/configstore/firebase-tools.json'\\); const t=d.tokens||{}; console.log\\('refresh_token present:', !!t.refresh_token\\);\")",
+      "Bash(node -e \"const d=require\\('C:/Users/Vaio/.config/configstore/firebase-tools.json'\\); const t=d.tokens||{}; console.log\\('refresh_token:', !!t.refresh_token, '| access_token:', !!t.access_token\\);\")",
+      "Bash(node -e \"const ft = require\\('/c/Users/Vaio/AppData/Roaming/npm/node_modules/firebase-tools'\\); console.log\\(Object.keys\\(ft\\).slice\\(0,20\\)\\);\")",
+      "Bash(npm root *)",
+      "Bash(node -e ' *)",
+      "Bash(node fix-cors.js)",
+      "Bash(npx -y firebase-tools storage --help)",
+      "Bash(npx -y firebase-tools --help)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const fs=require\\('fs'\\),os=require\\('os'\\),p=require\\('path'\\);const c=JSON.parse\\(fs.readFileSync\\(p.join\\(os.homedir\\(\\),'.config','configstore','firebase-tools.json'\\),'utf8'\\)\\);console.log\\('Email:',c.user?.email||c.tokens?.email||JSON.stringify\\(Object.keys\\(c\\)\\)\\)\")",
+      "Bash(npx firebase-tools *)",
+      "Bash(pip --version)",
+      "Bash(pip install *)",
+      "Bash(node -e \"const fs=require\\('fs'\\),os=require\\('os'\\),p=require\\('path'\\);const c=JSON.parse\\(fs.readFileSync\\(p.join\\(os.homedir\\(\\),'.config','configstore','firebase-tools.json'\\),'utf8'\\)\\);console.log\\(c.tokens.refresh_token\\)\")",
+      "Bash(gsutil cors *)",
+      "Bash(python -m gsutil cors set \"c:\\\\Users\\\\Vaio\\\\Documents\\\\GitHub\\\\Maldito-Menu\\\\cors.json\" gs://maldito-cafe.firebasestorage.app)",
+      "Bash(where.exe gsutil *)",
+      "Bash(python -c \"import gsutil; print\\(gsutil.__file__\\)\")",
+      "Bash(pip show *)",
+      "Bash(\"C:\\\\Users\\\\Vaio\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\Scripts\\\\gsutil.exe\" cors *)",
+      "Bash(firebase deploy *)",
+      "Bash(firebase serve *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

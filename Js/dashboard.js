@@ -7,7 +7,7 @@ const qrModal      = document.getElementById('qrModal');
 // ── Auth guard ────────────────────────────────────────────────
 
 auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = './index.html'; return; }
+    if (!user) { window.location.href = './login.html'; return; }
 
     document.getElementById('userName').textContent = user.displayName || user.email;
     document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
@@ -44,7 +44,7 @@ function watchSubscriptionStatus(uid) {
     db.collection('users').doc(uid).onSnapshot(snap => {
         if (snap.exists && snap.data().subscription?.status === 'blocked') {
             auth.signOut().then(() => {
-                window.location.href = './index.html?reason=blocked';
+                window.location.href = './login.html?reason=blocked';
             });
         }
     }, err => console.warn('Error watching subscription:', err));

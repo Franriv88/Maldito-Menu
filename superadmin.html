@@ -339,12 +339,12 @@ let chartMonthly, chartStatus;
 // ── Auth guard ────────────────────────────────────────────────
 
 auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = './index.html'; return; }
+    if (!user) { window.location.href = './login.html'; return; }
     if (user.email !== SUPERADMIN_EMAIL) { window.location.href = './dashboard.html'; return; }
 
     document.getElementById('topbarUserName').textContent = user.displayName || user.email;
     document.getElementById('saLogoutBtn').addEventListener('click', () =>
-        auth.signOut().then(() => window.location.href = './index.html')
+        auth.signOut().then(() => window.location.href = './login.html')
     );
     initThemeToggle('themeBtn');
 
@@ -538,9 +538,10 @@ function renderTable() {
             ? timeAgo(u.lastLogin.seconds * 1000)
             : 'Nunca';
 
-        const name    = esc(u.displayName || u.email?.split('@')[0] || 'Sin nombre');
+        const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : null;
+        const name    = esc(fullName || u.displayName || u.email?.split('@')[0] || 'Sin nombre');
         const email   = esc(u.email || u.uid.slice(0,12) + '…');
-        const initials = (u.displayName || u.email || 'U').slice(0,2).toUpperCase();
+        const initials = (fullName || u.displayName || u.email || 'U').slice(0,2).toUpperCase();
         const color   = avatarColor(u.uid);
 
         const actions = status === 'blocked'
@@ -555,6 +556,7 @@ function renderTable() {
                     <div>
                         <div class="sa-user-name">${name}</div>
                         <div class="sa-user-email">${email}</div>
+                        ${u.phone ? `<div style="font-size:.65rem;color:rgba(200,184,154,.35);margin-top:.1rem">📞 ${esc(u.phone)}</div>` : ''}
                     </div>
                 </div>
             </td>

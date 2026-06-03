@@ -19,7 +19,7 @@ const restaurantId = new URLSearchParams(location.search).get('r');
 // ── Auth guard ────────────────────────────────────────────────
 
 auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = './index.html'; return; }
+    if (!user) { window.location.href = './login.html'; return; }
     if (!restaurantId) { window.location.href = './dashboard.html'; return; }
 
     // Verificar que el usuario es dueño
@@ -38,14 +38,14 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('adminRestName').textContent   = nombre;
         document.getElementById('topbarUserName').textContent  = user.displayName || user.email;
         document.getElementById('viewMenuLink').href = `./menu.html?r=${restaurantId}`;
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = './index.html'));
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = './login.html'));
         document.getElementById('saveMenuBtn').addEventListener('click', guardarMenu);
         initThemeToggle('themeBtn');
 
         // Listener en tiempo real — cierra sesión si el admin bloquea la cuenta
         db.collection('users').doc(user.uid).onSnapshot(snap => {
             if (snap.exists && snap.data().subscription?.status === 'blocked') {
-                auth.signOut().then(() => window.location.href = './index.html?reason=blocked');
+                auth.signOut().then(() => window.location.href = './login.html?reason=blocked');
             }
         }, err => console.warn('Error watching subscription:', err));
 
