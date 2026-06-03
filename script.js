@@ -119,7 +119,9 @@ const ORDEN_CATEGORIAS = {
     'DULCES': 7
 };
 
-const restaurantId = new URLSearchParams(location.search).get('r');
+const restaurantId    = new URLSearchParams(location.search).get('r');
+const isReadonly      = new URLSearchParams(location.search).get('readonly') === '1';
+const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
 
 // ── Auth guard ────────────────────────────────────────────────
 
@@ -127,10 +129,11 @@ auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = './login.html'; return; }
     if (!restaurantId) { window.location.href = './dashboard.html'; return; }
 
-    // Verificar que el usuario es dueño
+    // Verificar que el usuario es dueño (o superadmin en modo vista)
     try {
-        const restDoc = await db.collection('restaurants').doc(restaurantId).get();
-        if (!restDoc.exists || restDoc.data().ownerId !== user.uid) {
+        const restDoc    = await db.collection('restaurants').doc(restaurantId).get();
+        const isSuperAdmin = user.email === SUPERADMIN_EMAIL;
+        if (!restDoc.exists || (!isSuperAdmin && restDoc.data().ownerId !== user.uid)) {
             window.location.href = './dashboard.html';
             return;
         }
@@ -148,13 +151,17 @@ auth.onAuthStateChanged(async user => {
         initThemeToggle('themeBtn');
 
         // Listener en tiempo real — cierra sesión si el admin bloquea la cuenta
-        db.collection('users').doc(user.uid).onSnapshot(snap => {
-            if (snap.exists && snap.data().subscription?.status === 'blocked') {
-                auth.signOut().then(() => window.location.href = './login.html?reason=blocked');
-            }
-        }, err => console.warn('Error watching subscription:', err));
+        if (!isReadonly) {
+            db.collection('users').doc(user.uid).onSnapshot(snap => {
+                if (snap.exists && snap.data().subscription?.status === 'blocked') {
+                    auth.signOut().then(() => window.location.href = './login.html?reason=blocked');
+                }
+            }, err => console.warn('Error watching subscription:', err));
+        }
 
         await renderAdminMenu();
+
+        if (isReadonly && isSuperAdmin) enterPreviewMode(nombre);
     } catch (err) {
         console.error('Error verificando acceso:', err);
         document.getElementById('admin-menu-container').innerHTML = '<p style="color:red;padding:2rem">Error al cargar. Intentá de nuevo.</p>';
@@ -165,6 +172,25 @@ auth.onAuthStateChanged(async user => {
 
 function restRef() {
     return db.collection('restaurants').doc(restaurantId);
+}
+
+// ── Modo vista (superadmin impersonation) ─────────────────────
+
+function enterPreviewMode(restName) {
+    document.body.classList.add('preview-mode');
+
+    // Cambiar botón de volver → SuperAdmin
+    const backBtn = document.querySelector('.btn-back');
+    if (backBtn) { backBtn.href = './superadmin.html'; backBtn.textContent = '← SuperAdmin'; }
+
+    // Badge en el topbar
+    const topbarLeft = document.querySelector('.topbar-left');
+    if (topbarLeft) {
+        const badge = document.createElement('span');
+        badge.className = 'preview-badge';
+        badge.textContent = `👁 Vista previa · ${restName}`;
+        topbarLeft.appendChild(badge);
+    }
 }
 
 // ── Renderizado del menú ──────────────────────────────────────
@@ -431,6 +457,7 @@ function compressToBase64(file, maxW, maxH, mimeType, quality) {
 // ── Guardar en Firestore ──────────────────────────────────────
 
 async function guardarMenu() {
+    if (isReadonly) return;
     const saveBtn = document.getElementById('saveMenuBtn');
     saveBtn.classList.add('is-saving');
     saveBtn.disabled = true;

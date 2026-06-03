@@ -681,6 +681,37 @@ body.light #saLogoutBtn:hover, body.light #logoutBtn:hover {
     color: rgba(140,60,40,.9);
 }
 
+/* ── MODO VISTA (superadmin impersonation) ──────────────────── */
+body.preview-mode #saveMenuBtn       { display: none !important; }
+body.preview-mode .add-item-btn      { display: none !important; }
+body.preview-mode .delete-item-btn   { display: none !important; }
+body.preview-mode .layout-toggle-btn { display: none !important; }
+body.preview-mode .btn-remove-bg-now,
+body.preview-mode .btn-remove-asset  { display: none !important; }
+body.preview-mode .social-picker-grid { display: none !important; }
+body.preview-mode .social-drag,
+body.preview-mode .social-remove-btn { display: none !important; }
+
+/* Sidebar — visible pero no interactivo */
+body.preview-mode .admin-sidebar     { pointer-events: none; user-select: none; }
+body.preview-mode .drop-overlay      { pointer-events: none !important; opacity: 0 !important; }
+body.preview-mode .pos-controls      { pointer-events: none; opacity: .65; }
+body.preview-mode .input-product,
+body.preview-mode .input-price,
+body.preview-mode .input-description { pointer-events: none; cursor: default; }
+
+/* Badge en el topbar */
+.preview-badge {
+    background: rgba(200,140,60,.1);
+    border: 1px solid rgba(200,140,60,.28);
+    color: #c89050;
+    border-radius: 20px;
+    padding: 4px 13px;
+    font-size: .72rem;
+    white-space: nowrap;
+    letter-spacing: .2px;
+}
+
 /* save button */
 body.light #saveMenuBtn { background: #6b5135; }
 body.light #saveMenuBtn:hover { background: #5a4229; }

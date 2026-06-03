@@ -250,6 +250,12 @@
             color: rgba(220,80,80,.7);
         }
         .sa-btn-delete:hover { background: rgba(180,30,40,.18); color:#e06070; }
+        .sa-btn-view {
+            background: rgba(124,108,92,.08);
+            border-color: rgba(124,108,92,.28);
+            color: rgba(200,184,154,.65);
+        }
+        .sa-btn-view:hover { background: rgba(124,108,92,.18); color:#c8b89a; }
 
         .sa-empty {
             text-align: center; padding: 3rem;
@@ -786,14 +792,21 @@ function renderTable() {
         const color   = avatarColor(u.uid);
 
         const safeName = name.replace(/'/g, "\\'");
+        const viewBtn = u.restaurants.length
+            ? `<button class="sa-btn sa-btn-view" onclick="viewPanel('${u.uid}')">👁 Ver</button>`
+            : '';
+
         const actions = status === 'blocked'
-            ? `<button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">Desbloquear</button>
+            ? `${viewBtn}
+               <button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">Desbloquear</button>
                <button class="sa-btn sa-btn-delete"  onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`
             : status === 'pending_payment'
-            ? `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">✓ Confirmar pago</button>
+            ? `${viewBtn}
+               <button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">✓ Confirmar pago</button>
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`
-            : `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">Marcar pagado</button>
+            : `${viewBtn}
+               <button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">Marcar pagado</button>
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`;
 
@@ -900,6 +913,39 @@ async function markPaid(uid) {
     } catch (err) {
         console.error(err);
         Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    }
+}
+
+// ── View panel (impersonation) ────────────────────────────────
+
+async function viewPanel(uid) {
+    const u = allUsers.find(u => u.uid === uid);
+    if (!u || !u.restaurants.length) return;
+
+    if (u.restaurants.length === 1) {
+        window.open(`./admin.html?r=${u.restaurants[0].id}&readonly=1`, '_blank');
+        return;
+    }
+
+    const inputOptions = {};
+    u.restaurants.forEach(r => { inputOptions[r.id] = esc(r.nombre || 'Sin nombre'); });
+
+    const { value: restId, isConfirmed } = await Swal.fire({
+        title: 'Elegí el restaurante',
+        input: 'radio',
+        inputOptions,
+        inputValue: u.restaurants[0].id,
+        showCancelButton: true,
+        confirmButtonText: '👁 Ver panel',
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a',
+        color: '#c8b89a',
+        confirmButtonColor: '#7C6C5C',
+        cancelButtonColor: 'rgba(124,108,92,.3)',
+        inputValidator: v => !v && 'Seleccioná un restaurante',
+    });
+    if (isConfirmed && restId) {
+        window.open(`./admin.html?r=${restId}&readonly=1`, '_blank');
     }
 }
 
