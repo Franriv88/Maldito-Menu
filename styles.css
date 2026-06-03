@@ -529,19 +529,105 @@
     #saveMenuBtn { padding: 12px 18px; font-size: 0.9rem; }
 }
 
-/* ── THEME BUTTON (topbar) ──────────────────────────────────── */
-.theme-btn {
-    background: none;
-    border: 1px solid rgba(124,108,92,0.25);
-    color: #7C6C5C;
-    padding: 4px 10px;
+/* ── TOPBAR (admin + superadmin) ────────────────────────────── */
+.admin-topbar {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 1.4rem;
+    border-bottom: 1px solid rgba(124,108,92,.14);
+    position: sticky; top: 0; z-index: 100;
+    flex-wrap: wrap; gap: 8px;
+}
+.topbar-left  { display: flex; align-items: center; gap: 10px; }
+.topbar-right { display: flex; align-items: center; gap: 6px; }
+
+#topbarRestName {
+    color: #c8b89a;
+    font-size: .88rem;
+    font-weight: 600;
+    letter-spacing: .15px;
+}
+#topbarUserName {
+    color: rgba(200,184,154,.38);
+    font-size: .73rem;
+    white-space: nowrap;
+    letter-spacing: .1px;
+}
+
+.btn-back {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: rgba(200,184,154,.5);
+    font-size: .74rem;
+    text-decoration: none;
+    background: rgba(124,108,92,.07);
+    border: 1px solid rgba(124,108,92,.22);
+    padding: 5px 14px;
+    border-radius: 20px;
+    transition: background .18s, border-color .18s, color .18s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+.btn-back:hover {
+    background: rgba(124,108,92,.16);
+    border-color: rgba(124,108,92,.42);
+    color: #c8b89a;
+}
+
+.topbar-right a,
+.topbar-right button {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: rgba(200,184,154,.52);
+    font-size: .74rem;
+    background: rgba(124,108,92,.07);
+    border: 1px solid rgba(124,108,92,.22);
+    padding: 5px 14px;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.15s;
-    line-height: 1;
+    text-decoration: none;
+    transition: background .18s, border-color .18s, color .18s;
+    white-space: nowrap;
+    font-family: inherit;
+    line-height: 1.4;
 }
-.theme-btn:hover { border-color: #7C6C5C; color: #c8b89a; }
+.topbar-right a:hover,
+.topbar-right button:hover {
+    background: rgba(124,108,92,.16);
+    border-color: rgba(124,108,92,.42);
+    color: #c8b89a;
+}
+
+/* Theme button — circular icon */
+.theme-btn {
+    background: rgba(124,108,92,.07);
+    border: 1px solid rgba(124,108,92,.22);
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .88rem;
+    cursor: pointer;
+    transition: background .18s, border-color .18s;
+    color: rgba(200,184,154,.6);
+    line-height: 1;
+    flex-shrink: 0;
+}
+.theme-btn:hover {
+    background: rgba(124,108,92,.18);
+    border-color: rgba(124,108,92,.44);
+}
+
+/* Logout — leve tinte rojizo para diferenciarlo */
+#saLogoutBtn, #logoutBtn {
+    border-color: rgba(180,80,60,.22);
+    color: rgba(200,140,120,.55);
+}
+#saLogoutBtn:hover, #logoutBtn:hover {
+    background: rgba(180,80,60,.09);
+    border-color: rgba(180,80,60,.42);
+    color: rgba(220,160,140,.9);
+}
 
 /* ── LIGHT MODE — admin + superadmin ────────────────────────── */
 body.light { background-color: #f2ede6; color: #3a2e22; }
@@ -549,18 +635,51 @@ body.light { background-color: #f2ede6; color: #3a2e22; }
 /* topbar */
 body.light .admin-topbar {
     background: #ede6dc;
-    border-bottom-color: rgba(100,80,50,.15);
+    border-bottom-color: rgba(100,80,50,.12);
+}
+body.light #topbarRestName { color: #6b5135; }
+body.light #topbarUserName { color: rgba(60,42,20,.38); }
+
+body.light .btn-back {
+    background: rgba(100,80,50,.05);
+    border-color: rgba(100,80,50,.2);
+    color: rgba(60,42,20,.55);
+}
+body.light .btn-back:hover {
+    background: rgba(100,80,50,.13);
+    border-color: rgba(100,80,50,.42);
+    color: #4a2f10;
 }
 body.light .topbar-right a,
-body.light .topbar-right button { color: #7a6248; border-color: rgba(100,80,50,.25); }
+body.light .topbar-right button {
+    background: rgba(100,80,50,.05);
+    border-color: rgba(100,80,50,.2);
+    color: rgba(60,42,20,.58);
+}
 body.light .topbar-right a:hover,
-body.light .topbar-right button:hover { color: #6b5135; border-color: #7a6248; }
-body.light #topbarRestName { color: #6b5135; }
-body.light #topbarUserName { color: rgba(60,42,20,.45); }
-body.light .btn-back { color: #7a6248; border-color: rgba(100,80,50,.25); }
-body.light .btn-back:hover { color: #6b5135; border-color: #7a6248; }
-body.light .theme-btn { color: #7a6248; border-color: rgba(100,80,50,.25); }
-body.light .theme-btn:hover { color: #6b5135; border-color: #7a6248; }
+body.light .topbar-right button:hover {
+    background: rgba(100,80,50,.13);
+    border-color: rgba(100,80,50,.42);
+    color: #4a2f10;
+}
+body.light .theme-btn {
+    background: rgba(100,80,50,.05);
+    border-color: rgba(100,80,50,.2);
+    color: rgba(60,42,20,.6);
+}
+body.light .theme-btn:hover {
+    background: rgba(100,80,50,.13);
+    border-color: rgba(100,80,50,.42);
+}
+body.light #saLogoutBtn, body.light #logoutBtn {
+    border-color: rgba(160,60,40,.2);
+    color: rgba(140,60,40,.6);
+}
+body.light #saLogoutBtn:hover, body.light #logoutBtn:hover {
+    background: rgba(160,60,40,.07);
+    border-color: rgba(160,60,40,.4);
+    color: rgba(140,60,40,.9);
+}
 
 /* save button */
 body.light #saveMenuBtn { background: #6b5135; }
