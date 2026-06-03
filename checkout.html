@@ -134,6 +134,46 @@
             border-radius:10px;margin-bottom:1rem;
             font-size:.8rem;color:#f0a500;line-height:1.6;
         }
+
+        /* ── PLANS GRID ── */
+        .co-plans{
+            display:grid;grid-template-columns:1fr 1fr;
+            gap:.9rem;margin-bottom:1.2rem;
+        }
+        .co-plan{
+            border:1px solid rgba(200,184,154,.12);
+            border-radius:14px;padding:1.2rem 1rem;
+            display:flex;flex-direction:column;gap:.7rem;
+            transition:border-color .2s;position:relative;
+        }
+        .co-plan:hover{border-color:rgba(200,184,154,.28)}
+        .co-plan.recommended{
+            border-color:rgba(200,184,154,.3);
+            background:rgba(200,184,154,.04);
+        }
+        .co-rec-badge{
+            position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+            background:#c8b89a;color:#0b0b0b;
+            font-size:.55rem;font-weight:700;letter-spacing:1.5px;
+            text-transform:uppercase;padding:.2rem .7rem;border-radius:10px;
+            white-space:nowrap;
+        }
+        .co-plan-label{
+            font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
+            color:rgba(200,184,154,.45);
+        }
+        .co-plan-price{
+            font-family:'Cormorant Garant',serif;font-weight:300;
+            font-size:2rem;color:#ede4d8;line-height:1;
+        }
+        .co-plan-price span{font-size:1rem;color:rgba(200,184,154,.5)}
+        .co-plan-sub{font-size:.7rem;color:rgba(200,184,154,.4);line-height:1.5}
+        .co-plan-save{
+            font-size:.65rem;color:#5cbf7a;
+            background:rgba(40,167,69,.1);border:1px solid rgba(40,167,69,.2);
+            border-radius:8px;padding:.2rem .5rem;display:inline-block;
+        }
+        @media(max-width:400px){.co-plans{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
@@ -146,15 +186,9 @@
 
         <!-- PLAN -->
         <div id="planState" style="display:none">
-            <div class="co-badge">✦ &nbsp;Plan trimestral</div>
+            <div class="co-badge" style="margin-bottom:1.4rem">✦ &nbsp;Elegí tu plan</div>
 
-            <div class="co-price-block">
-                <div class="co-price">$60.000 <span>ARS</span></div>
-                <div class="co-per-month">equivale a $20.000 / mes</div>
-                <span class="co-saving">Pagás 3 meses juntos</span>
-            </div>
-
-            <div class="co-benefits">
+            <div class="co-benefits" style="margin-bottom:1.6rem">
                 <div class="co-benefit"><div class="co-check">✓</div><span>Menú digital con tu identidad visual completa</span></div>
                 <div class="co-benefit"><div class="co-check">✓</div><span>Actualizaciones ilimitadas en tiempo real</span></div>
                 <div class="co-benefit"><div class="co-check">✓</div><span>QR personalizado con tu logo en el centro</span></div>
@@ -163,15 +197,34 @@
                 <div class="co-benefit"><div class="co-check">✓</div><span>Soporte directo del administrador</span></div>
             </div>
 
+            <div class="co-plans">
+                <!-- Mensual -->
+                <div class="co-plan">
+                    <div class="co-plan-label">Mensual</div>
+                    <div class="co-plan-price">$20.000 <span>ARS</span></div>
+                    <div class="co-plan-sub">por mes<br>renovación manual</div>
+                    <button class="btn-pay" id="payBtnMonthly" style="margin-top:auto">
+                        <span class="mp-logo">mp</span> Pagar
+                    </button>
+                </div>
+                <!-- Trimestral -->
+                <div class="co-plan recommended">
+                    <div class="co-rec-badge">✦ Recomendado</div>
+                    <div class="co-plan-label">Trimestral</div>
+                    <div class="co-plan-price">$54.000 <span>ARS</span></div>
+                    <div class="co-plan-sub">$18.000/mes<br>3 meses incluidos</div>
+                    <span class="co-plan-save">Ahorrás $6.000</span>
+                    <button class="btn-pay" id="payBtnQuarterly" style="margin-top:auto">
+                        <span class="mp-logo">mp</span> Pagar
+                    </button>
+                </div>
+            </div>
+
             <div id="noConfigMsg" class="co-no-config" style="display:none">
                 ⚠️ El link de pago aún no está configurado.<br>
                 Contactá al administrador: <a href="mailto:frivasv2388@gmail.com" style="color:#f0a500">frivasv2388@gmail.com</a>
             </div>
 
-            <button class="btn-pay" id="payBtn">
-                <span class="mp-logo">mp</span>
-                Pagar con Mercado Pago
-            </button>
             <button class="btn-skip" id="skipBtn">Explorar primero, pagar después →</button>
         </div>
 
@@ -211,9 +264,11 @@ auth.onAuthStateChanged(async user => {
         configRef.get().catch(() => ({ exists: false, data: () => ({}) }))
     ]);
 
-    const userData   = userSnap.exists ? userSnap.data() : {};
-    const mpLink     = configSnap.exists ? configSnap.data().mpLink : null;
-    const subStatus  = userData.subscription?.status;
+    const userData        = userSnap.exists ? userSnap.data() : {};
+    const configData      = configSnap.exists ? configSnap.data() : {};
+    const mpLinkMonthly   = configData.mpLinkMonthly   || null;
+    const mpLinkQuarterly = configData.mpLinkQuarterly || null;
+    const subStatus       = userData.subscription?.status;
 
     document.getElementById('loadingState').style.display = 'none';
 
@@ -247,22 +302,27 @@ auth.onAuthStateChanged(async user => {
     // ── Mostrar plan ───────────────────────────────────────────
     document.getElementById('planState').style.display = 'block';
 
-    if (!mpLink) {
+    if (!mpLinkMonthly && !mpLinkQuarterly) {
         document.getElementById('noConfigMsg').style.display = 'block';
-        document.getElementById('payBtn').disabled = true;
+        document.getElementById('payBtnMonthly').disabled   = true;
+        document.getElementById('payBtnQuarterly').disabled = true;
+    } else {
+        if (!mpLinkMonthly)   document.getElementById('payBtnMonthly').disabled   = true;
+        if (!mpLinkQuarterly) document.getElementById('payBtnQuarterly').disabled = true;
     }
 
-    document.getElementById('payBtn').addEventListener('click', async () => {
+    async function initiatePay(mpLink, planType) {
         if (!mpLink) return;
-        // Marcar pago iniciado en Firestore
         try {
-            await userRef.set({ subscription: { status: 'pending_payment', paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+            await userRef.set({ subscription: { status: 'pending_payment', planType, paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
         } catch(e) { console.warn(e); }
-        // Construir URL de MP con email del usuario
         const url = new URL(mpLink);
         if (user.email) url.searchParams.set('payer[email]', user.email);
         window.location.href = url.toString();
-    });
+    }
+
+    document.getElementById('payBtnMonthly').addEventListener('click',   () => initiatePay(mpLinkMonthly,   'monthly'));
+    document.getElementById('payBtnQuarterly').addEventListener('click', () => initiatePay(mpLinkQuarterly, 'quarterly'));
 
     document.getElementById('skipBtn').addEventListener('click', () => {
         window.location.href = './dashboard.html';

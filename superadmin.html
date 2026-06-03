@@ -244,6 +244,12 @@
             color: #c8b89a;
         }
         .sa-btn-unblock:hover { background: rgba(124,108,92,.2); }
+        .sa-btn-delete {
+            background: rgba(180,30,40,.08);
+            border-color: rgba(180,30,40,.25);
+            color: rgba(220,80,80,.7);
+        }
+        .sa-btn-delete:hover { background: rgba(180,30,40,.18); color:#e06070; }
 
         .sa-empty {
             text-align: center; padding: 3rem;
@@ -280,14 +286,18 @@
 
     <!-- Config pagos MP -->
     <div class="sa-section" style="padding:1.2rem 1.5rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-            <div>
-                <div class="sa-section-title" style="margin-bottom:.3rem">Link de Mercado Pago</div>
-                <div style="font-size:.72rem;color:rgba(200,184,154,.35)">Los usuarios nuevos son redirigidos a este link al registrarse</div>
+        <div class="sa-section-title" style="margin-bottom:1rem">Links de Mercado Pago</div>
+        <div style="display:flex;flex-direction:column;gap:.7rem">
+            <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+                <span style="font-size:.72rem;color:rgba(200,184,154,.45);width:80px;flex-shrink:0">Mensual</span>
+                <input id="mpLinkMonthly" type="url" placeholder="Link $20.000 ARS/mes" style="flex:1;min-width:200px;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.78rem;padding:.45rem .8rem;outline:none">
             </div>
-            <div style="display:flex;gap:.6rem;align-items:center;flex:1;max-width:560px">
-                <input id="mpLinkInput" type="url" placeholder="https://link.mercadopago.com.ar/..." style="flex:1;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.78rem;padding:.45rem .8rem;outline:none;min-width:0">
-                <button id="mpLinkSaveBtn" onclick="saveMpLink()" style="background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.35);color:#5cbf7a;border-radius:8px;padding:.45rem 1rem;font-size:.75rem;cursor:pointer;white-space:nowrap">Guardar</button>
+            <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+                <span style="font-size:.72rem;color:rgba(200,184,154,.45);width:80px;flex-shrink:0">Trimestral</span>
+                <input id="mpLinkQuarterly" type="url" placeholder="Link $54.000 ARS/trimestre" style="flex:1;min-width:200px;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.78rem;padding:.45rem .8rem;outline:none">
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+                <button id="mpLinkSaveBtn" onclick="saveMpLink()" style="background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.35);color:#5cbf7a;border-radius:8px;padding:.45rem 1.2rem;font-size:.75rem;cursor:pointer">Guardar links</button>
             </div>
         </div>
     </div>
@@ -374,21 +384,49 @@ auth.onAuthStateChanged(async user => {
 async function loadMpConfig() {
     try {
         const snap = await db.collection('appConfig').doc('payments').get();
-        if (snap.exists && snap.data().mpLink) {
-            document.getElementById('mpLinkInput').value = snap.data().mpLink;
-        }
+        if (!snap.exists) return;
+        const d = snap.data();
+        if (d.mpLinkMonthly)   document.getElementById('mpLinkMonthly').value   = d.mpLinkMonthly;
+        if (d.mpLinkQuarterly) document.getElementById('mpLinkQuarterly').value = d.mpLinkQuarterly;
     } catch(e) {}
 }
 
+async function deleteUser(uid, name) {
+    const { isConfirmed } = await Swal.fire({
+        title: `¿Eliminar a ${name}?`,
+        html: `Se eliminarán sus datos y suscripción.<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a',
+        color: '#c8b89a',
+        confirmButtonColor: '#c0392b',
+        cancelButtonColor: 'rgba(124,108,92,.3)',
+    });
+    if (!isConfirmed) return;
+    try {
+        await db.collection('users').doc(uid).delete();
+        allUsers = allUsers.filter(u => u.uid !== uid);
+        renderStats(); renderCharts(); renderTable();
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Usuario eliminado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    } catch(err) {
+        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al eliminar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    }
+}
+
 async function saveMpLink() {
-    const link = document.getElementById('mpLinkInput').value.trim();
-    const btn  = document.getElementById('mpLinkSaveBtn');
-    if (!link) return;
+    const monthly   = document.getElementById('mpLinkMonthly').value.trim();
+    const quarterly = document.getElementById('mpLinkQuarterly').value.trim();
+    const btn = document.getElementById('mpLinkSaveBtn');
     btn.textContent = 'Guardando...'; btn.disabled = true;
     try {
-        await db.collection('appConfig').doc('payments').set({ mpLink: link }, { merge: true });
+        const data = {};
+        if (monthly)   data.mpLinkMonthly   = monthly;
+        if (quarterly) data.mpLinkQuarterly = quarterly;
+        await db.collection('appConfig').doc('payments').set(data, { merge: true });
         btn.textContent = '✓ Guardado';
-        setTimeout(() => { btn.textContent = 'Guardar'; btn.disabled = false; }, 2000);
+        setTimeout(() => { btn.textContent = 'Guardar links'; btn.disabled = false; }, 2000);
     } catch(e) {
         btn.textContent = 'Error'; btn.disabled = false;
     }
@@ -593,13 +631,17 @@ function renderTable() {
         const initials = (fullName || u.displayName || u.email || 'U').slice(0,2).toUpperCase();
         const color   = avatarColor(u.uid);
 
+        const safeName = name.replace(/'/g, "\\'");
         const actions = status === 'blocked'
-            ? `<button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">Desbloquear</button>`
+            ? `<button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">Desbloquear</button>
+               <button class="sa-btn sa-btn-delete"  onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`
             : status === 'pending_payment'
             ? `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">✓ Confirmar pago</button>
-               <button class="sa-btn sa-btn-block" onclick="setStatus('${u.uid}','blocked')">Bloquear</button>`
+               <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">Bloquear</button>
+               <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`
             : `<button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">Marcar pagado</button>
-               <button class="sa-btn sa-btn-block" onclick="setStatus('${u.uid}','blocked')">Bloquear</button>`;
+               <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">Bloquear</button>
+               <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">Eliminar</button>`;
 
         return `<tr>
             <td>
@@ -659,22 +701,29 @@ async function setStatus(uid, status) {
 }
 
 async function markPaid(uid) {
-    const paidUntil = new Date();
-    paidUntil.setDate(paidUntil.getDate() + 90); // Plan trimestral = 90 días
-
-    const { isConfirmed } = await Swal.fire({
-        title: 'Confirmar pago trimestral',
-        html: `Se marcará como <b>Activo</b> por 3 meses.<br>Vence el <b>${paidUntil.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</b>.`,
-        icon: 'success',
+    const { value: plan, isConfirmed } = await Swal.fire({
+        title: 'Confirmar pago',
+        input: 'radio',
+        inputOptions: {
+            'monthly':   '📅 Mensual — $20.000 (30 días)',
+            'quarterly': '📦 Trimestral — $54.000 (90 días)',
+        },
+        inputValue: 'quarterly',
         showCancelButton: true,
-        confirmButtonText: 'Confirmar pago',
+        confirmButtonText: 'Confirmar',
         cancelButtonText: 'Cancelar',
         background: '#1a1a1a',
         color: '#c8b89a',
         confirmButtonColor: '#2d9a4e',
         cancelButtonColor: 'rgba(124,108,92,.3)',
+        inputValidator: v => !v && 'Seleccioná un plan',
     });
-    if (!isConfirmed) return;
+    if (!isConfirmed || !plan) return;
+
+    const days = plan === 'monthly' ? 30 : 90;
+    const paidUntil = new Date();
+    paidUntil.setDate(paidUntil.getDate() + days);
+    const label = plan === 'monthly' ? 'mensual (30 días)' : 'trimestral (90 días)';
 
     try {
         await db.collection('users').doc(uid).set(
@@ -686,7 +735,7 @@ async function markPaid(uid) {
         renderStats();
         renderCharts();
         renderTable();
-        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Pago registrado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:`Pago ${label} confirmado`, timer:2500, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
     } catch (err) {
         console.error(err);
         Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
