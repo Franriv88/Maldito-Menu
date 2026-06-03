@@ -660,11 +660,11 @@ async function setStatus(uid, status) {
 
 async function markPaid(uid) {
     const paidUntil = new Date();
-    paidUntil.setDate(paidUntil.getDate() + 30);
+    paidUntil.setDate(paidUntil.getDate() + 90); // Plan trimestral = 90 días
 
     const { isConfirmed } = await Swal.fire({
-        title: 'Marcar como pagado',
-        html: `Se marcará como <b>Activo</b> con vencimiento el <b>${paidUntil.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</b>.`,
+        title: 'Confirmar pago trimestral',
+        html: `Se marcará como <b>Activo</b> por 3 meses.<br>Vence el <b>${paidUntil.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</b>.`,
         icon: 'success',
         showCancelButton: true,
         confirmButtonText: 'Confirmar pago',
