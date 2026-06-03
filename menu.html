@@ -46,11 +46,25 @@
 
     </div>
 
-    <button class="share-btn" id="shareBtn" style="display:none">⬆ Compartir</button>
+    <button class="share-btn" id="shareBtn" style="display:none"></button>
 
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="./Js/firebase-config.js"></script>
     <script src="./Js/menu-viewers.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('shareBtn');
+            if (!btn) return;
+            const el = lucide.createElement('share-2');
+            el.setAttribute('width', 15); el.setAttribute('height', 15);
+            el.setAttribute('stroke-width', '1.75');
+            el.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
+            btn.innerHTML = '';
+            btn.appendChild(el);
+            btn.append(' Compartir');
+        });
+    </script>
 </body>
 </html>

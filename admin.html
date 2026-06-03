@@ -23,13 +23,13 @@
     <!-- Topbar -->
     <div class="admin-topbar">
         <div class="topbar-left">
-            <a href="dashboard.html" class="btn-back">← Panel</a>
+            <a href="dashboard.html" class="btn-back"><i data-lucide="arrow-left" class="icon" style="width:13px;height:13px;stroke-width:2"></i> Panel</a>
             <span id="topbarRestName">Cargando...</span>
         </div>
         <div class="topbar-right">
             <span id="topbarUserName"></span>
-            <a id="viewMenuLink" href="#" target="_blank">👁 Ver menú</a>
-            <button class="theme-btn" id="themeBtn">☀️</button>
+            <a id="viewMenuLink" href="#" target="_blank"><i data-lucide="eye" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Ver menú</a>
+            <button class="theme-btn" id="themeBtn"></button>
             <button id="logoutBtn">Cerrar sesión</button>
         </div>
     </div>
@@ -122,8 +122,8 @@
                     <input type="checkbox" id="logoBgRemove" checked>
                     <span>Quitar fondo al subir</span>
                 </label>
-                <button class="btn-remove-bg-now" id="logoRemoveBgNowBtn" style="display:none">✦ Quitar fondo ahora</button>
-                <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none">✕ Quitar logo</button>
+                <button class="btn-remove-bg-now" id="logoRemoveBgNowBtn" style="display:none"><i data-lucide="sparkles" class="icon" style="width:12px;height:12px;stroke-width:1.75"></i> Quitar fondo ahora</button>
+                <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar logo</button>
             </div>
 
             <div class="sidebar-section">
@@ -136,8 +136,8 @@
                     <input type="checkbox" id="faviconBgRemove" checked>
                     <span>Quitar fondo al subir</span>
                 </label>
-                <button class="btn-remove-bg-now" id="faviconRemoveBgNowBtn" style="display:none">✦ Quitar fondo ahora</button>
-                <button class="btn-remove-asset" id="faviconRemoveBtn" style="display:none">✕ Quitar ícono</button>
+                <button class="btn-remove-bg-now" id="faviconRemoveBgNowBtn" style="display:none"><i data-lucide="sparkles" class="icon" style="width:12px;height:12px;stroke-width:1.75"></i> Quitar fondo ahora</button>
+                <button class="btn-remove-asset" id="faviconRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar ícono</button>
             </div>
 
             <!-- ── PIE DEL MENÚ ── -->
@@ -166,12 +166,14 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=3"></script>
     <script src="script.js?v=7"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

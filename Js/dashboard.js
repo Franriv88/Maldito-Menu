@@ -53,7 +53,7 @@ function watchSubscriptionStatus(uid) {
 function showBlockedScreen() {
     document.querySelector('.dash-main').innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:1.2rem;text-align:center;padding:2rem">
-            <div style="font-size:2.5rem">🚫</div>
+            <div style="color:rgba(200,184,154,.5)">${licon('ban', 40)}</div>
             <h2 style="color:#c8b89a;font-size:1.3rem;margin:0">Cuenta suspendida</h2>
             <p style="color:rgba(200,184,154,.5);max-width:380px;font-size:.9rem;line-height:1.6;margin:0">
                 Tu suscripción está vencida o fue suspendida.<br>
@@ -109,10 +109,10 @@ function buildCard(id, data) {
             </button>
         </div>
         <div class="card-actions">
-            <a href="admin.html?r=${id}" class="btn-card btn-edit">✏ Editar menú</a>
-            <a href="${menuUrl}" target="_blank" class="btn-card">👁 Ver menú</a>
-            <button class="btn-card" data-qr="${id}" data-name="${esc(data.nombre)}">QR / Link</button>
-            <button class="btn-card btn-delete" data-del="${id}" data-name="${esc(data.nombre)}">Eliminar</button>
+            <a href="admin.html?r=${id}" class="btn-card btn-edit">${licon('pencil',13)} Editar menú</a>
+            <a href="${menuUrl}" target="_blank" class="btn-card">${licon('eye',13)} Ver menú</a>
+            <button class="btn-card" data-qr="${id}" data-name="${esc(data.nombre)}">${licon('qr-code',13)} QR / Link</button>
+            <button class="btn-card btn-delete" data-del="${id}" data-name="${esc(data.nombre)}">${licon('trash-2',13)} Eliminar</button>
         </div>`;
     return card;
 }

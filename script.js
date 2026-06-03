@@ -41,12 +41,12 @@ function renderSocialsEditor() {
     } else {
         container.innerHTML = footerSocials.map((s, i) => `
             <div class="social-row" draggable="true" data-idx="${i}">
-                <span class="social-drag">⠿</span>
+                <span class="social-drag">${licon('grip-vertical', 14)}</span>
                 ${socialSvg(s.network, s.color, 16)}
                 <input class="social-url-input" data-idx="${i}" value="${esc(s.url || '')}"
                        placeholder="${SOCIAL_PLACEHOLDERS[s.network] || 'https://...'}">
                 <input type="color" class="social-color-input" data-idx="${i}" value="${s.color || SOCIAL_NETS[s.network]?.color || '#c8b89a'}">
-                <button class="social-remove-btn" data-idx="${i}">×</button>
+                <button class="social-remove-btn" data-idx="${i}">${licon('x', 13)}</button>
             </div>`).join('');
 
         // Eventos en la lista
@@ -188,7 +188,7 @@ function enterPreviewMode(restName) {
     if (topbarLeft) {
         const badge = document.createElement('span');
         badge.className = 'preview-badge';
-        badge.textContent = `👁 Vista previa · ${restName}`;
+        badge.innerHTML = `${licon('eye', 13)} Vista previa · ${restName}`;
         topbarLeft.appendChild(badge);
     }
 }
@@ -289,7 +289,7 @@ function buildItemHTML(p) {
         <div class="item-details visible">
             <input class="input-description" value="${esc(p.descripcion || '')}" placeholder="Descripción (opcional)">
         </div>
-        <button class="delete-item-btn" type="button" title="Eliminar">×</button>
+        <button class="delete-item-btn" type="button" title="Eliminar">${licon('x', 13)}</button>
     </div>`;
 }
 

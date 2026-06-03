@@ -49,6 +49,7 @@
         <p class="login-disclaimer">Solo vos podés ver y editar tu menú.</p>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="./Js/firebase-config.js"></script>
@@ -58,7 +59,9 @@
             const card = document.querySelector('.login-card');
             const notice = document.createElement('p');
             notice.className = 'blocked-notice';
-            notice.innerHTML = '🚫 <strong>Cuenta suspendida.</strong><br>Tu acceso fue bloqueado por el administrador. Contactá a <a href="mailto:frivasv2388@gmail.com" style="color:#e06070">soporte</a> para regularizar tu situación.';
+            const ico = lucide.createElement('ban'); ico.setAttribute('width',14); ico.setAttribute('height',14); ico.setAttribute('stroke-width','1.75'); ico.style.cssText='display:inline-block;vertical-align:middle';
+            notice.innerHTML = ''; notice.appendChild(ico);
+            notice.insertAdjacentHTML('beforeend', ' <strong>Cuenta suspendida.</strong><br>Tu acceso fue bloqueado por el administrador. Contactá a <a href="mailto:frivasv2388@gmail.com" style="color:#e06070">soporte</a> para regularizar tu situación.');
             card.appendChild(notice);
             document.getElementById('googleSignInBtn').disabled = true;
             document.getElementById('googleSignInBtn').style.opacity = '.4';
