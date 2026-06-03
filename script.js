@@ -14,6 +14,16 @@ const SOCIAL_NETS = {
 
 let footerSocials = [];
 
+const SOCIAL_PLACEHOLDERS = {
+    instagram: 'https://instagram.com/tuusuario',
+    facebook:  'https://facebook.com/tupagina',
+    tiktok:    'https://tiktok.com/@tuusuario',
+    twitter:   'https://x.com/tuusuario',
+    youtube:   'https://youtube.com/@tucanal',
+    whatsapp:  'https://wa.me/5491112345678',
+    linkedin:  'https://linkedin.com/in/tuperfil',
+};
+
 function socialSvg(network, color, size = 18) {
     const n = SOCIAL_NETS[network];
     if (!n) return '';
@@ -34,7 +44,7 @@ function renderSocialsEditor() {
                 <span class="social-drag">⠿</span>
                 ${socialSvg(s.network, s.color, 16)}
                 <input class="social-url-input" data-idx="${i}" value="${esc(s.url || '')}"
-                       placeholder="${SOCIAL_NETS[s.network]?.label || s.network} URL">
+                       placeholder="${SOCIAL_PLACEHOLDERS[s.network] || 'https://...'}">
                 <input type="color" class="social-color-input" data-idx="${i}" value="${s.color || SOCIAL_NETS[s.network]?.color || '#c8b89a'}">
                 <button class="social-remove-btn" data-idx="${i}">×</button>
             </div>`).join('');
@@ -58,12 +68,14 @@ function renderSocialsEditor() {
         initSocialDrag();
     }
 
-    // Picker: botones de redes disponibles (no duplicadas)
+    // Picker: grid de redes disponibles (no duplicadas)
     const used = new Set(footerSocials.map(s => s.network));
+    picker.className = 'social-picker-grid';
     picker.innerHTML = Object.entries(SOCIAL_NETS).map(([key, net]) => `
         <button class="social-pick-btn" data-net="${key}" title="Agregar ${net.label}"
                 ${used.has(key) ? 'disabled' : ''}>
-            ${socialSvg(key, net.color, 16)}
+            ${socialSvg(key, net.color, 20)}
+            <span class="social-pick-name">${net.label}</span>
         </button>`).join('');
     picker.querySelectorAll('.social-pick-btn:not([disabled])').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -663,20 +663,61 @@ body.light .sa-loading { color: rgba(60,42,20,.4); }
     padding: 0 2px; flex-shrink: 0;
 }
 .social-remove-btn:hover { color: rgba(220,80,80,.9); }
-.social-picker-row {
-    display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;
+.social-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    margin-top: 6px;
 }
 .social-pick-btn {
-    width: 30px; height: 30px;
-    border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 4px 6px;
+    border-radius: 8px;
     background: rgba(124,108,92,.08);
-    border: 1px solid rgba(124,108,92,.2);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all .15s; padding: 5px; flex-shrink: 0;
+    border: 1px solid rgba(124,108,92,.22);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    font-size: .58rem; letter-spacing: .3px;
+    color: #c8b89a;
+    font-family: inherit; line-height: 1;
 }
-.social-pick-btn:hover { background: rgba(124,108,92,.2); border-color: rgba(124,108,92,.45); }
-.social-pick-btn[disabled] { opacity: .25; cursor: not-allowed; pointer-events: none; }
+.social-pick-btn:hover { background: rgba(124,108,92,.2); border-color: rgba(124,108,92,.5); transform: translateY(-1px); }
+.social-pick-btn[disabled] { opacity: .2; cursor: not-allowed; pointer-events: none; }
+.social-pick-name { margin-top: 1px; }
 .sidebar-divider {
     border: none; border-top: 1px solid rgba(124,108,92,.15);
     margin: .2rem 0 1rem;
 }
+
+/* ── LIGHT MODE — redes sociales e inputs ───────────────────── */
+body.light .ctrl-input-text {
+    background: #fff;
+    border-color: rgba(100,80,50,.22);
+    color: #3a2e22;
+}
+body.light .ctrl-input-text::placeholder { color: rgba(60,42,20,.3); }
+body.light .ctrl-input-text:focus { border-color: rgba(100,80,50,.5); }
+
+body.light .social-url-input {
+    background: #fff;
+    border-color: rgba(100,80,50,.22);
+    color: #3a2e22;
+}
+body.light .social-url-input::placeholder { color: rgba(60,42,20,.28); }
+body.light .social-url-input:focus { border-color: rgba(100,80,50,.5); }
+
+body.light .social-pick-btn {
+    background: rgba(100,80,50,.06);
+    border-color: rgba(100,80,50,.22);
+    color: #6b5135;
+}
+body.light .social-pick-btn:hover {
+    background: rgba(100,80,50,.15);
+    border-color: rgba(100,80,50,.45);
+}
+body.light .social-pick-btn[disabled] { opacity: .22; }
+body.light .social-drag { color: rgba(60,42,20,.3); }
+body.light .social-row:hover { background: rgba(100,80,50,.07); }
+body.light .social-row.drag-over { border-color: rgba(100,80,50,.3); background: rgba(100,80,50,.05); }
+body.light .social-remove-btn { color: rgba(180,60,60,.5); }
+body.light .social-remove-btn:hover { color: rgba(200,40,40,.85); }
