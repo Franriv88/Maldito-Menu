@@ -831,7 +831,6 @@ body.light .sa-loading { color: rgba(60,42,20,.4); }
     font-family: var(--title-font-family), var(--main-font-family), sans-serif;
     font-size: var(--title-font-size, 20px);
     font-weight: bold;
-    text-transform: uppercase;
     letter-spacing: inherit;
     padding: 0 0 .5rem;
     margin-top: 20px;
