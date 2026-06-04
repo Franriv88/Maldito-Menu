@@ -336,6 +336,15 @@
         </div>
     </div>
 
+    <!-- Cupones -->
+    <div class="sa-section" style="padding:1.2rem 1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.6rem">
+            <div class="sa-section-title">Cupones de acceso</div>
+            <button onclick="createCoupon()" style="background:rgba(40,167,69,.12);border:1px solid rgba(40,167,69,.28);color:#5cbf7a;border-radius:8px;padding:.38rem 1rem;font-size:.72rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i data-lucide="plus" class="icon" style="width:13px;height:13px;stroke-width:2"></i> Nuevo cupón</button>
+        </div>
+        <div id="couponsList" style="font-size:.78rem;color:rgba(200,184,154,.3)">Cargando cupones...</div>
+    </div>
+
     <!-- Stats -->
     <div class="sa-stats" id="statsRow"></div>
 
@@ -417,6 +426,7 @@ auth.onAuthStateChanged(async user => {
 
     await loadData();
     await loadPlansConfig();
+    await loadCoupons();
 });
 
 // ── Plan management ───────────────────────────────────────────
@@ -626,6 +636,119 @@ async function deleteUser(uid, name) {
 
 
 // ── Load all data ─────────────────────────────────────────────
+
+// ── Cupones ───────────────────────────────────────────────────
+
+let appCoupons = [];
+
+async function loadCoupons() {
+    try {
+        const snap = await db.collection('appConfig').doc('coupons').get();
+        appCoupons = snap.exists ? (snap.data().list || []) : [];
+    } catch { appCoupons = []; }
+    renderCoupons();
+}
+
+async function saveCoupons() {
+    await db.collection('appConfig').doc('coupons').set({ list: appCoupons });
+}
+
+function renderCoupons() {
+    const el = document.getElementById('couponsList');
+    if (!appCoupons.length) {
+        el.innerHTML = '<p style="color:rgba(200,184,154,.3);font-size:.78rem">No hay cupones creados.</p>';
+        return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+        <thead><tr style="color:rgba(200,184,154,.4);font-size:.65rem;letter-spacing:1px;text-transform:uppercase">
+            <th style="padding:.4rem .6rem;text-align:left">Código</th>
+            <th style="padding:.4rem .6rem;text-align:left">Plan</th>
+            <th style="padding:.4rem .6rem;text-align:left">Usos</th>
+            <th style="padding:.4rem .6rem;text-align:left">Activo</th>
+            <th style="padding:.4rem .6rem"></th>
+        </tr></thead>
+        <tbody>${appCoupons.map((c, i) => {
+            const plan = appPlans.find(p => p.id === c.planId);
+            const used = c.usesCount || 0;
+            const max  = c.usesMax   || '∞';
+            return `<tr style="border-top:1px solid rgba(124,108,92,.1)">
+                <td style="padding:.5rem .6rem;font-weight:600;color:#c8b89a;letter-spacing:.5px">${esc(c.code)}</td>
+                <td style="padding:.5rem .6rem;color:rgba(200,184,154,.7)">${plan ? esc(plan.label) : c.planId}</td>
+                <td style="padding:.5rem .6rem;color:rgba(200,184,154,.5)">${used} / ${max}</td>
+                <td style="padding:.5rem .6rem">
+                    <span style="${c.active ? 'color:#5cbf7a' : 'color:rgba(200,184,154,.3)'}">
+                        ${c.active ? '● Activo' : '○ Inactivo'}
+                    </span>
+                </td>
+                <td style="padding:.5rem .6rem;text-align:right;display:flex;gap:5px;justify-content:flex-end">
+                    <button onclick="toggleCoupon(${i})" class="sa-btn" style="font-size:.65rem;padding:.22rem .55rem">${c.active ? 'Desactivar' : 'Activar'}</button>
+                    <button onclick="deleteCoupon(${i})" class="sa-btn sa-btn-delete" style="font-size:.65rem;padding:.22rem .55rem">${licon('trash-2',11)}</button>
+                </td>
+            </tr>`;
+        }).join('')}</tbody>
+    </table>`;
+}
+
+async function createCoupon() {
+    const inp  = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.82rem;padding:.48rem .8rem;outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
+    const lbl  = 'font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:rgba(200,184,154,.4);display:block;margin-bottom:.2rem;text-align:left';
+    const planOptions = appPlans.map(p => `<option value="${p.id}">${esc(p.label)}</option>`).join('');
+
+    const { value: form, isConfirmed } = await Swal.fire({
+        title: 'Nuevo cupón',
+        html: `<div style="text-align:left">
+            <label style="${lbl}">Código del cupón</label>
+            <input id="cp-code" style="${inp}" placeholder="ej: GRATIS2025" style="text-transform:uppercase">
+            <label style="${lbl}">Plan que otorga</label>
+            <select id="cp-plan" style="${inp}">${planOptions}</select>
+            <label style="${lbl}">Usos máximos (0 = ilimitado)</label>
+            <input id="cp-uses" type="number" min="0" style="${inp}" value="1">
+            <label style="${lbl}">Descripción (opcional)</label>
+            <input id="cp-label" style="${inp}" placeholder="ej: Prueba gratuita para X">
+        </div>`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Crear cupón',
+        cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a',
+        confirmButtonColor: '#2d9a4e',
+        cancelButtonColor: 'rgba(124,108,92,.3)',
+        preConfirm: () => {
+            const code  = document.getElementById('cp-code').value.trim().toUpperCase();
+            const planId = document.getElementById('cp-plan').value;
+            const uses  = parseInt(document.getElementById('cp-uses').value) || 0;
+            const label = document.getElementById('cp-label').value.trim();
+            if (!code) { Swal.showValidationMessage('El código es obligatorio'); return false; }
+            if (appCoupons.some(c => c.code === code)) { Swal.showValidationMessage('Ya existe un cupón con ese código'); return false; }
+            return { code, planId, usesMax: uses, usesCount: 0, label, active: true };
+        },
+    });
+    if (!isConfirmed || !form) return;
+    appCoupons.push(form);
+    await saveCoupons();
+    renderCoupons();
+    Swal.fire({ icon:'success', title:'Cupón creado', text: `Código: ${form.code}`, timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+}
+
+async function deleteCoupon(i) {
+    const { isConfirmed } = await Swal.fire({
+        title: `Eliminar cupón "${appCoupons[i].code}"?`,
+        icon: 'warning', showCancelButton: true,
+        confirmButtonColor: '#d33', cancelButtonColor: 'rgba(124,108,92,.3)',
+        confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a',
+    });
+    if (!isConfirmed) return;
+    appCoupons.splice(i, 1);
+    await saveCoupons();
+    renderCoupons();
+}
+
+async function toggleCoupon(i) {
+    appCoupons[i].active = !appCoupons[i].active;
+    await saveCoupons();
+    renderCoupons();
+}
 
 async function loadData() {
     try {

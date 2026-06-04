@@ -1191,7 +1191,13 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
         window.location.href = './dashboard.html'; return;
     }
 
-    // Nuevo usuario → pedir datos
+    // Auto-rellenar desde Google
+    const googleName = user.displayName || '';
+    const nameParts  = googleName.trim().split(/\s+/);
+    const gNombre    = nameParts[0] || '';
+    const gApellido  = nameParts.slice(1).join(' ') || '';
+
+    // Nuevo usuario → pedir datos (solo teléfono si Google proveyó nombre)
     const inputStyle = 'background:#111;border:1px solid rgba(200,184,154,.25);color:#ddd0bb;border-radius:8px;font-size:.9rem;';
     const { value: form } = await Swal.fire({
         title: '<span style="font-family:\'Cormorant Garant\',serif;font-style:italic;font-size:1.6rem;color:#ddd0bb">Completá tu perfil</span>',
@@ -1199,9 +1205,9 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
             <p style="font-size:.78rem;color:rgba(200,184,154,.45);margin-bottom:1rem">
                 Cuenta Google: <b style="color:#c8b89a">${user.email}</b>
             </p>
-            <input id="sw-nombre"    class="swal2-input" placeholder="Nombre *"    style="${inputStyle}">
-            <input id="sw-apellido"  class="swal2-input" placeholder="Apellido *"  style="${inputStyle}">
-            <input id="sw-telefono"  class="swal2-input" placeholder="Teléfono * (ej: +5491155667788)" type="tel" style="${inputStyle}">
+            <input id="sw-nombre"   class="swal2-input" placeholder="Nombre *"   value="${gNombre}"   style="${inputStyle}">
+            <input id="sw-apellido" class="swal2-input" placeholder="Apellido *" value="${gApellido}" style="${inputStyle}">
+            <input id="sw-telefono" class="swal2-input" placeholder="Teléfono * (ej: +5491155667788)" type="tel" style="${inputStyle}">
             <p style="font-size:.7rem;color:rgba(200,184,154,.25);margin-top:.8rem">* Campos obligatorios</p>`,
         background: '#1a1a1a',
         color: '#c8b89a',
@@ -1218,13 +1224,12 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
             if (!nombre)   { Swal.showValidationMessage('El nombre es obligatorio');   return false; }
             if (!apellido) { Swal.showValidationMessage('El apellido es obligatorio'); return false; }
             if (!phone)    { Swal.showValidationMessage('El teléfono es obligatorio'); return false; }
-            // Validar formato teléfono argentino
             const digits = phone.replace(/\D/g, '');
             const esAR =
-                digits.length === 10 ||                                    // 1155667788
-                (digits.length === 11 && digits[0] === '0') ||             // 01155667788
-                (digits.length === 12 && digits.startsWith('54')) ||       // 541155667788
-                (digits.length === 13 && digits.startsWith('549'));        // 5491155667788
+                digits.length === 10 ||
+                (digits.length === 11 && digits[0] === '0') ||
+                (digits.length === 12 && digits.startsWith('54')) ||
+                (digits.length === 13 && digits.startsWith('549'));
             if (!esAR) {
                 Swal.showValidationMessage('Ingresá un teléfono argentino válido (ej: +5491155667788 o 1155667788)');
                 return false;

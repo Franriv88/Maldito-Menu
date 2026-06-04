@@ -211,6 +211,18 @@
                 Contactá al administrador: <a href="mailto:frivasv2388@gmail.com" style="color:#f0a500">frivasv2388@gmail.com</a>
             </div>
 
+            <!-- Cupón de acceso -->
+            <div id="couponSection" style="margin-top:1.4rem;text-align:center">
+                <button id="couponToggle" style="background:none;border:none;color:rgba(200,184,154,.45);font-size:.75rem;cursor:pointer;text-decoration:underline">Tengo un cupón de acceso</button>
+                <div id="couponInputArea" style="display:none;margin-top:.8rem;display:none">
+                    <div style="display:flex;gap:.5rem;max-width:320px;margin:0 auto">
+                        <input id="couponCodeInput" placeholder="Ingresá el código" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#ddd0bb;font-size:.85rem;padding:.5rem .8rem;outline:none;text-transform:uppercase">
+                        <button id="couponApplyBtn" style="background:rgba(40,167,69,.15);border:1px solid rgba(40,167,69,.3);color:#5cbf7a;border-radius:8px;padding:.5rem 1rem;font-size:.8rem;cursor:pointer;white-space:nowrap">Canjear</button>
+                    </div>
+                    <p id="couponMsg" style="font-size:.72rem;margin:.5rem 0 0;color:rgba(200,184,154,.5)"></p>
+                </div>
+            </div>
+
             <button class="btn-skip" id="skipBtn">Explorar primero, pagar después →</button>
         </div>
 
@@ -413,6 +425,81 @@ auth.onAuthStateChanged(async user => {
             });
         });
     }
+
+    // ── Cupón de acceso ───────────────────────────────────────
+    const couponToggle = document.getElementById('couponToggle');
+    const couponArea   = document.getElementById('couponInputArea');
+    const couponApply  = document.getElementById('couponApplyBtn');
+    const couponInput  = document.getElementById('couponCodeInput');
+    const couponMsg    = document.getElementById('couponMsg');
+
+    couponToggle?.addEventListener('click', () => {
+        const open = couponArea.style.display !== 'none';
+        couponArea.style.display = open ? 'none' : 'block';
+        couponToggle.textContent = open ? 'Tengo un cupón de acceso' : 'Cancelar';
+    });
+
+    couponInput?.addEventListener('input', () => {
+        couponInput.value = couponInput.value.toUpperCase();
+        couponMsg.textContent = '';
+    });
+
+    couponApply?.addEventListener('click', async () => {
+        const code = couponInput.value.trim().toUpperCase();
+        if (!code) return;
+        couponApply.disabled = true;
+        couponMsg.style.color = 'rgba(200,184,154,.5)';
+        couponMsg.textContent = 'Verificando…';
+
+        try {
+            const snap = await db.collection('appConfig').doc('coupons').get();
+            const list = snap.exists ? (snap.data().list || []) : [];
+            const idx  = list.findIndex(c => c.code === code && c.active);
+
+            if (idx === -1) {
+                couponMsg.style.color = '#e06070';
+                couponMsg.textContent = 'Código inválido o ya utilizado.';
+                couponApply.disabled = false;
+                return;
+            }
+            const coupon = list[idx];
+            if (coupon.usesMax > 0 && (coupon.usesCount || 0) >= coupon.usesMax) {
+                couponMsg.style.color = '#e06070';
+                couponMsg.textContent = 'Este cupón ya alcanzó su límite de usos.';
+                couponApply.disabled = false;
+                return;
+            }
+
+            // Aplicar: activar suscripción al plan del cupón
+            const plan = plans.find(p => p.id === coupon.planId);
+            const days = plan?.durationDays || 30;
+            const paidUntil = new Date();
+            paidUntil.setDate(paidUntil.getDate() + days);
+
+            await userRef.set({
+                subscription: {
+                    status:    'active',
+                    planType:  coupon.planId,
+                    paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil),
+                    paidAt:    firebase.firestore.FieldValue.serverTimestamp(),
+                    coupon:    code,
+                }
+            }, { merge: true });
+
+            // Descontar uso del cupón
+            list[idx].usesCount = (list[idx].usesCount || 0) + 1;
+            await db.collection('appConfig').doc('coupons').set({ list });
+
+            couponMsg.style.color = '#5cbf7a';
+            couponMsg.textContent = `¡Cupón aplicado! Plan ${plan?.label || coupon.planId} activado.`;
+            setTimeout(() => { window.location.href = './dashboard.html'; }, 1500);
+        } catch (err) {
+            console.error(err);
+            couponMsg.style.color = '#e06070';
+            couponMsg.textContent = 'Error al verificar el cupón. Intentá de nuevo.';
+            couponApply.disabled = false;
+        }
+    });
 });
 </script>
 </body>

@@ -28,9 +28,10 @@ auth.onAuthStateChanged(async user => {
         }, { merge: true });
 
         // Verificar suscripción
-        if (userDoc.exists && userDoc.data().subscription?.status === 'blocked') {
-            showBlockedScreen();
-            return;
+        if (userDoc.exists) {
+            const st = userDoc.data().subscription?.status;
+            if (st === 'blocked') { showBlockedScreen(); return; }
+            if (st === 'pending_payment') { window.location.href = './checkout.html'; return; }
         }
     } catch (err) {
         console.warn('Error actualizando perfil:', err);

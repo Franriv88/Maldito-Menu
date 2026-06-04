@@ -179,6 +179,16 @@ auth.onAuthStateChanged(async user => {
         const restData = restDoc.data();
         const nombre   = restData.nombre || 'Mi Restaurante';
 
+        // Verificar estado de suscripción (bloquear si no activa)
+        if (!isSuperAdmin) {
+            const uCheck = await db.collection('users').doc(user.uid).get();
+            const subStatus = uCheck.data()?.subscription?.status;
+            if (subStatus === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
+            if (subStatus === 'pending_payment' || subStatus === 'unpaid') {
+                window.location.href = './checkout.html'; return;
+            }
+        }
+
         // Cargar beneficios del plan del usuario
         if (!isSuperAdmin) {
             try {
