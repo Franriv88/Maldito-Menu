@@ -105,6 +105,8 @@ header img { max-width: 300px; }
 
 .menu-image img { display: none; }
 
+.menu-image.img-flipped { transform: scaleX(-1); }
+
 /* Mobile: imagen al costado, cubre su área */
 @media (max-width: 768px) {
     .menu-image {

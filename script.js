@@ -295,13 +295,13 @@ async function renderAdminMenu() {
             <div class="menu-section ${layoutClass}" style="position:relative">
                 <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;min-height:0;${flipH ? 'transform:scaleX(-1);' : ''}">
+                <div class="menu-image drop-zone${flipH ? ' img-flipped' : ''}" data-img-key="${sec.imgKey}"
+                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;min-height:0;">
                     <div class="drop-overlay"><span>Arrastrá o hacé clic para cambiar</span></div>
                     <div class="pos-controls">
                         <div class="ctrl-row">
                             <span class="ctrl-arrow">◀</span>
-                            <input type="range" class="pos-slider" min="-50" max="150" value="${posVal}">
+                            <input type="range" class="pos-slider" min="-300" max="300" value="${posVal}">
                             <span class="ctrl-arrow">▶</span>
                         </div>
                         <div class="ctrl-row">
@@ -436,7 +436,7 @@ function initDropZones() {
                 e.stopPropagation();
                 flipBtn.classList.toggle('active');
                 const isFlipped = flipBtn.classList.contains('active');
-                zone.style.transform = isFlipped ? 'scaleX(-1)' : '';
+                zone.classList.toggle('img-flipped', isFlipped);
                 try {
                     await restRef().collection('config').doc('images').set(
                         { [`${zone.dataset.imgKey}_flipH`]: isFlipped }, { merge: true }
