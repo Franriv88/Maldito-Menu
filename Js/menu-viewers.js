@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;${flipH ? 'transform:scaleX(-1);' : ''}">
+                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};min-height:${heightVal}px;${flipH ? 'transform:scaleX(-1);' : ''}">
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });
