@@ -290,7 +290,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Botón compartir ────────────────────────────────────────
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) {
+        // Construir contenido con ícono Lucide
+        function buildShareBtnContent() {
+            if (typeof lucide !== 'undefined') {
+                try {
+                    const ico = lucide.createElement('share-2');
+                    ico.setAttribute('width', 15); ico.setAttribute('height', 15);
+                    ico.setAttribute('stroke-width', '1.75');
+                    ico.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
+                    shareBtn.innerHTML = '';
+                    shareBtn.appendChild(ico);
+                    shareBtn.append(' Compartir');
+                } catch(_) { shareBtn.textContent = 'Compartir'; }
+            } else {
+                shareBtn.textContent = 'Compartir';
+            }
+        }
+        buildShareBtnContent();
         shareBtn.style.display = 'block';
+
         shareBtn.addEventListener('click', async () => {
             const url = location.href;
             if (navigator.share) {
@@ -298,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 await navigator.clipboard.writeText(url);
                 shareBtn.textContent = '¡Link copiado!';
-                setTimeout(() => shareBtn.textContent = '⬆ Compartir', 2000);
+                setTimeout(() => buildShareBtnContent(), 2000);
             }
         });
     }
