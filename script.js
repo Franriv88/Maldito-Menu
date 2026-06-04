@@ -712,10 +712,8 @@ function updateAdminHeader() {
         nameEl.style.display  = 'none';
         logoEl.src            = logoSrc;
         logoEl.style.display  = 'block';
-        const size = document.getElementById('cfg-logoSize')?.value || 200;
-        const op   = document.getElementById('cfg-logoOpacity')?.value || 100;
-        logoEl.style.maxWidth = size + 'px';
-        logoEl.style.opacity  = (op / 100).toString();
+        logoEl.style.maxWidth = 'var(--logo-size, 200px)';
+        logoEl.style.opacity  = 'var(--logo-opacity, 1)';
     } else {
         nameEl.style.display  = '';
         logoEl.style.display  = 'none';
