@@ -1215,8 +1215,18 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
             const nombre   = document.getElementById('sw-nombre').value.trim();
             const apellido = document.getElementById('sw-apellido').value.trim();
             const phone    = document.getElementById('sw-telefono').value.trim();
-            if (!nombre || !apellido || !phone) {
-                Swal.showValidationMessage('Completá todos los campos');
+            if (!nombre)   { Swal.showValidationMessage('El nombre es obligatorio');   return false; }
+            if (!apellido) { Swal.showValidationMessage('El apellido es obligatorio'); return false; }
+            if (!phone)    { Swal.showValidationMessage('El teléfono es obligatorio'); return false; }
+            // Validar formato teléfono argentino
+            const digits = phone.replace(/\D/g, '');
+            const esAR =
+                digits.length === 10 ||                                    // 1155667788
+                (digits.length === 11 && digits[0] === '0') ||             // 01155667788
+                (digits.length === 12 && digits.startsWith('54')) ||       // 541155667788
+                (digits.length === 13 && digits.startsWith('549'));        // 5491155667788
+            if (!esAR) {
+                Swal.showValidationMessage('Ingresá un teléfono argentino válido (ej: +5491155667788 o 1155667788)');
                 return false;
             }
             return { nombre, apellido, phone };
