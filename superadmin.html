@@ -929,20 +929,21 @@ async function viewPanel(uid) {
     }
 
     const btnStyle = [
-        'display:block', 'width:100%', 'text-align:left',
+        'display:inline-flex', 'align-items:center', 'gap:8px',
         'background:rgba(124,108,92,.1)', 'border:1px solid rgba(124,108,92,.22)',
-        'color:#c8b89a', 'border-radius:10px', 'padding:.65rem 1rem',
-        'font-size:.85rem', 'cursor:pointer', 'margin-bottom:.5rem',
+        'color:#c8b89a', 'border-radius:10px', 'padding:.6rem 1.1rem',
+        'font-size:.85rem', 'cursor:pointer',
         'transition:background .15s,border-color .15s', 'font-family:inherit',
     ].join(';');
 
-    const html = u.restaurants.map(r => `
-        <button style="${btnStyle}"
-            onmouseover="this.style.background='rgba(124,108,92,.22)';this.style.borderColor='rgba(124,108,92,.45)'"
-            onmouseout="this.style.background='rgba(124,108,92,.1)';this.style.borderColor='rgba(124,108,92,.22)'"
-            onclick="window.open('./admin.html?r=${r.id}&readonly=1','_blank');Swal.close()">
-            🏪 ${esc(r.nombre || 'Sin nombre')}
-        </button>`).join('');
+    const html = `<div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center">` +
+        u.restaurants.map(r => `
+            <button style="${btnStyle}"
+                onmouseover="this.style.background='rgba(124,108,92,.22)';this.style.borderColor='rgba(124,108,92,.45)'"
+                onmouseout="this.style.background='rgba(124,108,92,.1)';this.style.borderColor='rgba(124,108,92,.22)'"
+                onclick="window.open('./admin.html?r=${r.id}&readonly=1','_blank');Swal.close()">
+                ${licon('store', 14)} ${esc(r.nombre || 'Sin nombre')}
+            </button>`).join('') + `</div>`;
 
     await Swal.fire({
         title: 'Elegí el restaurante',
