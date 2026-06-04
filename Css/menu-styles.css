@@ -107,7 +107,30 @@ header img { max-width: 300px; }
 
 .menu-image img { display: none; }
 
-/* Cuando hay imagen de fondo del menú, las secciones se vuelven transparentes */
+/* Fondo de menú con blur y overlay */
+.page-wrapper { position: relative; overflow: hidden; }
+
+.menu-bg-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.menu-bg-img {
+    position: absolute;
+    inset: -30px; /* margen extra para que el blur no deje bordes transparentes */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.menu-bg-overlay {
+    position: absolute;
+    inset: 0;
+}
+/* Todo el contenido del menú queda encima del fondo */
+.page-wrapper > :not(.menu-bg-wrap) { position: relative; z-index: 1; }
+
+/* Cuando hay imagen de fondo, las secciones se vuelven transparentes */
 .has-menu-bg .menu-section { background: transparent !important; }
 
 /*TABLAS*/

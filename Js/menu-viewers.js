@@ -110,13 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.backgroundImage      = cfg.pageBgImage ? `url('${cfg.pageBgImage}')` : '';
         document.body.style.backgroundSize       = cfg.pageBgImage ? 'cover' : '';
         document.body.style.backgroundAttachment = cfg.pageBgImage ? 'fixed' : '';
-        const pageWrapper = document.querySelector('.page-wrapper');
-        if (pageWrapper) {
-            pageWrapper.style.backgroundImage  = cfg.menuBgImage ? `url('${cfg.menuBgImage}')` : '';
-            pageWrapper.style.backgroundSize   = cfg.menuBgImage ? 'cover' : '';
-            pageWrapper.style.backgroundPosition = cfg.menuBgImage ? 'center' : '';
-        }
-        document.documentElement.classList.toggle('has-menu-bg', !!cfg.menuBgImage);
+        applyMenuBackground(cfg);
         if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
         if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
         if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
@@ -125,6 +119,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Favicon: preferir URL HTTP real (Storage) → fallback a base64
         const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
         if (iconSrc) setFavicon(iconSrc);
+    }
+
+    // ── Fondo del menú (imagen + blur + overlay) ──────────────────
+    function applyMenuBackground(cfg) {
+        const pageWrapper = document.querySelector('.page-wrapper');
+        if (!pageWrapper) return;
+
+        let wrap = pageWrapper.querySelector('.menu-bg-wrap');
+
+        if (!cfg.menuBgImage) {
+            wrap?.remove();
+            document.documentElement.classList.remove('has-menu-bg');
+            return;
+        }
+
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'menu-bg-wrap';
+            wrap.innerHTML = '<div class="menu-bg-img"></div><div class="menu-bg-overlay"></div>';
+            pageWrapper.prepend(wrap);
+        }
+
+        const imgEl = wrap.querySelector('.menu-bg-img');
+        const ovlEl = wrap.querySelector('.menu-bg-overlay');
+
+        imgEl.style.backgroundImage = `url('${cfg.menuBgImage}')`;
+        imgEl.style.filter          = `blur(${cfg.menuBgBlur || 0}px)`;
+
+        const ovlOpacity = (cfg.menuBgOverlayOpacity ?? 0) / 100;
+        ovlEl.style.backgroundColor = cfg.menuBgOverlayColor || 'transparent';
+        ovlEl.style.opacity         = ovlOpacity;
+
+        document.documentElement.classList.add('has-menu-bg');
     }
 
     // ── Favicon (fuerza recarga para evitar caché del browser) ──

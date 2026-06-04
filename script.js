@@ -731,10 +731,27 @@ function applyStyles(cfg) {
         if (cfg[field]) {
             const thumb  = document.getElementById(`${key}Thumb`);
             const remove = document.getElementById(`${key}Remove`);
+            const extras = document.getElementById(`${key}Extras`);
             if (thumb)  thumb.style.backgroundImage = `url('${cfg[field]}')`;
             if (remove) remove.style.display = '';
+            if (extras) extras.style.display = '';
         }
     });
+    // Valores de blur y overlay del menuBg
+    const blurSlider = document.getElementById('menuBgBlur');
+    const blurVal    = document.getElementById('menuBgBlurVal');
+    if (blurSlider && cfg.menuBgBlur != null) {
+        blurSlider.value = cfg.menuBgBlur;
+        if (blurVal) blurVal.textContent = `${cfg.menuBgBlur}px`;
+    }
+    const ovlColor   = document.getElementById('menuBgOverlayColor');
+    const ovlOpacity = document.getElementById('menuBgOverlayOpacity');
+    const ovlVal     = document.getElementById('menuBgOverlayVal');
+    if (ovlColor   && cfg.menuBgOverlayColor)   ovlColor.value   = cfg.menuBgOverlayColor;
+    if (ovlOpacity && cfg.menuBgOverlayOpacity != null) {
+        ovlOpacity.value = cfg.menuBgOverlayOpacity;
+        if (ovlVal) ovlVal.textContent = `${cfg.menuBgOverlayOpacity}%`;
+    }
 }
 
 function populateStyleControls(cfg) {
@@ -1192,6 +1209,11 @@ function initBgImageControls() {
         const thumb  = document.getElementById(`${key}Thumb`);
         if (!btn) return;
 
+        const showExtras = has => {
+            const extras = document.getElementById(`${key}Extras`);
+            if (extras) extras.style.display = has ? '' : 'none';
+        };
+
         btn.addEventListener('click', () => input?.click());
         input?.addEventListener('change', async () => {
             const file = input.files[0];
@@ -1205,14 +1227,49 @@ function initBgImageControls() {
                 await restRef().collection('config').doc('styles').set({ [field]: base64 }, { merge: true });
                 if (thumb)  thumb.style.backgroundImage = `url('${base64}')`;
                 if (remove) remove.style.display = '';
+                showExtras(true);
             } catch (err) { console.error('Error subiendo fondo:', err); }
             finally { btn.textContent = origLabel; btn.disabled = false; input.value = ''; }
         });
         remove?.addEventListener('click', async () => {
             const field = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
-            await restRef().collection('config').doc('styles').set({ [field]: '' }, { merge: true });
+            await restRef().collection('config').doc('styles').set(
+                { [field]: '', [`${key}Blur`]: 0, [`${key}OverlayColor`]: '', [`${key}OverlayOpacity`]: 0 },
+                { merge: true }
+            );
             if (thumb)  thumb.style.backgroundImage = '';
             if (remove) remove.style.display = 'none';
+            showExtras(false);
         });
     });
+
+    // Blur slider (menuBg only)
+    const blurSlider = document.getElementById('menuBgBlur');
+    const blurVal    = document.getElementById('menuBgBlurVal');
+    if (blurSlider) {
+        blurSlider.addEventListener('input', () => {
+            if (blurVal) blurVal.textContent = `${blurSlider.value}px`;
+        });
+        blurSlider.addEventListener('change', async () => {
+            await restRef().collection('config').doc('styles').set(
+                { menuBgBlur: parseInt(blurSlider.value) }, { merge: true }
+            );
+        });
+    }
+
+    // Overlay color + opacity (menuBg only)
+    const ovlColor   = document.getElementById('menuBgOverlayColor');
+    const ovlOpacity = document.getElementById('menuBgOverlayOpacity');
+    const ovlVal     = document.getElementById('menuBgOverlayVal');
+    const saveOverlay = async () => {
+        await restRef().collection('config').doc('styles').set({
+            menuBgOverlayColor:   ovlColor?.value   || '#000000',
+            menuBgOverlayOpacity: parseInt(ovlOpacity?.value || '0'),
+        }, { merge: true });
+    };
+    ovlColor?.addEventListener('change', saveOverlay);
+    ovlOpacity?.addEventListener('input', () => {
+        if (ovlVal) ovlVal.textContent = `${ovlOpacity.value}%`;
+    });
+    ovlOpacity?.addEventListener('change', saveOverlay);
 }
