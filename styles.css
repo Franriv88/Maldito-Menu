@@ -364,36 +364,38 @@
 .pos-slider::-moz-range-thumb    { cursor: ew-resize; }
 .height-slider::-moz-range-thumb { cursor: ns-resize; }
 
-.img-flip-btn,
-.valign-btn {
+.img-flip-btn {
     -webkit-appearance: none;
     appearance: none;
+    box-sizing: border-box;
+    width: 28px;
+    height: 22px;
     background: rgba(255,255,255,0.12);
     border: 1px solid rgba(255,255,255,0.22);
     border-radius: 6px;
     color: rgba(255,255,255,0.55);
-    font-size: 11px;
-    padding: 2px 8px;
+    font-size: 13px;
+    padding: 0;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
-    line-height: 1.5;
+    line-height: 22px;
+    text-align: center;
     flex-shrink: 0;
 }
-.img-flip-btn.active,
-.valign-btn.active {
+.img-flip-btn.active {
     background: rgba(200,184,154,0.45);
     color: #fff;
     border-color: rgba(200,184,154,0.75);
 }
-.img-flip-btn:hover,
-.valign-btn:hover {
+.img-flip-btn:hover {
     background: rgba(255,255,255,0.22);
     color: #fff;
 }
-.valign-btns {
-    display: flex;
-    gap: 3px;
-    margin-left: auto;
+.flip-label {
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+    line-height: 22px;
+    user-select: none;
 }
 
 

@@ -301,7 +301,7 @@ async function renderAdminMenu() {
                     <div class="pos-controls">
                         <div class="ctrl-row">
                             <span class="ctrl-arrow">◀</span>
-                            <input type="range" class="pos-slider" min="0" max="100" value="${posVal}">
+                            <input type="range" class="pos-slider" min="-50" max="150" value="${posVal}">
                             <span class="ctrl-arrow">▶</span>
                         </div>
                         <div class="ctrl-row">
@@ -311,11 +311,7 @@ async function renderAdminMenu() {
                         </div>
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" title="Invertir horizontalmente">⇄</button>
-                            <div class="valign-btns">
-                                <button class="valign-btn${vAlign === 'top'    ? ' active' : ''}" data-valign="top"    title="Imagen arriba">▲</button>
-                                <button class="valign-btn${vAlign === 'center' ? ' active' : ''}" data-valign="center" title="Imagen centrada">●</button>
-                                <button class="valign-btn${vAlign === 'bottom' ? ' active' : ''}" data-valign="bottom" title="Imagen abajo">▼</button>
-                            </div>
+                            <span class="flip-label">Voltear imagen</span>
                         </div>
                     </div>
                 </div>
@@ -406,8 +402,7 @@ function initDropZones() {
         if (slider) {
             slider.addEventListener('input', e => {
                 e.stopPropagation();
-                const v = zone.querySelector('.valign-btn.active')?.dataset.valign || 'center';
-                zone.style.backgroundPosition = `${slider.value}% ${v}`;
+                zone.style.backgroundPosition = `${slider.value}% center`;
             });
             slider.addEventListener('change', async e => {
                 e.stopPropagation();
@@ -450,21 +445,6 @@ function initDropZones() {
             });
         }
 
-        zone.querySelectorAll('.valign-btn').forEach(btn => {
-            btn.addEventListener('click', async e => {
-                e.stopPropagation();
-                zone.querySelectorAll('.valign-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const v = btn.dataset.valign;
-                const posVal = zone.querySelector('.pos-slider')?.value ?? 50;
-                zone.style.backgroundPosition = `${posVal}% ${v}`;
-                try {
-                    await restRef().collection('config').doc('images').set(
-                        { [`${zone.dataset.imgKey}_vAlign`]: v }, { merge: true }
-                    );
-                } catch (err) { console.error('Error guardando alineación:', err); }
-            });
-        });
     });
 }
 
