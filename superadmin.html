@@ -371,6 +371,7 @@
                     <tr>
                         <th>Usuario</th>
                         <th>Restaurantes</th>
+                        <th>Plan</th>
                         <th>Estado</th>
                         <th>Pagado hasta</th>
                         <th>Último acceso</th>
@@ -796,7 +797,7 @@ function renderTable() {
     });
 
     if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="sa-empty">No hay usuarios que coincidan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="sa-empty">No hay usuarios que coincidan.</td></tr>`;
         return;
     }
 
@@ -856,7 +857,12 @@ function renderTable() {
                 </div>
             </td>
             <td>
-                <span class="sa-badge sa-badge-rest">${u.restaurants.length} ${u.restaurants.length === 1 ? 'rest.' : 'rest.'}</span>
+                <span class="sa-badge sa-badge-rest">${u.restaurants.length} rest.</span>
+            </td>
+            <td style="font-size:.75rem;color:rgba(200,184,154,.65)">
+                ${appPlans.find(p => p.id === u.subscription?.planType)?.label
+                    ? `<span style="background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.18);border-radius:5px;padding:.15rem .5rem;font-size:.68rem">${esc(appPlans.find(p => p.id === u.subscription?.planType).label)}</span>`
+                    : '<span style="color:rgba(200,184,154,.25);font-size:.7rem">—</span>'}
             </td>
             <td><span class="sa-badge ${badgeClass}">${badgeText}</span></td>
             <td style="font-size:.75rem;color:rgba(200,184,154,.5)">${paidUntil}</td>
