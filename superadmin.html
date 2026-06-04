@@ -391,6 +391,7 @@
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=3"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="./Js/benefits-config.js"></script>
 <script>
 
 const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
@@ -447,13 +448,22 @@ function renderPlans() {
         container.innerHTML = '<p style="color:rgba(200,184,154,.3);font-size:.78rem">No hay planes configurados.</p>';
         return;
     }
-    container.innerHTML = appPlans.map((p, i) => `
+    container.innerHTML = appPlans.map((p, i) => {
+        const benefitBadges = p.benefits ? BENEFITS_CONFIG.map(b => {
+            const on  = hasBenefit(p.benefits, b.id);
+            const lbl = b.id === 'restaurants' ? `${p.benefits.restaurants||1} rest.` : b.label;
+            return `<span style="font-size:.6rem;padding:.15rem .45rem;border-radius:4px;${on
+                ? 'background:rgba(40,167,69,.12);color:#5cbf7a;border:1px solid rgba(40,167,69,.25)'
+                : 'background:rgba(124,108,92,.08);color:rgba(200,184,154,.3);border:1px solid rgba(124,108,92,.15)'}">${lbl}</span>`;
+        }).join('') : '';
+        return `
         <div class="sa-plan-card ${p.recommended ? 'sa-plan-recommended' : ''}">
             ${p.recommended ? '<span class="sa-plan-rec-badge">✦ Recomendado</span>' : ''}
             <div class="sa-plan-name">${esc(p.label)}</div>
             <div class="sa-plan-price">$${Number(p.price).toLocaleString('es-AR')} <span>ARS</span></div>
             <div class="sa-plan-meta">${p.durationDays} días de acceso</div>
             ${p.savingsLabel ? `<div class="sa-plan-saving">${esc(p.savingsLabel)}</div>` : ''}
+            ${benefitBadges ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:.4rem 0">${benefitBadges}</div>` : ''}
             <div class="sa-plan-link-status ${p.mpLink ? 'has-link' : 'no-link'}">
                 ${p.mpLink ? `${licon('link-2',12)} Link MP configurado` : `${licon('alert-triangle',12)} Sin link de pago`}
             </div>
@@ -461,7 +471,8 @@ function renderPlans() {
                 <button class="sa-btn sa-btn-unblock" onclick="editPlan(${i})" style="flex:1">Editar</button>
                 <button class="sa-btn sa-btn-delete"  onclick="deletePlan(${i})">✕</button>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 async function editPlan(idx) {
@@ -490,6 +501,22 @@ async function editPlan(idx) {
                 <input type="checkbox" id="sp-rec" ${plan.recommended ? 'checked' : ''} style="accent-color:#c8b89a">
                 Marcar como recomendado
             </label>
+            <div style="border-top:1px solid rgba(200,184,154,.12);margin-top:.8rem;padding-top:.8rem">
+                <div style="${lbl}">Beneficios del plan</div>
+                <div style="margin:.5rem 0 .6rem">
+                    <div style="${lbl};margin-bottom:.3rem">Restaurantes</div>
+                    <div style="display:flex;gap:.8rem">
+                        ${[1,3,5].map(n => `<label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:rgba(200,184,154,.7);cursor:pointer">
+                            <input type="radio" name="sp-restaurants" value="${n}" ${(plan.benefits?.restaurants||1)===n?'checked':''} style="accent-color:#c8b89a"> ${n}
+                        </label>`).join('')}
+                    </div>
+                </div>
+                ${BENEFITS_CONFIG.filter(b => b.type === 'bool').map(b => `
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.78rem;color:rgba(200,184,154,.65);margin:.3rem 0">
+                        <input type="checkbox" id="sp-${b.id}" ${plan.benefits?.[b.id]!==false?'checked':''} style="accent-color:#c8b89a">
+                        ${b.label}
+                    </label>`).join('')}
+            </div>
         </div>`,
         focusConfirm: false,
         showCancelButton: true,
@@ -506,6 +533,11 @@ async function editPlan(idx) {
             if (!label)          { Swal.showValidationMessage('El nombre es obligatorio'); return false; }
             if (!price || price <= 0) { Swal.showValidationMessage('Ingresá un precio válido'); return false; }
             if (!durationDays || durationDays <= 0) { Swal.showValidationMessage('Ingresá una duración válida'); return false; }
+            const restaurants = parseInt(document.querySelector('input[name="sp-restaurants"]:checked')?.value || '1');
+            const benefits = { restaurants };
+            BENEFITS_CONFIG.filter(b => b.type === 'bool').forEach(b => {
+                benefits[b.id] = document.getElementById(`sp-${b.id}`)?.checked ?? true;
+            });
             return {
                 label,
                 price,
@@ -513,6 +545,7 @@ async function editPlan(idx) {
                 mpLink:       document.getElementById('sp-link').value.trim(),
                 savingsLabel: document.getElementById('sp-save').value.trim(),
                 recommended:  document.getElementById('sp-rec').checked,
+                benefits,
             };
         },
     });

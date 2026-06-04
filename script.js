@@ -146,8 +146,8 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
 const SECCIONES_CONFIG = [
     { categorias: ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO'],  layout: 'normal',   imgKey: 'img1', imgDefault: IMG_PLACEHOLDER },
     { categorias: ['BEBIDAS', 'EXTRAS'],                  layout: 'reversed', imgKey: 'img2', imgDefault: IMG_PLACEHOLDER },
-    { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: IMG_PLACEHOLDER },
-    { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: IMG_PLACEHOLDER },
+    { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: IMG_PLACEHOLDER, premium: true },
+    { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: IMG_PLACEHOLDER, premium: true },
 ];
 
 const ORDEN_CATEGORIAS = {
@@ -179,6 +179,21 @@ auth.onAuthStateChanged(async user => {
         const restData = restDoc.data();
         const nombre   = restData.nombre || 'Mi Restaurante';
 
+        // Cargar beneficios del plan del usuario
+        if (!isSuperAdmin) {
+            try {
+                const [uSnap, pSnap] = await Promise.all([
+                    db.collection('users').doc(user.uid).get(),
+                    db.collection('appConfig').doc('plans').get().catch(() => null),
+                ]);
+                const planType = uSnap.data()?.subscription?.planType;
+                const plans    = pSnap?.exists ? (pSnap.data().list || []) : [];
+                window.userBenefits = getPlanBenefits(plans, planType);
+            } catch { window.userBenefits = null; }
+        } else {
+            window.userBenefits = null; // superadmin = acceso total
+        }
+
         // Topbar
         document.getElementById('topbarRestName').textContent  = nombre;
         document.getElementById('adminRestName').textContent   = nombre;
@@ -198,6 +213,8 @@ auth.onAuthStateChanged(async user => {
         }
 
         await renderAdminMenu();
+        applyBenefitGating();
+        initBgImageControls();
 
         if (isReadonly && isSuperAdmin) enterPreviewMode(nombre);
     } catch (err) {
@@ -268,7 +285,9 @@ async function renderAdminMenu() {
             byCategory[d.categoria].push({ id: doc.id, ...d });
         });
 
-        const sectionsHTML = SECCIONES_CONFIG.map(sec => {
+        const sectionsHTML = SECCIONES_CONFIG
+            .filter(sec => !sec.premium || hasBenefit(window.userBenefits, 'extra_sections'))
+            .map(sec => {
             const savedLayout = imageConfig[`${sec.imgKey}_layout`];
             const effectiveLayout = savedLayout || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
@@ -705,6 +724,17 @@ function applyStyles(cfg) {
         if (favRemove)      favRemove.style.display      = 'block';
         if (favRemoveBgNow) favRemoveBgNow.style.display = 'block';
     }
+
+    // Fondos de imagen (menuBg / pageBg)
+    ['menuBg', 'pageBg'].forEach(key => {
+        const field = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
+        if (cfg[field]) {
+            const thumb  = document.getElementById(`${key}Thumb`);
+            const remove = document.getElementById(`${key}Remove`);
+            if (thumb)  thumb.style.backgroundImage = `url('${cfg[field]}')`;
+            if (remove) remove.style.display = '';
+        }
+    });
 }
 
 function populateStyleControls(cfg) {
@@ -1123,4 +1153,66 @@ async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
         btn.textContent = 'Error — reintentá';
         setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 3000);
     }
+}
+
+// ── Beneficios del plan ───────────────────────────────────────
+
+function applyBenefitGating() {
+    const b = window.userBenefits;
+    if (!b) return; // null = superadmin o plan sin restrictions definidas → acceso total
+
+    if (!hasBenefit(b, 'descriptions')) {
+        document.body.classList.add('no-descriptions');
+    }
+    if (!hasBenefit(b, 'socials')) {
+        document.getElementById('socialsSection')?.classList.add('feature-locked');
+        document.getElementById('socialsBadge')?.classList.add('visible');
+    }
+    if (!hasBenefit(b, 'extra_fonts')) {
+        document.body.classList.add('no-extra-fonts');
+        document.querySelectorAll('optgroup[data-premium="extra_fonts"] option').forEach(o => o.disabled = true);
+    }
+    if (!hasBenefit(b, 'menu_bg')) {
+        document.getElementById('menuBgSection')?.classList.add('feature-locked');
+        document.getElementById('menuBgBadge')?.classList.add('visible');
+    }
+    if (!hasBenefit(b, 'page_bg')) {
+        document.getElementById('pageBgSection')?.classList.add('feature-locked');
+        document.getElementById('pageBgBadge')?.classList.add('visible');
+    }
+}
+
+// ── Controles de imagen de fondo (menuBg / pageBg) ───────────
+
+function initBgImageControls() {
+    ['menuBg', 'pageBg'].forEach(key => {
+        const btn    = document.getElementById(`${key}Btn`);
+        const input  = document.getElementById(`${key}File`);
+        const remove = document.getElementById(`${key}Remove`);
+        const thumb  = document.getElementById(`${key}Thumb`);
+        if (!btn) return;
+
+        btn.addEventListener('click', () => input?.click());
+        input?.addEventListener('change', async () => {
+            const file = input.files[0];
+            if (!file) return;
+            const origLabel = btn.textContent;
+            btn.textContent = 'Subiendo…';
+            btn.disabled = true;
+            try {
+                const base64 = await compressToBase64(file, 1200, 800, 'image/jpeg', 0.8);
+                const field  = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
+                await restRef().collection('config').doc('styles').set({ [field]: base64 }, { merge: true });
+                if (thumb)  thumb.style.backgroundImage = `url('${base64}')`;
+                if (remove) remove.style.display = '';
+            } catch (err) { console.error('Error subiendo fondo:', err); }
+            finally { btn.textContent = origLabel; btn.disabled = false; input.value = ''; }
+        });
+        remove?.addEventListener('click', async () => {
+            const field = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
+            await restRef().collection('config').doc('styles').set({ [field]: '' }, { merge: true });
+            if (thumb)  thumb.style.backgroundImage = '';
+            if (remove) remove.style.display = 'none';
+        });
+    });
 }

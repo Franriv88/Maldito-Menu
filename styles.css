@@ -409,6 +409,77 @@
 }
 
 
+/* ── Feature gating ─────────────────────────────────────────── */
+.feature-locked {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.45;
+}
+.feature-locked::after {
+    content: '🔒 Plan superior';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .65rem;
+    color: rgba(200,184,154,.6);
+    background: rgba(20,20,20,.5);
+    border-radius: 8px;
+    pointer-events: none;
+}
+.plan-lock-badge {
+    display: none;
+    font-size: .58rem;
+    background: rgba(200,184,154,.1);
+    border: 1px solid rgba(200,184,154,.2);
+    color: rgba(200,184,154,.5);
+    border-radius: 4px;
+    padding: .1rem .4rem;
+    vertical-align: middle;
+    margin-left: .3rem;
+}
+.plan-lock-badge.visible { display: inline; }
+body.no-descriptions .input-description { display: none !important; }
+
+/* ── Controles de imagen de fondo (sidebar) ─────────────────── */
+.bg-img-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px;
+}
+.bg-img-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid rgba(124,108,92,.3);
+    background: rgba(20,20,20,.8) center/cover no-repeat;
+    flex-shrink: 0;
+}
+.btn-bg-upload {
+    flex: 1;
+    background: rgba(124,108,92,.15);
+    border: 1px solid rgba(124,108,92,.3);
+    color: #c8b89a;
+    border-radius: 7px;
+    padding: .32rem .6rem;
+    font-size: .72rem;
+    cursor: pointer;
+    transition: background .15s;
+}
+.btn-bg-upload:hover { background: rgba(124,108,92,.25); }
+.btn-bg-remove {
+    background: none;
+    border: none;
+    color: rgba(200,184,154,.4);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+}
+.btn-bg-remove:hover { color: rgba(200,184,154,.8); }
+
 /* ============================================================
    CONTROLES DE DISEÑO (sidebar)
    ============================================================ */

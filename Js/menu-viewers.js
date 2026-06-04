@@ -107,6 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cfg.textColor)       r.style.setProperty('--text-color',        cfg.textColor);
         if (cfg.bgPage)          document.body.style.backgroundColor = cfg.bgPage;
         if (cfg.bgMenu)          r.style.setProperty('--primary-color',     cfg.bgMenu);
+        document.body.style.backgroundImage      = cfg.pageBgImage ? `url('${cfg.pageBgImage}')` : '';
+        document.body.style.backgroundSize       = cfg.pageBgImage ? 'cover' : '';
+        document.body.style.backgroundAttachment = cfg.pageBgImage ? 'fixed' : '';
+        menuContainer.style.backgroundImage      = cfg.menuBgImage ? `url('${cfg.menuBgImage}')` : '';
+        menuContainer.style.backgroundSize       = cfg.menuBgImage ? 'cover' : '';
+        menuContainer.style.backgroundPosition   = cfg.menuBgImage ? 'center' : '';
         if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
         if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
         if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');

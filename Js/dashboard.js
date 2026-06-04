@@ -198,6 +198,24 @@ async function createRestaurant() {
 
     try {
         const user = auth.currentUser;
+
+        // Verificar límite de restaurantes del plan
+        const [existingSnap, userSnap, plansSnap] = await Promise.all([
+            db.collection('restaurants').where('ownerId', '==', user.uid).get(),
+            db.collection('users').doc(user.uid).get(),
+            db.collection('appConfig').doc('plans').get().catch(() => null),
+        ]);
+        const planType = userSnap.data()?.subscription?.planType;
+        const plans    = plansSnap?.exists ? (plansSnap.data().list || []) : [];
+        const benefits = getPlanBenefits(plans, planType);
+        const limit    = getRestaurantLimit(benefits);
+        if (existingSnap.size >= limit) {
+            alert(`Tu plan permite hasta ${limit} restaurante${limit === 1 ? '' : 's'}. Para agregar más, cambiá a un plan superior.`);
+            btn.disabled = false;
+            btn.textContent = 'Crear';
+            return;
+        }
+
         const docRef = await db.collection('restaurants').add({
             ownerId:   user.uid,
             nombre,

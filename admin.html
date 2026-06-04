@@ -88,14 +88,14 @@
                         <option value="'Cormorant Garant', serif">Cormorant Garant</option>
                         <option value="'Libre Baskerville', serif">Libre Baskerville</option>
                     </optgroup>
-                    <optgroup label="Caligráfica / Decorativa">
-                        <option value="'Lobster', cursive">Lobster</option>
-                        <option value="'Dancing Script', cursive">Dancing Script</option>
-                        <option value="'Pacifico', cursive">Pacifico</option>
-                        <option value="'Great Vibes', cursive">Great Vibes</option>
-                        <option value="'Satisfy', cursive">Satisfy</option>
-                        <option value="'Abril Fatface', cursive">Abril Fatface</option>
-                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia</option>
+                    <optgroup label="Caligráfica / Decorativa ✦" data-premium="extra_fonts">
+                        <option value="'Lobster', cursive">Lobster ✦</option>
+                        <option value="'Dancing Script', cursive">Dancing Script ✦</option>
+                        <option value="'Pacifico', cursive">Pacifico ✦</option>
+                        <option value="'Great Vibes', cursive">Great Vibes ✦</option>
+                        <option value="'Satisfy', cursive">Satisfy ✦</option>
+                        <option value="'Abril Fatface', cursive">Abril Fatface ✦</option>
+                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia ✦</option>
                     </optgroup>
                     <optgroup label="Monoespaciada">
                         <option value="'Courier New', monospace">Courier New</option>
@@ -123,13 +123,13 @@
                         <option value="'Cormorant Garant', serif">Cormorant Garant</option>
                         <option value="'Libre Baskerville', serif">Libre Baskerville</option>
                     </optgroup>
-                    <optgroup label="Caligráfica / Decorativa">
-                        <option value="'Lobster', cursive">Lobster</option>
-                        <option value="'Dancing Script', cursive">Dancing Script</option>
-                        <option value="'Great Vibes', cursive">Great Vibes</option>
-                        <option value="'Satisfy', cursive">Satisfy</option>
-                        <option value="'Abril Fatface', cursive">Abril Fatface</option>
-                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia</option>
+                    <optgroup label="Caligráfica / Decorativa ✦" data-premium="extra_fonts">
+                        <option value="'Lobster', cursive">Lobster ✦</option>
+                        <option value="'Dancing Script', cursive">Dancing Script ✦</option>
+                        <option value="'Great Vibes', cursive">Great Vibes ✦</option>
+                        <option value="'Satisfy', cursive">Satisfy ✦</option>
+                        <option value="'Abril Fatface', cursive">Abril Fatface ✦</option>
+                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia ✦</option>
                     </optgroup>
                 </select>
             </div>
@@ -171,6 +171,28 @@
                     <input type="text" id="cfg-bgMenuHex" class="color-hex-input" value="#1A1A1A" maxlength="7">
                     <input type="color" id="cfg-bgMenu" class="ctrl-color" value="#1A1A1A">
                 </div>
+            </div>
+
+            <!-- Imagen fondo página (feature-gated) -->
+            <div class="sidebar-section feature-gated-section" id="pageBgSection">
+                <label class="ctrl-label">Fondo de página <span class="plan-lock-badge" id="pageBgBadge"></span></label>
+                <div class="bg-img-row">
+                    <div id="pageBgThumb" class="bg-img-thumb"></div>
+                    <button id="pageBgBtn" class="btn-bg-upload">Subir imagen</button>
+                    <button id="pageBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                </div>
+                <input type="file" id="pageBgFile" accept="image/*" style="display:none">
+            </div>
+
+            <!-- Imagen fondo menú (feature-gated) -->
+            <div class="sidebar-section feature-gated-section" id="menuBgSection">
+                <label class="ctrl-label">Fondo del menú <span class="plan-lock-badge" id="menuBgBadge"></span></label>
+                <div class="bg-img-row">
+                    <div id="menuBgThumb" class="bg-img-thumb"></div>
+                    <button id="menuBgBtn" class="btn-bg-upload">Subir imagen</button>
+                    <button id="menuBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                </div>
+                <input type="file" id="menuBgFile" accept="image/*" style="display:none">
             </div>
 
             <!-- Logo -->
@@ -233,8 +255,8 @@
                        placeholder="Av. Ejemplo 1234, Ciudad (opcional)">
             </div>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Redes sociales</label>
+            <div class="sidebar-section feature-gated-section" id="socialsSection">
+                <label class="ctrl-label">Redes sociales <span class="plan-lock-badge" id="socialsBadge"></span></label>
                 <div id="socialsContainer" class="socials-list"></div>
                 <div id="socialColorPresets" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
                 <div class="social-picker-grid" id="socialPickerRow"></div>
@@ -269,6 +291,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=3"></script>
+    <script src="./Js/benefits-config.js"></script>
     <script src="script.js?v=7"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
