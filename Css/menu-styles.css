@@ -98,17 +98,12 @@ header img { max-width: 300px; }
     overflow: hidden;
     position: relative;
     min-height: 220px;
-}
-
-.image-bg {
-    position: absolute;
-    inset: 0;
     background-size: cover;
     background-repeat: no-repeat;
     background-position: 50% center;
 }
 
-.image-bg.img-flipped { transform: scaleX(-1); }
+.menu-image.img-flipped { transform: scaleX(-1); }
 
 .menu-image img { display: none; }
 
