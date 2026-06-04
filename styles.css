@@ -364,10 +364,15 @@
 .pos-slider::-moz-range-thumb    { cursor: ew-resize; }
 .height-slider::-moz-range-thumb { cursor: ns-resize; }
 
-/* Flip horizontal de imagen — los controles se contra-transforman para quedar estables */
-.menu-image.img-flipped { transform: scaleX(-1); }
-.menu-image.img-flipped .pos-controls,
-.menu-image.img-flipped .drop-overlay { transform: scaleX(-1); }
+/* Solo el div de imagen se transforma — los controles nunca se ven afectados */
+.image-bg {
+    position: absolute;
+    inset: 0;
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-position: 50% center;
+}
+.image-bg.img-flipped { transform: scaleX(-1); }
 
 .img-flip-btn {
     -webkit-appearance: none;

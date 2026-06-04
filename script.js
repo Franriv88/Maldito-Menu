@@ -295,8 +295,9 @@ async function renderAdminMenu() {
             <div class="menu-section ${layoutClass}" style="position:relative">
                 <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image drop-zone${flipH ? ' img-flipped' : ''}" data-img-key="${sec.imgKey}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;min-height:0;">
+                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}"
+                     style="height:${heightVal}px;min-height:0;">
+                    <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};"></div>
                     <div class="drop-overlay"><span>Arrastrá o hacé clic para cambiar</span></div>
                     <div class="pos-controls">
                         <div class="ctrl-row">
@@ -402,7 +403,8 @@ function initDropZones() {
         if (slider) {
             slider.addEventListener('input', e => {
                 e.stopPropagation();
-                zone.style.backgroundPosition = `${slider.value}% center`;
+                const bg = zone.querySelector('.image-bg');
+                if (bg) bg.style.backgroundPosition = `${slider.value}% center`;
             });
             slider.addEventListener('change', async e => {
                 e.stopPropagation();
@@ -436,7 +438,7 @@ function initDropZones() {
                 e.stopPropagation();
                 flipBtn.classList.toggle('active');
                 const isFlipped = flipBtn.classList.contains('active');
-                zone.classList.toggle('img-flipped', isFlipped);
+                zone.querySelector('.image-bg')?.classList.toggle('img-flipped', isFlipped);
                 try {
                     await restRef().collection('config').doc('images').set(
                         { [`${zone.dataset.imgKey}_flipH`]: isFlipped }, { merge: true }
@@ -481,7 +483,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
         // 3. Guardar en Firestore directamente
         overlaySpan.textContent = 'Guardando…';
         await restRef().collection('config').doc('images').set({ [imgKey]: base64 }, { merge: true });
-        zone.style.backgroundImage = `url('${base64}')`;
+        const imageBg = zone.querySelector('.image-bg');
+        if (imageBg) imageBg.style.backgroundImage = `url('${base64}')`;
 
     } catch (error) {
         console.error('Error al procesar imagen:', error);

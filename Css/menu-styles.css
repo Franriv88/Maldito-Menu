@@ -98,18 +98,23 @@ header img { max-width: 300px; }
     overflow: hidden;
     position: relative;
     min-height: 220px;
+}
+
+.image-bg {
+    position: absolute;
+    inset: 0;
     background-size: auto 100%;
     background-repeat: no-repeat;
     background-position: 50% center;
 }
 
-.menu-image img { display: none; }
+.image-bg.img-flipped { transform: scaleX(-1); }
 
-.menu-image.img-flipped { transform: scaleX(-1); }
+.menu-image img { display: none; }
 
 /* Mobile: imagen al costado, cubre su área */
 @media (max-width: 768px) {
-    .menu-image {
+    .image-bg {
         background-size: cover;
     }
 }

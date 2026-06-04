@@ -258,8 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.className = `menu-section ${layoutClass}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image${flipH ? ' img-flipped' : ''}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};min-height:${heightVal}px;">
+                <div class="menu-image" style="min-height:${heightVal}px;">
+                    <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};"></div>
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });
