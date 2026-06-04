@@ -107,6 +107,9 @@ header img { max-width: 300px; }
 
 .menu-image img { display: none; }
 
+/* Cuando hay imagen de fondo del menú, las secciones se vuelven transparentes */
+.has-menu-bg .menu-section { background: transparent !important; }
+
 /*TABLAS*/
 .item--product2 + h2{
     margin: 0;

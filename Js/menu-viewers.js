@@ -110,9 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.backgroundImage      = cfg.pageBgImage ? `url('${cfg.pageBgImage}')` : '';
         document.body.style.backgroundSize       = cfg.pageBgImage ? 'cover' : '';
         document.body.style.backgroundAttachment = cfg.pageBgImage ? 'fixed' : '';
-        menuContainer.style.backgroundImage      = cfg.menuBgImage ? `url('${cfg.menuBgImage}')` : '';
-        menuContainer.style.backgroundSize       = cfg.menuBgImage ? 'cover' : '';
-        menuContainer.style.backgroundPosition   = cfg.menuBgImage ? 'center' : '';
+        const pageWrapper = document.querySelector('.page-wrapper');
+        if (pageWrapper) {
+            pageWrapper.style.backgroundImage  = cfg.menuBgImage ? `url('${cfg.menuBgImage}')` : '';
+            pageWrapper.style.backgroundSize   = cfg.menuBgImage ? 'cover' : '';
+            pageWrapper.style.backgroundPosition = cfg.menuBgImage ? 'center' : '';
+        }
+        document.documentElement.classList.toggle('has-menu-bg', !!cfg.menuBgImage);
         if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
         if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
         if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
