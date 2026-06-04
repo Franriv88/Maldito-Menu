@@ -226,7 +226,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -234,11 +234,14 @@
 <script>
 function licon(name, size = 16) {
     if (typeof lucide === 'undefined') return '';
-    const el = lucide.createElement(name);
-    el.setAttribute('width', size); el.setAttribute('height', size);
-    el.setAttribute('stroke-width', '1.75');
-    el.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
-    return el.outerHTML;
+    const aliases = { 'check-circle-2':'circle-check-big', 'x-circle':'circle-x', 'alert-triangle':'triangle-alert' };
+    try {
+        const el = lucide.createElement(aliases[name] || name);
+        el.setAttribute('width', size); el.setAttribute('height', size);
+        el.setAttribute('stroke-width', '1.75');
+        el.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
+        return el.outerHTML;
+    } catch(_) { return ''; }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
