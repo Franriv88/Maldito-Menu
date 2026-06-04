@@ -275,6 +275,8 @@ async function renderAdminMenu() {
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
             const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
+            const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
+            const vAlign = imageConfig[`${sec.imgKey}_vAlign`] || 'center';
 
             const contentHTML = sec.categorias.map(cat => {
                 const productos  = byCategory[cat] || [];
@@ -294,7 +296,7 @@ async function renderAdminMenu() {
                 <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image drop-zone" data-img-key="${sec.imgKey}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% center;height:${heightVal}px;min-height:0;">
+                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;min-height:0;${flipH ? 'transform:scaleX(-1);' : ''}">
                     <div class="drop-overlay"><span>Arrastrá o hacé clic para cambiar</span></div>
                     <div class="pos-controls">
                         <div class="ctrl-row">
@@ -306,6 +308,14 @@ async function renderAdminMenu() {
                             <span class="ctrl-arrow">−</span>
                             <input type="range" class="height-slider" min="150" max="600" value="${heightVal}">
                             <span class="ctrl-arrow">+</span>
+                        </div>
+                        <div class="ctrl-row">
+                            <button class="img-flip-btn${flipH ? ' active' : ''}" title="Invertir horizontalmente">⇄</button>
+                            <div class="valign-btns">
+                                <button class="valign-btn${vAlign === 'top'    ? ' active' : ''}" data-valign="top"    title="Imagen arriba">▲</button>
+                                <button class="valign-btn${vAlign === 'center' ? ' active' : ''}" data-valign="center" title="Imagen centrada">●</button>
+                                <button class="valign-btn${vAlign === 'bottom' ? ' active' : ''}" data-valign="bottom" title="Imagen abajo">▼</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -394,7 +404,11 @@ function initDropZones() {
 
         const slider = zone.querySelector('.pos-slider');
         if (slider) {
-            slider.addEventListener('input', e => { e.stopPropagation(); zone.style.backgroundPosition = `${slider.value}% center`; });
+            slider.addEventListener('input', e => {
+                e.stopPropagation();
+                const v = zone.querySelector('.valign-btn.active')?.dataset.valign || 'center';
+                zone.style.backgroundPosition = `${slider.value}% ${v}`;
+            });
             slider.addEventListener('change', async e => {
                 e.stopPropagation();
                 try {
@@ -420,6 +434,37 @@ function initDropZones() {
                 } catch (err) { console.error('Error guardando tamaño:', err); }
             });
         }
+
+        const flipBtn = zone.querySelector('.img-flip-btn');
+        if (flipBtn) {
+            flipBtn.addEventListener('click', async e => {
+                e.stopPropagation();
+                flipBtn.classList.toggle('active');
+                const isFlipped = flipBtn.classList.contains('active');
+                zone.style.transform = isFlipped ? 'scaleX(-1)' : '';
+                try {
+                    await restRef().collection('config').doc('images').set(
+                        { [`${zone.dataset.imgKey}_flipH`]: isFlipped }, { merge: true }
+                    );
+                } catch (err) { console.error('Error guardando flip:', err); }
+            });
+        }
+
+        zone.querySelectorAll('.valign-btn').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                e.stopPropagation();
+                zone.querySelectorAll('.valign-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const v = btn.dataset.valign;
+                const posVal = zone.querySelector('.pos-slider')?.value ?? 50;
+                zone.style.backgroundPosition = `${posVal}% ${v}`;
+                try {
+                    await restRef().collection('config').doc('images').set(
+                        { [`${zone.dataset.imgKey}_vAlign`]: v }, { merge: true }
+                    );
+                } catch (err) { console.error('Error guardando alineación:', err); }
+            });
+        });
     });
 }
 
@@ -529,8 +574,12 @@ async function guardarMenu() {
         if (!key) return;
         const posSlider    = zone.querySelector('.pos-slider');
         const heightSlider = zone.querySelector('.height-slider');
+        const flipBtn      = zone.querySelector('.img-flip-btn');
+        const activeVAlign = zone.querySelector('.valign-btn.active');
         if (posSlider)    imageConfigActual[`${key}_pos`]    = parseInt(posSlider.value);
         if (heightSlider) imageConfigActual[`${key}_height`] = parseInt(heightSlider.value);
+        if (flipBtn)      imageConfigActual[`${key}_flipH`]  = flipBtn.classList.contains('active');
+        if (activeVAlign) imageConfigActual[`${key}_vAlign`] = activeVAlign.dataset.valign;
     });
     document.querySelectorAll('.layout-toggle-btn[data-img-key]').forEach(btn => {
         const key = btn.dataset.imgKey;

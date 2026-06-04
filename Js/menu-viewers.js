@@ -231,8 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
-            const posVal  = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
+            const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
+            const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
+            const vAlign = imageConfig[`${sec.imgKey}_vAlign`] || 'center';
 
             let contentHTML = '';
             sec.categorias.forEach(cat => {
@@ -257,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% center;height:${heightVal}px;">
+                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};height:${heightVal}px;${flipH ? 'transform:scaleX(-1);' : ''}">
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });
