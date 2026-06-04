@@ -420,7 +420,11 @@ function initDropZones() {
         if (heightSlider) {
             heightSlider.addEventListener('input', e => {
                 e.stopPropagation();
-                zone.style.minHeight = '0'; zone.style.height = `${heightSlider.value}px`;
+                const h = `${heightSlider.value}px`;
+                zone.style.minHeight = '0';
+                zone.style.height = h;
+                const bg = zone.querySelector('.image-bg');
+                if (bg) { bg.style.top = '0'; bg.style.bottom = '0'; }
             });
             heightSlider.addEventListener('change', async e => {
                 e.stopPropagation();
