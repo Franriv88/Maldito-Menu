@@ -368,7 +368,7 @@
 .image-bg {
     position: absolute;
     inset: 0;
-    background-size: auto 100%;
+    background-size: cover;
     background-repeat: no-repeat;
     background-position: 50% center;
 }

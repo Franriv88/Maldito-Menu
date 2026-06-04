@@ -103,7 +103,7 @@ header img { max-width: 300px; }
 .image-bg {
     position: absolute;
     inset: 0;
-    background-size: auto 100%;
+    background-size: cover;
     background-repeat: no-repeat;
     background-position: 50% center;
 }
@@ -111,13 +111,6 @@ header img { max-width: 300px; }
 .image-bg.img-flipped { transform: scaleX(-1); }
 
 .menu-image img { display: none; }
-
-/* Mobile: imagen al costado, cubre su área */
-@media (max-width: 768px) {
-    .image-bg {
-        background-size: cover;
-    }
-}
 
 /*TABLAS*/
 .item--product2 + h2{
