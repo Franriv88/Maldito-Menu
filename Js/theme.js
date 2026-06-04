@@ -11,12 +11,20 @@ const _LICON_ALIASES = {
     'alert-triangle': 'triangle-alert',
 };
 
+// kebab-case → PascalCase  (ej: 'share-2' → 'Share2')
+function _toPascal(s) {
+    return s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+}
+
 // Genera un SVG de Lucide como string (para insertar en innerHTML)
 function licon(name, size = 16) {
     if (typeof lucide === 'undefined') return '';
     const resolved = _LICON_ALIASES[name] || name;
     try {
-        const el = lucide.createElement(resolved);
+        // En v0.309 createElement recibe la definición del ícono (lucide.Sun),
+        // no el nombre como string. Convertimos kebab → PascalCase para buscarlo.
+        const def = lucide[_toPascal(resolved)];
+        const el  = def ? lucide.createElement(def) : lucide.createElement(resolved);
         el.setAttribute('width', size);
         el.setAttribute('height', size);
         el.setAttribute('stroke-width', '1.75');

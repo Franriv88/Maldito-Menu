@@ -235,8 +235,11 @@
 function licon(name, size = 16) {
     if (typeof lucide === 'undefined') return '';
     const aliases = { 'check-circle-2':'circle-check-big', 'x-circle':'circle-x', 'alert-triangle':'triangle-alert' };
+    const resolved = aliases[name] || name;
+    const toPascal = s => s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
     try {
-        const el = lucide.createElement(aliases[name] || name);
+        const def = lucide[toPascal(resolved)];
+        const el  = def ? lucide.createElement(def) : lucide.createElement(resolved);
         el.setAttribute('width', size); el.setAttribute('height', size);
         el.setAttribute('stroke-width', '1.75');
         el.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
