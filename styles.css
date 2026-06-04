@@ -776,6 +776,30 @@ body.light .sa-avatar { opacity: .85; }
 body.light .sa-empty { color: rgba(60,42,20,.3); }
 body.light .sa-loading { color: rgba(60,42,20,.4); }
 
+/* ── TÍTULO DE CATEGORÍA EDITABLE ───────────────────────────── */
+.input-category-title {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #333;
+    color: var(--title-color);
+    font-family: var(--title-font-family), var(--main-font-family), sans-serif;
+    font-size: var(--title-font-size, 20px);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: inherit;
+    padding: 0 0 .5rem;
+    margin-top: 20px;
+    outline: none;
+    cursor: text;
+    transition: border-color .15s;
+    box-sizing: border-box;
+}
+.input-category-title:hover:not(:focus) { border-bottom-color: rgba(124,108,92,.45); }
+.input-category-title:focus { border-bottom-color: var(--title-color, #7C6C5C); }
+body.preview-mode .input-category-title { pointer-events: none; cursor: default; }
+
 /* ── CONTROLES HORIZONTALES DE ESTILOS ──────────────────────── */
 .size-controls-row {
     display: grid;

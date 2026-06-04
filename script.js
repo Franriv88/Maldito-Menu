@@ -237,16 +237,18 @@ async function renderAdminMenu() {
     const container = document.getElementById('admin-menu-container');
 
     try {
-        const [productsSnap, imagesDoc, stylesDoc, footerDoc] = await Promise.all([
+        const [productsSnap, imagesDoc, stylesDoc, footerDoc, catTitlesDoc] = await Promise.all([
             restRef().collection('productos').orderBy('orden', 'asc').orderBy('ordenProducto', 'asc').get(),
             restRef().collection('config').doc('images').get().catch(() => ({ exists: false, data: () => ({}) })),
             restRef().collection('config').doc('styles').get().catch(() => ({ exists: false, data: () => ({}) })),
             restRef().collection('config').doc('footer').get().catch(() => ({ exists: false, data: () => ({}) })),
+            restRef().collection('config').doc('categoryTitles').get().catch(() => ({ exists: false, data: () => ({}) })),
         ]);
 
-        const imageConfig  = imagesDoc.exists  ? imagesDoc.data()  : {};
-        const styleConfig  = stylesDoc.exists  ? stylesDoc.data()  : {};
-        const footerConfig = footerDoc.exists  ? footerDoc.data()  : {};
+        const imageConfig  = imagesDoc.exists     ? imagesDoc.data()     : {};
+        const styleConfig  = stylesDoc.exists     ? stylesDoc.data()     : {};
+        const footerConfig = footerDoc.exists     ? footerDoc.data()     : {};
+        const catTitles    = catTitlesDoc.exists  ? catTitlesDoc.data()  : {};
 
         // Cargar pie del menú
         document.getElementById('cfg-footerNotice').value  = footerConfig.notice  || '';
@@ -279,8 +281,10 @@ async function renderAdminMenu() {
                 const itemsHTML  = productos.length > 0
                     ? productos.map(p => buildItemHTML(p)).join('')
                     : buildItemHTML({});
+                const displayTitle = catTitles[cat] || cat;
                 return `
-                    <h2>${cat}</h2>
+                    <input class="input-category-title" value="${esc(displayTitle)}"
+                           data-cat-key="${esc(cat)}" placeholder="${esc(cat)}">
                     <div class="admin-category" data-categoria="${esc(cat)}">${itemsHTML}</div>
                     <button class="add-item-btn" data-categoria="${esc(cat)}">+ Agregar</button>`;
             }).join('');
@@ -311,6 +315,7 @@ async function renderAdminMenu() {
         container.innerHTML = sectionsHTML.join('');
         container.addEventListener('click', handleContainerClick);
         initDropZones();
+        initCategoryTitleEditors();
 
     } catch (err) {
         console.error('Error cargando menú:', err);
@@ -724,6 +729,27 @@ async function saveStyleField(key, value) {
     try {
         await restRef().collection('config').doc('styles').set({ [key]: value }, { merge: true });
     } catch(e) { console.error('Error guardando estilo:', e); }
+}
+
+async function saveCategoryTitle(key, title) {
+    try {
+        await restRef().collection('config').doc('categoryTitles').set({ [key]: title }, { merge: true });
+    } catch(e) { console.error('Error guardando título:', e); }
+}
+
+function initCategoryTitleEditors() {
+    document.querySelectorAll('.input-category-title').forEach(inp => {
+        inp.addEventListener('blur', () => {
+            const key   = inp.dataset.catKey;
+            const title = inp.value.trim() || key;
+            inp.value   = title;
+            saveCategoryTitle(key, title);
+        });
+        inp.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+            if (e.key === 'Escape') { inp.value = inp.dataset.catKey; inp.blur(); }
+        });
+    });
 }
 
 function initStyleControls() {

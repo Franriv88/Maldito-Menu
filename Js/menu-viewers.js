@@ -39,11 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const restRef = db.collection('restaurants').doc(restaurantId);
 
-    let lastSnapshot = null;
-    let imageConfig  = {};
-    let restData     = {};
-    let stylesConfig = {};
-    let footerConfig = {};
+    let lastSnapshot  = null;
+    let imageConfig   = {};
+    let restData      = {};
+    let stylesConfig  = {};
+    let footerConfig  = {};
+    let catTitles     = {};
 
     // ── Listener 1: info del restaurante ───────────────────────
     restRef.onSnapshot(doc => {
@@ -69,6 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
         footerConfig = doc.exists ? doc.data() : {};
         renderFooter();
     }, err => console.error('Error footer:', err));
+
+    // ── Listener: títulos de categorías ───────────────────────
+    restRef.collection('config').doc('categoryTitles').onSnapshot(doc => {
+        catTitles = doc.exists ? doc.data() : {};
+        if (lastSnapshot) renderMenu();
+    }, err => console.error('Error categoryTitles:', err));
 
     // ── Listener 3b: estilos ───────────────────────────────────
     restRef.collection('config').doc('styles').onSnapshot(doc => {
@@ -231,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sec.categorias.forEach(cat => {
                 const productos = byCategory[cat] || [];
                 if (!productos.length) return;
-                contentHTML += `<h2>${cat}</h2>`;
+                contentHTML += `<h2>${catTitles[cat] || cat}</h2>`;
                 productos.forEach(item => {
                     const desc = item.descripcion || 'El clásico de la casa.';
                     contentHTML += `
