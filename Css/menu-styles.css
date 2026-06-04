@@ -130,8 +130,11 @@ header img { max-width: 300px; }
 /* Todo el contenido del menú queda encima del fondo */
 .page-wrapper > :not(.menu-bg-wrap) { position: relative; z-index: 1; }
 
-/* Cuando hay imagen de fondo, las secciones se vuelven transparentes */
-.has-menu-bg .menu-section { background: transparent !important; }
+/* Cuando hay imagen de fondo, todo lo que tenga --primary-color se vuelve transparente */
+.has-menu-bg .menu-section,
+.has-menu-bg .menu-footer-section,
+.has-menu-bg .page-wrapper,
+.has-menu-bg .disclaimer { background: transparent !important; }
 
 /*TABLAS*/
 .item--product2 + h2{
