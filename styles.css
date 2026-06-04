@@ -769,6 +769,57 @@ body.light .sa-avatar { opacity: .85; }
 body.light .sa-empty { color: rgba(60,42,20,.3); }
 body.light .sa-loading { color: rgba(60,42,20,.4); }
 
+/* ── CONTROLES HORIZONTALES DE ESTILOS ──────────────────────── */
+.size-controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.size-ctrl { display: flex; flex-direction: column; gap: 1px; }
+
+.color-ctrl-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: .28rem 0;
+    border-bottom: 1px solid rgba(124,108,92,.06);
+}
+.color-ctrl-row:last-child { border-bottom: none; }
+.ctrl-label-inline {
+    flex: 1;
+    font-size: .6rem; letter-spacing: 1px; text-transform: uppercase;
+    color: rgba(200,184,154,.45);
+    white-space: nowrap;
+}
+.color-hex-input {
+    width: 62px;
+    background: #111;
+    border: 1px solid rgba(124,108,92,.2);
+    border-radius: 4px;
+    color: #c8b89a;
+    font-size: .66rem;
+    padding: 3px 5px;
+    outline: none;
+    font-family: monospace;
+    letter-spacing: .3px;
+    text-align: center;
+}
+.color-hex-input:focus { border-color: rgba(124,108,92,.5); }
+body.light .color-hex-input { background: #fff; border-color: rgba(100,80,50,.2); color: #3a2e22; }
+body.light .ctrl-label-inline { color: rgba(60,42,20,.45); }
+body.light .color-ctrl-row { border-bottom-color: rgba(100,80,50,.06); }
+
+/* Botones preset colores de íconos sociales */
+.social-color-preset-btn {
+    font-size: .62rem; padding: 3px 8px;
+    border-radius: 6px; cursor: pointer;
+    border: 1px solid rgba(124,108,92,.22);
+    background: rgba(124,108,92,.08);
+    color: rgba(200,184,154,.6);
+    font-family: inherit;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+}
+.social-color-preset-btn:hover { background: rgba(124,108,92,.2); border-color: rgba(124,108,92,.45); color: #c8b89a; }
+
 /* ── EDITOR REDES SOCIALES (admin sidebar) ──────────────────── */
 .ctrl-input-text {
     width: 100%;

@@ -94,12 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Estilos dinámicos ──────────────────────────────────────
     function applyStyles(cfg) {
         const r = document.documentElement;
-        if (cfg.fontFamily) r.style.setProperty('--main-font-family', cfg.fontFamily);
-        if (cfg.titleColor) r.style.setProperty('--title-color',      cfg.titleColor);
-        if (cfg.textColor)  r.style.setProperty('--text-color',       cfg.textColor);
-        if (cfg.bgPage)     document.body.style.backgroundColor = cfg.bgPage;
-        if (cfg.bgMenu)     r.style.setProperty('--primary-color',    cfg.bgMenu);
-        if (cfg.fontSize)   r.style.setProperty('--base-font-size',   cfg.fontSize + 'px');
+        if (cfg.fontFamily)      r.style.setProperty('--main-font-family',  cfg.fontFamily);
+        if (cfg.titleFontFamily) r.style.setProperty('--title-font-family', cfg.titleFontFamily);
+        if (cfg.titleColor)      r.style.setProperty('--title-color',       cfg.titleColor);
+        if (cfg.textColor)       r.style.setProperty('--text-color',        cfg.textColor);
+        if (cfg.bgPage)          document.body.style.backgroundColor = cfg.bgPage;
+        if (cfg.bgMenu)          r.style.setProperty('--primary-color',     cfg.bgMenu);
+        if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
+        if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
+        if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
+        if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
 
         // Favicon: preferir URL HTTP real (Storage) → fallback a base64
         const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const logoSrc = stylesConfig.logoBase64 || restData.logoUrl;
         const mode    = stylesConfig.headerMode || (logoSrc ? 'logo' : 'text');
         if (mode === 'logo' && logoSrc) {
-            header.innerHTML = `<img src="${logoSrc}" alt="${restData.nombre || ''}">`;
+            header.innerHTML = `<img src="${logoSrc}" alt="${restData.nombre || ''}" style="max-width:var(--logo-size,200px);opacity:var(--logo-opacity,1)">`;
         } else {
             header.innerHTML = `<h1>${restData.nombre || ''}</h1>`;
         }

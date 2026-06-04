@@ -12,6 +12,9 @@
     }
     </script>
     <link rel="icon" id="favicon-link" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88' font-family='Georgia,serif' font-style='italic' fill='%23c8b89a'>C</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Lobster&family=Dancing+Script:wght@400;700&family=UnifrakturMaguntia&family=Abril+Fatface&family=Oswald:wght@400;600&family=Merriweather:ital,wght@0,300;0,400;1,300&family=Pacifico&family=Great+Vibes&family=Raleway:wght@300;400;600&family=Bebas+Neue&family=Satisfy&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./Css/menu-styles.css">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -54,6 +57,7 @@
         <aside class="admin-sidebar">
             <h3 class="sidebar-title">Diseño</h3>
 
+            <!-- Encabezado -->
             <div class="sidebar-section">
                 <label class="ctrl-label">Encabezado del menú</label>
                 <div class="seg-control" id="headerModeCtrl">
@@ -62,61 +66,130 @@
                 </div>
             </div>
 
+            <!-- Fuente de cuerpo -->
             <div class="sidebar-section">
-                <label class="ctrl-label">Fuente</label>
+                <label class="ctrl-label">Fuente de cuerpo</label>
                 <select id="cfg-fontFamily" class="ctrl-select">
-                    <option value="sans-serif">Sans-serif</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="'Times New Roman', serif">Times New Roman</option>
-                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-                    <option value="'Courier New', monospace">Courier New</option>
-                    <option value="Verdana, sans-serif">Verdana</option>
-                    <option value="'Arial', sans-serif">Arial</option>
+                    <optgroup label="Sans-serif">
+                        <option value="sans-serif">Sans-serif (sistema)</option>
+                        <option value="'Arial', sans-serif">Arial</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                        <option value="'Oswald', sans-serif">Oswald</option>
+                        <option value="'Raleway', sans-serif">Raleway</option>
+                        <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                    </optgroup>
+                    <optgroup label="Serif">
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Merriweather', serif">Merriweather</option>
+                        <option value="'Playfair Display', serif">Playfair Display</option>
+                        <option value="'Cinzel', serif">Cinzel</option>
+                        <option value="'Cormorant Garant', serif">Cormorant Garant</option>
+                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                    </optgroup>
+                    <optgroup label="Caligráfica / Decorativa">
+                        <option value="'Lobster', cursive">Lobster</option>
+                        <option value="'Dancing Script', cursive">Dancing Script</option>
+                        <option value="'Pacifico', cursive">Pacifico</option>
+                        <option value="'Great Vibes', cursive">Great Vibes</option>
+                        <option value="'Satisfy', cursive">Satisfy</option>
+                        <option value="'Abril Fatface', cursive">Abril Fatface</option>
+                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia</option>
+                    </optgroup>
+                    <optgroup label="Monoespaciada">
+                        <option value="'Courier New', monospace">Courier New</option>
+                    </optgroup>
                 </select>
             </div>
 
+            <!-- Fuente de títulos (categorías) -->
             <div class="sidebar-section">
-                <label class="ctrl-label">Tamaño de fuente &nbsp;<span id="cfg-fontSizeVal" style="color:#c8b89a">14px</span></label>
-                <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
+                <label class="ctrl-label">Fuente de títulos</label>
+                <select id="cfg-titleFontFamily" class="ctrl-select">
+                    <option value="">Igual que cuerpo</option>
+                    <optgroup label="Sans-serif">
+                        <option value="sans-serif">Sans-serif (sistema)</option>
+                        <option value="'Arial', sans-serif">Arial</option>
+                        <option value="'Oswald', sans-serif">Oswald</option>
+                        <option value="'Raleway', sans-serif">Raleway</option>
+                        <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                    </optgroup>
+                    <optgroup label="Serif">
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Merriweather', serif">Merriweather</option>
+                        <option value="'Playfair Display', serif">Playfair Display</option>
+                        <option value="'Cinzel', serif">Cinzel</option>
+                        <option value="'Cormorant Garant', serif">Cormorant Garant</option>
+                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                    </optgroup>
+                    <optgroup label="Caligráfica / Decorativa">
+                        <option value="'Lobster', cursive">Lobster</option>
+                        <option value="'Dancing Script', cursive">Dancing Script</option>
+                        <option value="'Great Vibes', cursive">Great Vibes</option>
+                        <option value="'Satisfy', cursive">Satisfy</option>
+                        <option value="'Abril Fatface', cursive">Abril Fatface</option>
+                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia</option>
+                    </optgroup>
+                </select>
             </div>
 
+            <!-- Tamaños de fuente — horizontal -->
             <div class="sidebar-section">
-                <label class="ctrl-label">Color de títulos</label>
-                <div class="color-row">
-                    <input type="color" id="cfg-titleColor" value="#7C6C5C" class="ctrl-color">
-                    <span class="color-hex" id="cfg-titleColorHex">#7C6C5C</span>
+                <div class="size-controls-row">
+                    <div class="size-ctrl">
+                        <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" style="color:#c8b89a">14px</span></label>
+                        <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
+                    </div>
+                    <div class="size-ctrl">
+                        <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" style="color:#c8b89a">20px</span></label>
+                        <input type="range" id="cfg-titleFontSize" min="14" max="42" value="20" class="ctrl-slider">
+                    </div>
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Color de productos</label>
-                <div class="color-row">
-                    <input type="color" id="cfg-textColor" value="#7C6C5C" class="ctrl-color">
-                    <span class="color-hex" id="cfg-textColorHex">#7C6C5C</span>
+            <!-- Colores — horizontal, hex editable primero -->
+            <div class="sidebar-section" style="padding-bottom:.2rem">
+                <label class="ctrl-label" style="margin-bottom:.4rem">Colores</label>
+                <div class="color-ctrl-row">
+                    <span class="ctrl-label-inline">Títulos</span>
+                    <input type="text" id="cfg-titleColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
+                    <input type="color" id="cfg-titleColor" class="ctrl-color" value="#7C6C5C">
+                </div>
+                <div class="color-ctrl-row">
+                    <span class="ctrl-label-inline">Productos</span>
+                    <input type="text" id="cfg-textColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
+                    <input type="color" id="cfg-textColor" class="ctrl-color" value="#7C6C5C">
+                </div>
+                <div class="color-ctrl-row">
+                    <span class="ctrl-label-inline">Fondo página</span>
+                    <input type="text" id="cfg-bgPageHex" class="color-hex-input" value="#0e0e0e" maxlength="7">
+                    <input type="color" id="cfg-bgPage" class="ctrl-color" value="#0e0e0e">
+                </div>
+                <div class="color-ctrl-row">
+                    <span class="ctrl-label-inline">Fondo menú</span>
+                    <input type="text" id="cfg-bgMenuHex" class="color-hex-input" value="#1A1A1A" maxlength="7">
+                    <input type="color" id="cfg-bgMenu" class="ctrl-color" value="#1A1A1A">
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Fondo de página</label>
-                <div class="color-row">
-                    <input type="color" id="cfg-bgPage" value="#0e0e0e" class="ctrl-color">
-                    <span class="color-hex" id="cfg-bgPageHex">#0e0e0e</span>
-                </div>
-            </div>
-
-            <div class="sidebar-section">
-                <label class="ctrl-label">Fondo del menú</label>
-                <div class="color-row">
-                    <input type="color" id="cfg-bgMenu" value="#1A1A1A" class="ctrl-color">
-                    <span class="color-hex" id="cfg-bgMenuHex">#1A1A1A</span>
-                </div>
-            </div>
-
+            <!-- Logo -->
             <div class="sidebar-section">
                 <label class="ctrl-label">Logo del restaurante</label>
                 <div class="mini-drop" id="logoDrop">
                     <span id="logoDropText">Arrastrá o clic</span>
                     <img id="logoPreview" style="display:none;max-width:100%;max-height:80px;margin-top:6px;border-radius:4px;">
+                </div>
+                <!-- Tamaño y opacidad del logo -->
+                <div class="size-controls-row" style="margin-top:6px">
+                    <div class="size-ctrl">
+                        <label class="ctrl-label">Tamaño <span id="cfg-logoSizeVal" style="color:#c8b89a">200px</span></label>
+                        <input type="range" id="cfg-logoSize" min="40" max="400" value="200" class="ctrl-slider">
+                    </div>
+                    <div class="size-ctrl">
+                        <label class="ctrl-label">Opacidad <span id="cfg-logoOpacityVal" style="color:#c8b89a">100%</span></label>
+                        <input type="range" id="cfg-logoOpacity" min="10" max="100" value="100" class="ctrl-slider">
+                    </div>
                 </div>
                 <label class="bg-remove-toggle">
                     <input type="checkbox" id="logoBgRemove" checked>
@@ -126,8 +199,12 @@
                 <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar logo</button>
             </div>
 
+            <!-- Favicon -->
             <div class="sidebar-section">
-                <label class="ctrl-label">Ícono de pestaña (favicon)</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:.45rem">
+                    <label class="ctrl-label" style="margin:0">Ícono de pestaña (favicon)</label>
+                    <button id="faviconInfoBtn" title="¿Qué es un favicon?" style="width:16px;height:16px;border-radius:50%;background:rgba(124,108,92,.15);border:1px solid rgba(124,108,92,.3);color:rgba(200,184,154,.6);font-size:.6rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;padding:0">?</button>
+                </div>
                 <div class="mini-drop" id="faviconDrop">
                     <span id="faviconDropText">Arrastrá o clic</span>
                     <img id="faviconPreview" style="display:none;width:32px;height:32px;margin-top:6px;border-radius:4px;">
@@ -159,10 +236,29 @@
             <div class="sidebar-section">
                 <label class="ctrl-label">Redes sociales</label>
                 <div id="socialsContainer" class="socials-list"></div>
+                <div id="socialColorPresets" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
                 <div class="social-picker-grid" id="socialPickerRow"></div>
             </div>
 
         </aside>
+
+        <!-- Modal favicon info -->
+        <div id="faviconModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center">
+            <div style="background:#1a1a1a;border:1px solid rgba(124,108,92,.25);border-radius:16px;padding:1.8rem;max-width:420px;width:90%;position:relative">
+                <button onclick="document.getElementById('faviconModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;color:rgba(200,184,154,.5);font-size:1.2rem;cursor:pointer;line-height:1">×</button>
+                <h3 style="color:#c8b89a;margin:0 0 .8rem;font-size:1rem;font-weight:600">¿Qué es un Favicon?</h3>
+                <p style="color:rgba(200,184,154,.6);font-size:.8rem;line-height:1.6;margin:0 0 1rem">Es el pequeño ícono que aparece en la <strong style="color:#c8b89a">pestaña del navegador</strong>, en los marcadores y cuando un usuario guarda el menú en el celular como acceso directo.</p>
+                <div style="background:#0e0e0e;border-radius:10px;padding:1rem;font-family:monospace;font-size:.72rem;color:rgba(200,184,154,.5)">
+                    <div style="background:#2a2a2a;border-radius:6px 6px 0 0;padding:.4rem .7rem;display:flex;align-items:center;gap:.5rem;width:fit-content;min-width:140px">
+                        <div style="width:14px;height:14px;background:rgba(200,184,154,.15);border-radius:3px;border:1px solid rgba(200,184,154,.2);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#c8b89a;font-style:italic;font-weight:700">C</div>
+                        <span style="color:rgba(200,184,154,.7);font-size:.68rem">Mi Restaurante</span>
+                        <span style="color:rgba(200,184,154,.25);font-size:.65rem">×</span>
+                    </div>
+                    <div style="border-top:2px solid #c8b89a;margin-top:-1px;padding:.3rem .5rem;color:rgba(200,184,154,.3);font-size:.65rem">🔒 maldito-cafe.web.app/menu?r=...</div>
+                </div>
+                <p style="color:rgba(200,184,154,.4);font-size:.7rem;margin:.8rem 0 0;line-height:1.5">Recomendado: imagen cuadrada de al menos <strong style="color:rgba(200,184,154,.6)">64×64px</strong>, con fondo transparente si es posible.</p>
+            </div>
+        </div>
 
     </div>
 

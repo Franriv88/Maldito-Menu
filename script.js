@@ -68,6 +68,34 @@ function renderSocialsEditor() {
         initSocialDrag();
     }
 
+    // ── Preset colores de íconos ──────────────────────────────
+    const presetsEl = document.getElementById('socialColorPresets');
+    if (presetsEl) {
+        if (footerSocials.length) {
+            presetsEl.style.display = 'flex';
+            presetsEl.innerHTML = `
+                <button class="social-color-preset-btn" data-preset="titles">Color títulos</button>
+                <button class="social-color-preset-btn" data-preset="texts">Color textos</button>
+                <button class="social-color-preset-btn" data-preset="original">Originales</button>`;
+            presetsEl.querySelectorAll('.social-color-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const root = document.documentElement;
+                    let color;
+                    if (btn.dataset.preset === 'titles')   color = getComputedStyle(root).getPropertyValue('--title-color').trim() || document.getElementById('cfg-titleColor')?.value;
+                    if (btn.dataset.preset === 'texts')    color = getComputedStyle(root).getPropertyValue('--text-color').trim()  || document.getElementById('cfg-textColor')?.value;
+                    footerSocials.forEach((s, i) => {
+                        footerSocials[i].color = btn.dataset.preset === 'original'
+                            ? SOCIAL_NETS[s.network]?.color || '#c8b89a'
+                            : color || '#c8b89a';
+                    });
+                    renderSocialsEditor();
+                });
+            });
+        } else {
+            presetsEl.style.display = 'none';
+        }
+    }
+
     // Picker: grid de redes disponibles (no duplicadas)
     const used = new Set(footerSocials.map(s => s.network));
     picker.className = 'social-picker-grid';
@@ -105,11 +133,21 @@ function initSocialDrag() {
     });
 }
 
+const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">' +
+    '<rect width="400" height="300" fill="#1a1a1a"/>' +
+    '<g transform="translate(150,95)" fill="none" stroke="rgba(124,108,92,0.3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect width="100" height="75" rx="5"/>' +
+    '<circle cx="28" cy="24" r="10"/>' +
+    '<polyline points="0,55 28,30 55,48 75,28 100,55"/>' +
+    '</g></svg>'
+);
+
 const SECCIONES_CONFIG = [
-    { categorias: ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO'],  layout: 'normal',   imgKey: 'img1', imgDefault: './img/img/coffee.png'    },
-    { categorias: ['BEBIDAS', 'EXTRAS'],                  layout: 'reversed', imgKey: 'img2', imgDefault: './img/img/tea.png'       },
-    { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: './img/img/croissant.png' },
-    { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: './img/img/cookie.png'    },
+    { categorias: ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO'],  layout: 'normal',   imgKey: 'img1', imgDefault: IMG_PLACEHOLDER },
+    { categorias: ['BEBIDAS', 'EXTRAS'],                  layout: 'reversed', imgKey: 'img2', imgDefault: IMG_PLACEHOLDER },
+    { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: IMG_PLACEHOLDER },
+    { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: IMG_PLACEHOLDER },
 ];
 
 const ORDEN_CATEGORIAS = {
@@ -591,12 +629,16 @@ function contrastColor(hex) {
 
 function applyStyles(cfg) {
     const r = document.documentElement;
-    if (cfg.fontFamily)    r.style.setProperty('--main-font-family', cfg.fontFamily);
-    if (cfg.titleColor)    r.style.setProperty('--title-color',     cfg.titleColor);
-    if (cfg.textColor)     r.style.setProperty('--text-color',      cfg.textColor);
-    if (cfg.bgPage)        document.body.style.backgroundColor = cfg.bgPage;
-    if (cfg.bgMenu)        r.style.setProperty('--primary-color',   cfg.bgMenu);
-    if (cfg.fontSize)      r.style.setProperty('--base-font-size',  cfg.fontSize + 'px');
+    if (cfg.fontFamily)      r.style.setProperty('--main-font-family',  cfg.fontFamily);
+    if (cfg.titleFontFamily) r.style.setProperty('--title-font-family', cfg.titleFontFamily);
+    if (cfg.titleColor)      r.style.setProperty('--title-color',       cfg.titleColor);
+    if (cfg.textColor)       r.style.setProperty('--text-color',        cfg.textColor);
+    if (cfg.bgPage)          document.body.style.backgroundColor = cfg.bgPage;
+    if (cfg.bgMenu)          r.style.setProperty('--primary-color',     cfg.bgMenu);
+    if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
+    if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
+    if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
+    if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
     // Favicon: preferir URL Storage (HTTP real) → fallback a base64
     const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
     if (iconSrc) {
@@ -626,19 +668,30 @@ function applyStyles(cfg) {
 
 function populateStyleControls(cfg) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
-    setVal('cfg-fontFamily', cfg.fontFamily);
-    setVal('cfg-fontSize',   cfg.fontSize);
-    setVal('cfg-titleColor', cfg.titleColor);
-    setVal('cfg-textColor',  cfg.textColor);
-    setVal('cfg-bgPage',     cfg.bgPage);
-    setVal('cfg-bgMenu',     cfg.bgMenu);
-    const sizeSpan = document.getElementById('cfg-fontSizeVal');
-    if (sizeSpan && cfg.fontSize) sizeSpan.textContent = cfg.fontSize + 'px';
+    setVal('cfg-fontFamily',      cfg.fontFamily);
+    setVal('cfg-titleFontFamily', cfg.titleFontFamily || '');
+    setVal('cfg-fontSize',        cfg.fontSize);
+    setVal('cfg-titleFontSize',   cfg.titleFontSize || 20);
+    setVal('cfg-titleColor',      cfg.titleColor);
+    setVal('cfg-textColor',       cfg.textColor);
+    setVal('cfg-bgPage',          cfg.bgPage);
+    setVal('cfg-bgMenu',          cfg.bgMenu);
+    setVal('cfg-logoSize',        cfg.logoSize    || 200);
+    setVal('cfg-logoOpacity',     cfg.logoOpacity != null ? cfg.logoOpacity : 100);
+
+    const sv = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    sv('cfg-fontSizeVal',       (cfg.fontSize       || 14) + 'px');
+    sv('cfg-titleFontSizeVal',  (cfg.titleFontSize  || 20) + 'px');
+    sv('cfg-logoSizeVal',       (cfg.logoSize       || 200) + 'px');
+    sv('cfg-logoOpacityVal',    (cfg.logoOpacity != null ? cfg.logoOpacity : 100) + '%');
+
+    // Sync hex text inputs with color pickers
     [['cfg-titleColor','cfg-titleColorHex'], ['cfg-textColor','cfg-textColorHex'],
-     ['cfg-bgPage','cfg-bgPageHex'],         ['cfg-bgMenu','cfg-bgMenuHex']].forEach(([inpId, spanId]) => {
-        const inp = document.getElementById(inpId), span = document.getElementById(spanId);
-        if (inp && span) span.textContent = inp.value;
+     ['cfg-bgPage','cfg-bgPageHex'],         ['cfg-bgMenu','cfg-bgMenuHex']].forEach(([inpId, hexId]) => {
+        const inp = document.getElementById(inpId), hex = document.getElementById(hexId);
+        if (inp && hex) hex.value = inp.value;
     });
+
     if (cfg.headerMode) {
         const ctrl = document.getElementById('headerModeCtrl');
         ctrl?.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === cfg.headerMode));
@@ -656,9 +709,13 @@ function updateAdminHeader() {
     if (!nameEl || !logoEl) return;
 
     if (mode === 'logo' && logoSrc) {
-        nameEl.style.display = 'none';
+        nameEl.style.display  = 'none';
         logoEl.src            = logoSrc;
         logoEl.style.display  = 'block';
+        const size = document.getElementById('cfg-logoSize')?.value || 200;
+        const op   = document.getElementById('cfg-logoOpacity')?.value || 100;
+        logoEl.style.maxWidth = size + 'px';
+        logoEl.style.opacity  = (op / 100).toString();
     } else {
         nameEl.style.display  = '';
         logoEl.style.display  = 'none';
@@ -674,16 +731,25 @@ async function saveStyleField(key, value) {
 function initStyleControls() {
     const root = document.documentElement;
 
-    // ── Fuente ────────────────────────────────────────────────
+    // ── Fuente de cuerpo ──────────────────────────────────────
     const fontSel = document.getElementById('cfg-fontFamily');
     if (fontSel) fontSel.addEventListener('change', async () => {
         root.style.setProperty('--main-font-family', fontSel.value);
-        document.querySelectorAll('.menu-item, .menu-content h2, .input-product, .input-price, .input-description')
+        document.querySelectorAll('.input-product, .input-price, .input-description')
             .forEach(el => el.style.fontFamily = fontSel.value);
         await saveStyleField('fontFamily', fontSel.value);
     });
 
-    // ── Tamaño de fuente ──────────────────────────────────────
+    // ── Fuente de títulos ─────────────────────────────────────
+    const titleFontSel = document.getElementById('cfg-titleFontFamily');
+    if (titleFontSel) titleFontSel.addEventListener('change', async () => {
+        const val = titleFontSel.value;
+        root.style.setProperty('--title-font-family', val || 'inherit');
+        document.querySelectorAll('.menu-content h2').forEach(el => el.style.fontFamily = val || '');
+        await saveStyleField('titleFontFamily', val);
+    });
+
+    // ── Tamaño fuente cuerpo ──────────────────────────────────
     const sizeInp  = document.getElementById('cfg-fontSize');
     const sizeSpan = document.getElementById('cfg-fontSizeVal');
     if (sizeInp) {
@@ -696,69 +762,115 @@ function initStyleControls() {
         sizeInp.addEventListener('change', () => saveStyleField('fontSize', parseInt(sizeInp.value)));
     }
 
-    // ── Helpers para aplicar colores con feedback visual ──────
+    // ── Tamaño fuente títulos ─────────────────────────────────
+    const titleSizeInp  = document.getElementById('cfg-titleFontSize');
+    const titleSizeSpan = document.getElementById('cfg-titleFontSizeVal');
+    if (titleSizeInp) {
+        titleSizeInp.addEventListener('input', () => {
+            const val = titleSizeInp.value + 'px';
+            root.style.setProperty('--title-font-size', val);
+            document.querySelectorAll('.menu-content h2').forEach(el => el.style.fontSize = val);
+            if (titleSizeSpan) titleSizeSpan.textContent = val;
+        });
+        titleSizeInp.addEventListener('change', () => saveStyleField('titleFontSize', parseInt(titleSizeInp.value)));
+    }
+
+    // ── Helpers color con feedback ─────────────────────────────
+    function syncColorInputs(colorId, hexId, val) {
+        const c = document.getElementById(colorId), h = document.getElementById(hexId);
+        if (c) c.value = val;
+        if (h) h.value = val;
+    }
+
     function setTitleColor(hex) {
         root.style.setProperty('--title-color', hex);
         document.querySelectorAll('.menu-content h2').forEach(el => el.style.color = hex);
-        const inp = document.getElementById('cfg-titleColor'), span = document.getElementById('cfg-titleColorHex');
-        if (inp)  inp.value       = hex;
-        if (span) span.textContent = hex;
+        syncColorInputs('cfg-titleColor', 'cfg-titleColorHex', hex);
     }
-
     function setTextColor(hex) {
         root.style.setProperty('--text-color', hex);
         document.querySelectorAll('.menu-item, .producto').forEach(el => el.style.color = hex);
-        const inp = document.getElementById('cfg-textColor'), span = document.getElementById('cfg-textColorHex');
-        if (inp)  inp.value       = hex;
-        if (span) span.textContent = hex;
+        syncColorInputs('cfg-textColor', 'cfg-textColorHex', hex);
     }
 
-    // ── Color de títulos ──────────────────────────────────────
-    const titleInp = document.getElementById('cfg-titleColor');
-    if (titleInp) {
-        titleInp.addEventListener('input',  () => setTitleColor(titleInp.value));
-        titleInp.addEventListener('change', () => saveStyleField('titleColor', titleInp.value));
+    // Helper: bind color picker + hex text input together
+    function bindColor(colorId, hexId, onInput, onSave) {
+        const colorEl = document.getElementById(colorId);
+        const hexEl   = document.getElementById(hexId);
+        if (colorEl) {
+            colorEl.addEventListener('input',  () => onInput(colorEl.value));
+            colorEl.addEventListener('change', () => onSave(colorEl.value));
+        }
+        if (hexEl) {
+            hexEl.addEventListener('input', () => {
+                const v = hexEl.value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                    onInput(v);
+                    if (colorEl) colorEl.value = v;
+                }
+            });
+            hexEl.addEventListener('blur', () => {
+                const v = hexEl.value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) onSave(v);
+                else if (colorEl) hexEl.value = colorEl.value;
+            });
+        }
     }
 
-    // ── Color de productos ────────────────────────────────────
-    const textInp = document.getElementById('cfg-textColor');
-    if (textInp) {
-        textInp.addEventListener('input',  () => setTextColor(textInp.value));
-        textInp.addEventListener('change', () => saveStyleField('textColor', textInp.value));
-    }
+    bindColor('cfg-titleColor', 'cfg-titleColorHex',
+        hex => setTitleColor(hex),
+        hex => saveStyleField('titleColor', hex));
 
-    // ── Fondo de página ───────────────────────────────────────
-    const bgPageInp = document.getElementById('cfg-bgPage');
-    if (bgPageInp) {
-        bgPageInp.addEventListener('input', () => {
-            document.body.style.backgroundColor = bgPageInp.value;
-            const span = document.getElementById('cfg-bgPageHex');
-            if (span) span.textContent = bgPageInp.value;
-        });
-        bgPageInp.addEventListener('change', () => saveStyleField('bgPage', bgPageInp.value));
-    }
+    bindColor('cfg-textColor', 'cfg-textColorHex',
+        hex => setTextColor(hex),
+        hex => saveStyleField('textColor', hex));
 
-    // ── Fondo del menú + auto-contraste ──────────────────────
-    const bgMenuInp = document.getElementById('cfg-bgMenu');
-    if (bgMenuInp) {
-        bgMenuInp.addEventListener('input', () => {
-            const hex = bgMenuInp.value;
+    bindColor('cfg-bgPage', 'cfg-bgPageHex',
+        hex => { document.body.style.backgroundColor = hex; },
+        hex => saveStyleField('bgPage', hex));
+
+    bindColor('cfg-bgMenu', 'cfg-bgMenuHex',
+        hex => {
             root.style.setProperty('--primary-color', hex);
-            const span = document.getElementById('cfg-bgMenuHex');
-            if (span) span.textContent = hex;
             const contrast = contrastColor(hex);
-            setTitleColor(contrast);
-            setTextColor(contrast);
-        });
-        bgMenuInp.addEventListener('change', async () => {
-            const hex      = bgMenuInp.value;
+            setTitleColor(contrast); setTextColor(contrast);
+        },
+        async hex => {
             const contrast = contrastColor(hex);
             await Promise.all([
-                saveStyleField('bgMenu',      hex),
-                saveStyleField('titleColor',  contrast),
-                saveStyleField('textColor',   contrast),
+                saveStyleField('bgMenu',     hex),
+                saveStyleField('titleColor', contrast),
+                saveStyleField('textColor',  contrast),
             ]);
         });
+
+    // ── Logo: tamaño y opacidad ───────────────────────────────
+    const logoSizeInp    = document.getElementById('cfg-logoSize');
+    const logoSizeSpan   = document.getElementById('cfg-logoSizeVal');
+    const logoOpacityInp = document.getElementById('cfg-logoOpacity');
+    const logoOpSpan     = document.getElementById('cfg-logoOpacityVal');
+
+    function applyLogoStyle() {
+        const size = logoSizeInp?.value || 200;
+        const op   = logoOpacityInp?.value || 100;
+        root.style.setProperty('--logo-size',    size + 'px');
+        root.style.setProperty('--logo-opacity', (op / 100).toString());
+        const img = document.getElementById('adminLogoPreview');
+        if (img) { img.style.maxWidth = size + 'px'; img.style.opacity = op / 100; }
+    }
+    if (logoSizeInp) {
+        logoSizeInp.addEventListener('input', () => {
+            if (logoSizeSpan) logoSizeSpan.textContent = logoSizeInp.value + 'px';
+            applyLogoStyle();
+        });
+        logoSizeInp.addEventListener('change', () => saveStyleField('logoSize', parseInt(logoSizeInp.value)));
+    }
+    if (logoOpacityInp) {
+        logoOpacityInp.addEventListener('input', () => {
+            if (logoOpSpan) logoOpSpan.textContent = logoOpacityInp.value + '%';
+            applyLogoStyle();
+        });
+        logoOpacityInp.addEventListener('change', () => saveStyleField('logoOpacity', parseInt(logoOpacityInp.value)));
     }
 
     // ── Encabezado del menú ───────────────────────────────────
@@ -805,6 +917,11 @@ function initStyleControls() {
         if (g) g.style.display = 'none';
         const link = document.querySelector('link[rel="icon"]');
         if (link) link.href = './img/icons/MalditoCaféIcon.jpg';
+    });
+
+    // ── Favicon info modal ────────────────────────────────────
+    document.getElementById('faviconInfoBtn')?.addEventListener('click', () => {
+        document.getElementById('faviconModal').style.display = 'flex';
     });
 }
 
