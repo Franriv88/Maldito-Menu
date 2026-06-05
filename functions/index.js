@@ -5,6 +5,7 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 const { getAuth }    = require("firebase-admin/auth");
 const sgMail         = require("@sendgrid/mail");
 const axios          = require("axios");
+const crypto         = require("crypto");
 
 initializeApp();
 setGlobalOptions({ maxInstances: 10, region: "us-central1" });
@@ -98,11 +99,29 @@ exports.verifyOTPAndSignIn = onRequest(
 // ── Webhook de Mercado Pago ───────────────────────────────────
 
 exports.mpWebhook = onRequest(
-    { secrets: ["MP_ACCESS_TOKEN"] },
+    { secrets: ["MP_ACCESS_TOKEN", "MP_WEBHOOK_SECRET"], invoker: "public" },
     async (req, res) => {
         res.status(200).send("OK"); // Responder siempre 200 a MP inmediatamente
 
         try {
+            // Verificar firma de MP (si el secreto está configurado)
+            const secret = process.env.MP_WEBHOOK_SECRET;
+            if (secret) {
+                const xSignature = req.headers["x-signature"] || "";
+                const xRequestId = req.headers["x-request-id"] || "";
+                const dataId     = req.query?.["data.id"] || req.body?.data?.id || "";
+                const tsMatch    = xSignature.match(/ts=([^,]+)/);
+                const v1Match    = xSignature.match(/v1=([^,]+)/);
+                if (tsMatch && v1Match) {
+                    const manifest = `id:${dataId};request-id:${xRequestId};ts:${tsMatch[1]};`;
+                    const expected = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+                    if (expected !== v1Match[1]) {
+                        console.warn("MP webhook: firma inválida, ignorando");
+                        return;
+                    }
+                }
+            }
+
             const { type, data } = req.body || {};
             if (type !== "payment" || !data?.id) return;
 
@@ -120,20 +139,28 @@ exports.mpWebhook = onRequest(
             const plan  = plans.find(p => Number(p.price) === Number(payment.transaction_amount));
             if (!plan) return;
 
-            // Buscar usuario con pago pendiente para ese plan (más reciente)
-            const usersSnap = await db.collection("users")
-                .where("subscription.status",   "==", "pending_payment")
-                .where("subscription.planType",  "==", plan.id)
-                .get();
-
-            if (usersSnap.empty) return;
-
+            // Identificar usuario por external_reference (uid) o fallback por plan+status
+            const uid = payment.external_reference;
             let targetDoc = null;
-            let latestTime = 0;
-            usersSnap.forEach(doc => {
-                const t = doc.data().subscription?.paymentInitiated?.seconds || 0;
-                if (t > latestTime) { latestTime = t; targetDoc = doc; }
-            });
+
+            if (uid) {
+                const userDoc = await db.collection("users").doc(uid).get();
+                if (userDoc.exists) targetDoc = userDoc;
+            }
+
+            if (!targetDoc) {
+                const usersSnap = await db.collection("users")
+                    .where("subscription.status",  "==", "pending_payment")
+                    .where("subscription.planType", "==", plan.id)
+                    .get();
+                if (usersSnap.empty) return;
+                let latestTime = 0;
+                usersSnap.forEach(doc => {
+                    const t = doc.data().subscription?.paymentInitiated?.seconds || 0;
+                    if (t > latestTime) { latestTime = t; targetDoc = doc; }
+                });
+            }
+
             if (!targetDoc) return;
 
             const paidUntil = new Date();

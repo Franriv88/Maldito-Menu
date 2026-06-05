@@ -421,6 +421,7 @@ auth.onAuthStateChanged(async user => {
                 } catch(e) { console.warn(e); }
                 const url = new URL(plan.mpLink);
                 if (user.email) url.searchParams.set('payer[email]', user.email);
+                url.searchParams.set('external_reference', user.uid);
                 window.location.href = url.toString();
             });
         });
