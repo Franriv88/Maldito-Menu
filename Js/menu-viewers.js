@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="menu-item">
                             <div class="item-header">
                                 <span class="producto">${item.nombre}</span>
-                                <span class="precio">$${item.precio}</span>
+                                ${stylesConfig.hidePrices ? '' : `<span class="precio">$${item.precio}</span>`}
                             </div>
                             <div class="item-details"><p>${desc}</p></div>
                         </div>`;
