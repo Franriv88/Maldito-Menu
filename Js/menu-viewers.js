@@ -326,15 +326,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
-            const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
-            // Encuadre: posición vertical (o la equivalente del vAlign viejo) y zoom
+            // Encuadre (mismo modelo que el editor, ver imageFrame en script.js):
+            // anclaje posX/posY 0–100 (centro del zoom), desplazamiento shiftX/shiftY en %
+            // del recuadro y zoom en % del alto del recuadro.
+            const num = (f, d) => typeof imageConfig[`${sec.imgKey}_${f}`] === 'number' ? imageConfig[`${sec.imgKey}_${f}`] : d;
+            const clamp01 = v => Math.max(0, Math.min(100, v));
             const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${sec.imgKey}_vAlign`]] ?? 50;
-            const posY = typeof imageConfig[`${sec.imgKey}_posY`] === 'number' ? imageConfig[`${sec.imgKey}_posY`] : legacyY;
-            const zoom = typeof imageConfig[`${sec.imgKey}_zoom`] === 'number' ? imageConfig[`${sec.imgKey}_zoom`] : 100;
-            // Desplazamiento vertical en % del alto del recuadro (negativo = sube)
-            const shiftY = typeof imageConfig[`${sec.imgKey}_shiftY`] === 'number' ? imageConfig[`${sec.imgKey}_shiftY`] : 0;
+            const posX = clamp01(num('pos', 50)), posY = clamp01(num('posY', legacyY));
+            const zoom = num('zoom', 100), shiftX = num('shiftX', 0), shiftY = num('shiftY', 0);
 
             let contentHTML = '';
             sec.categorias.forEach(cat => {
@@ -359,9 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.className = `menu-section ${layoutClass}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image${flipH ? ' img-flipped' : ''}" style="min-height:${heightVal}px;">
+                <div class="menu-image" style="min-height:${heightVal}px;">
                     <div class="menu-image-layer"
-                         style="background-image:url('${imgSrc}');background-position:${posVal}% ${posY}%;background-size:auto ${zoom}%;transform:translateY(${shiftY}%);"></div>
+                         style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });

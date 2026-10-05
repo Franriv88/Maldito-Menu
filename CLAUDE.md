@@ -87,7 +87,11 @@ restaurants/{restaurantId}/
                    titleColor, textColor, bgPage, bgMenu, headerMode,
                    logoBase64, logoStorageUrl, faviconBase64, faviconStorageUrl,
                    logoSize, logoOpacity }
-    images:      { img1, img2, img3, img4, img1_layout, img1_pos, img1_height, ... }
+    images:      { img1..img4: URL de Storage (o base64 viejo), img1_layout, img1_height, img1_flipH,
+                   encuadre: img1_pos / img1_posY (anclaje 0–100 = centro del zoom),
+                   img1_shiftX / img1_shiftY (desplazamiento en % del recuadro),
+                   img1_zoom (20–300, % del alto del recuadro) }
+                 ← imágenes de sección en Storage: restaurants/{id}/section-imgN-{ts}.webp (≤1600 px)
     footer:      { notice, address, socials: [{network, url, color}] }
     categoryTitles: { 'CAFÉ DE ESPECIALIDAD': 'Título custom', ... }
 

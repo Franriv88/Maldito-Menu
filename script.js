@@ -340,10 +340,9 @@ async function renderAdminMenu() {
             const effectiveLayout = savedLayout || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
-            const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
-            const { posY, zoom, shiftY } = imageFrame(imageConfig, sec.imgKey);
+            const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, sec.imgKey);
 
             const contentHTML = sec.categorias.map(cat => {
                 const productos  = byCategory[cat] || [];
@@ -362,18 +361,19 @@ async function renderAdminMenu() {
             <div class="menu-section ${layoutClass}" style="position:relative">
                 <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-y="${posY}"
+                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}"
                      style="height:${heightVal}px;min-height:0;">
-                    <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posVal}% ${posY}%;background-size:auto ${zoom}%;transform:translateY(${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
+                    <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:${frameTransform(shiftX, shiftY, flipH)};"></div>
                     <div class="drop-overlay"><span>Clic para cambiar la imagen · arrastrala para encuadrar</span></div>
+                    <div class="img-res-warning" hidden>${licon('alert-triangle', 12)} Con este zoom puede verse pixelada: subí una imagen más grande</div>
                     <div class="pos-controls">
                         <div class="ctrl-grid">
-                            <label class="ctrl-cell" title="Mover horizontalmente">${licon('move-horizontal', 13)}
-                                <input type="range" class="pos-slider" min="-300" max="300" value="${posVal}" aria-label="Posición horizontal"></label>
+                            <label class="ctrl-cell" title="Mover a la izquierda o a la derecha">${licon('move-horizontal', 13)}
+                                <input type="range" class="pos-slider" min="-100" max="100" value="${shiftX}" aria-label="Posición horizontal"></label>
                             <label class="ctrl-cell" title="Subir o bajar la imagen (hacia la derecha sube)">${licon('move-vertical', 13)}
                                 <input type="range" class="posy-slider" min="-100" max="100" value="${-shiftY}" aria-label="Posición vertical"></label>
-                            <label class="ctrl-cell" title="Zoom">${licon('zoom-in', 13)}
-                                <input type="range" class="zoom-slider" min="100" max="300" value="${zoom}" aria-label="Zoom"></label>
+                            <label class="ctrl-cell" title="Zoom: hacia la izquierda achica, hacia la derecha agranda">${licon('zoom-in', 13)}
+                                <input type="range" class="zoom-slider" min="20" max="300" value="${zoom}" aria-label="Zoom"></label>
                             <label class="ctrl-cell" title="Alto del recuadro">${licon('unfold-vertical', 13)}
                                 <input type="range" class="height-slider" min="150" max="600" value="${heightVal}" aria-label="Alto del recuadro"></label>
                         </div>
@@ -504,8 +504,8 @@ function initDropZones() {
             .set(Object.fromEntries(Object.entries(fields).map(([k, v]) => [`${zone.dataset.imgKey}_${k}`, v])), { merge: true })
             .catch(err => console.error('Error guardando encuadre:', err));
 
-        // El slider vertical va "hacia la derecha sube": se guarda como shiftY = -valor
-        [['.pos-slider', 'pos', v => v], ['.posy-slider', 'shiftY', v => -v], ['.zoom-slider', 'zoom', v => v]].forEach(([sel, field, toSaved]) => {
+        // Horizontal: derecha = mueve a la derecha (shiftX). Vertical: derecha = sube (shiftY = -valor).
+        [['.pos-slider', 'shiftX', v => v], ['.posy-slider', 'shiftY', v => -v], ['.zoom-slider', 'zoom', v => v]].forEach(([sel, field, toSaved]) => {
             const s = zone.querySelector(sel);
             if (!s) return;
             s.addEventListener('input', e => { e.stopPropagation(); applyImageFrame(zone); });
@@ -514,16 +514,17 @@ function initDropZones() {
 
         zone.querySelector('.img-reset-btn')?.addEventListener('click', e => {
             e.stopPropagation();
-            zone.querySelector('.pos-slider').value  = 50;
+            zone.querySelector('.pos-slider').value  = 0;
             zone.querySelector('.posy-slider').value = 0;
             zone.querySelector('.zoom-slider').value = 100;
+            zone.dataset.posX = 50;
             zone.dataset.posY = 50;
             applyImageFrame(zone);
-            saveFrame({ pos: 50, posY: 50, shiftY: 0, zoom: 100 });
+            saveFrame({ pos: 50, posY: 50, shiftX: 0, shiftY: 0, zoom: 100 });
         });
 
         initImageDrag(zone, () => saveFrame({
-            pos:    parseInt(zone.querySelector('.pos-slider').value),
+            shiftX: parseInt(zone.querySelector('.pos-slider').value),
             shiftY: -parseInt(zone.querySelector('.posy-slider').value),
         }));
 
@@ -536,6 +537,7 @@ function initDropZones() {
                 zone.style.height = h;
                 const bg = zone.querySelector('.image-bg');
                 if (bg) { bg.style.top = '0'; bg.style.bottom = '0'; }
+                updateResolutionWarning(zone); // el alto del recuadro también cambia el tamaño mostrado
             });
             heightSlider.addEventListener('change', async e => {
                 e.stopPropagation();
@@ -567,50 +569,68 @@ function initDropZones() {
 }
 
 // ── Encuadre de imágenes de sección ───────────────────────────
-// - posY: alineación vertical dentro del recuadro (o la equivalente del vAlign viejo)
-// - shiftY: desplazamiento vertical en % del alto del recuadro (negativo = sube).
-//   Funciona con cualquier zoom, incluso con PNG con bordes transparentes.
-// - zoom: tamaño de la imagen en % del alto del recuadro
+// Modelo (igual en el editor y en el menú público):
+// - posX / posY: punto de anclaje de la imagen dentro del recuadro (0–100). Es también
+//   el centro desde el que se aplica el zoom. Valores viejos fuera de rango se acotan.
+// - shiftX / shiftY: desplazamiento directo en % del ancho/alto del recuadro.
+//   Funcionan con cualquier zoom y con PNG con bordes transparentes.
+// - zoom: alto de la imagen en % del alto del recuadro (20 = achica, 300 = agranda).
+const clamp01 = v => Math.max(0, Math.min(100, v));
+
 function imageFrame(imageConfig, key) {
     const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${key}_vAlign`]] ?? 50;
     const num = (field, def) => typeof imageConfig[`${key}_${field}`] === 'number' ? imageConfig[`${key}_${field}`] : def;
-    return { posY: num('posY', legacyY), zoom: num('zoom', 100), shiftY: num('shiftY', 0) };
+    return {
+        posX: clamp01(num('pos', 50)), posY: clamp01(num('posY', legacyY)),
+        zoom: num('zoom', 100), shiftX: num('shiftX', 0), shiftY: num('shiftY', 0),
+    };
 }
+
+// translate primero y después el volteo: así "derecha" es siempre derecha en pantalla
+const frameTransform = (sx, sy, flipped) => `translate(${sx}%, ${sy}%)${flipped ? ' scaleX(-1)' : ''}`;
 
 function applyImageFrame(zone) {
     const bg = zone.querySelector('.image-bg');
     if (!bg) return;
-    const x = zone.querySelector('.pos-slider')?.value ?? 50;
-    const y = zone.dataset.posY ?? 50;
-    const z = zone.querySelector('.zoom-slider')?.value ?? 100;
-    const shift = -(zone.querySelector('.posy-slider')?.value ?? 0);
-    bg.style.backgroundPosition = `${x}% ${y}%`;
+    const sx = +(zone.querySelector('.pos-slider')?.value ?? 0);
+    const sy = -(zone.querySelector('.posy-slider')?.value ?? 0);
+    const z  = +(zone.querySelector('.zoom-slider')?.value ?? 100);
+    bg.style.backgroundPosition = `${zone.dataset.posX ?? 50}% ${zone.dataset.posY ?? 50}%`;
     bg.style.backgroundSize = `auto ${z}%`;
-    bg.style.transform = `translateY(${shift}%)` + (bg.classList.contains('img-flipped') ? ' scaleX(-1)' : '');
+    bg.style.transform = frameTransform(sx, sy, bg.classList.contains('img-flipped'));
+    updateResolutionWarning(zone);
 }
 
-// Arrastrar la imagen para encuadrarla. Convierte los píxeles movidos en el
-// porcentaje de background-position equivalente según el tamaño real de la imagen.
+// Aviso si el zoom muestra la imagen más grande que su resolución real
+function updateResolutionWarning(zone) {
+    const warn = zone.querySelector('.img-res-warning');
+    const bg = zone.querySelector('.image-bg');
+    if (!warn || !bg) return;
+    const url = (bg.style.backgroundImage.match(/^url\((["']?)(.*)\1\)$/) || [])[2];
+    if (!url) { warn.hidden = true; return; }
+    if (zone._natUrl !== url) {
+        zone._natUrl = url; zone._natH = null;
+        const img = new Image();
+        img.onload = () => { if (zone._natUrl === url) { zone._natH = img.naturalHeight; updateResolutionWarning(zone); } };
+        img.src = url;
+        return;
+    }
+    if (!zone._natH) return;
+    // alto mostrado (px de pantalla) vs. píxeles reales de la imagen; tolera un 15 %
+    const shownH = zone.clientHeight * (+zone.querySelector('.zoom-slider').value / 100) * Math.min(window.devicePixelRatio || 1, 2);
+    warn.hidden = shownH <= zone._natH * 1.15;
+}
+
+// Arrastrar la imagen para encuadrarla: los píxeles movidos se convierten en
+// desplazamiento directo (% del recuadro), igual que los controles.
 function initImageDrag(zone, onDone) {
     const bg = zone.querySelector('.image-bg');
     if (!bg || isReadonly) return; // en la vista previa del superadmin no se modifica nada
-    let start = null, ratio = null, ratioUrl = null;
-
-    // Proporción real de la imagen (se recalcula si se sube otra)
-    const loadRatio = () => {
-        // La URL puede contener paréntesis (ej. "foto (1).jpg"): tomar todo hasta el ")" final
-        const url = (bg.style.backgroundImage.match(/^url\((["']?)(.*)\1\)$/) || [])[2];
-        if (!url || url === ratioUrl) return;
-        ratioUrl = url; ratio = null;
-        const img = new Image();
-        img.onload = () => { ratio = img.naturalWidth / img.naturalHeight; };
-        img.src = url;
-    };
-    loadRatio();
+    let start = null;
+    updateResolutionWarning(zone);
 
     zone.addEventListener('pointerdown', e => {
         if (e.button !== 0 || e.target.closest('.pos-controls')) return;
-        loadRatio();
         start = {
             x: e.clientX, y: e.clientY, moved: false, id: e.pointerId,
             px: +zone.querySelector('.pos-slider').value,
@@ -619,20 +639,15 @@ function initImageDrag(zone, onDone) {
     });
 
     zone.addEventListener('pointermove', e => {
-        if (!start || e.pointerId !== start.id || !ratio) return;
+        if (!start || e.pointerId !== start.id) return;
         const dx = e.clientX - start.x, dy = e.clientY - start.y;
         if (!start.moved && Math.hypot(dx, dy) < 5) return; // todavía es un clic
         if (!start.moved) { start.moved = true; zone.setPointerCapture(e.pointerId); zone.classList.add('dragging-image'); }
 
         const W = zone.clientWidth, H = zone.clientHeight;
-        const zoom = +zone.querySelector('.zoom-slider').value / 100;
-        const imgH = H * zoom, imgW = imgH * ratio;
-        const flip = bg.classList.contains('img-flipped') ? -1 : 1;
-        const clamp = (v, lim) => Math.max(-lim, Math.min(lim, Math.round(v)));
-        // Horizontal: background-position p% → desplazamiento = (contenedor - imagen) * p / 100
-        if (Math.abs(W - imgW) > 1) zone.querySelector('.pos-slider').value = clamp(start.px + flip * dx * 100 / (W - imgW), 300);
-        // Vertical: desplazamiento directo en % del alto (el slider va al revés: derecha = sube)
-        zone.querySelector('.posy-slider').value = clamp(start.py - dy * 100 / H, 100);
+        const clamp = v => Math.max(-100, Math.min(100, Math.round(v)));
+        zone.querySelector('.pos-slider').value  = clamp(start.px + dx * 100 / W);  // derecha = derecha
+        zone.querySelector('.posy-slider').value = clamp(start.py - dy * 100 / H);  // el slider vertical: derecha = sube
         applyImageFrame(zone);
     });
 
@@ -668,23 +683,31 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
         await new Promise(r => setTimeout(r, 5000));
     }
 
-    // 2. Comprimir a base64 con Canvas (sin Firebase Storage, sin CORS)
+    // 2. Alta resolución (hasta 1600 px) en Firebase Storage, para poder agrandarla sin
+    //    pixelar. WebP conserva la transparencia y pesa poco. Si Storage falla, se usa
+    //    el método anterior (base64 chico dentro de Firestore).
     try {
         overlaySpan.textContent = 'Procesando…';
-        const isPng  = fileToProcess.type === 'image/png';
-        const base64 = await compressToBase64(
-            fileToProcess,
-            isPng ? 500 : 900,
-            isPng ? 500 : 675,
-            isPng ? 'image/png' : 'image/jpeg',
-            0.72
-        );
+        const isPng = fileToProcess.type === 'image/png';
+        let url = null;
+        try {
+            url = await uploadSectionImage(fileToProcess, imgKey, isPng);
+        } catch (stErr) {
+            console.warn('Storage falló, se guarda en baja resolución:', stErr);
+        }
+        if (!url) {
+            url = await compressToBase64(fileToProcess, isPng ? 500 : 900, isPng ? 500 : 675,
+                isPng ? 'image/png' : 'image/jpeg', 0.72);
+        }
 
-        // 3. Guardar en Firestore directamente
+        // 3. Guardar la referencia en Firestore
         overlaySpan.textContent = 'Guardando…';
-        await restRef().collection('config').doc('images').set({ [imgKey]: base64 }, { merge: true });
+        const prev = (await restRef().collection('config').doc('images').get()).data()?.[imgKey];
+        await restRef().collection('config').doc('images').set({ [imgKey]: url }, { merge: true });
         const imageBg = zone.querySelector('.image-bg');
-        if (imageBg) imageBg.style.backgroundImage = `url('${base64}')`;
+        if (imageBg) imageBg.style.backgroundImage = `url('${url}')`;
+        applyImageFrame(zone); // recalcula el aviso de resolución
+        deleteOldSectionImage(prev, url);
 
     } catch (error) {
         console.error('Error al procesar imagen:', error);
@@ -693,6 +716,37 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
         overlaySpan.textContent = textoOriginal;
         zone.classList.remove('uploading');
     }
+}
+
+// Redimensiona (lado mayor ≤ 1600 px) y sube a Storage. Devuelve la URL pública.
+// Nombre plano restaurants/{id}/section-{img}-{ts}.{ext} (coincide con storage.rules).
+async function uploadSectionImage(file, imgKey, keepAlpha) {
+    if (!storage || !restaurantId) return null;
+    const MAX = 1600;
+    const bitmap = await createImageBitmap(file);
+    const ratio  = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.round(bitmap.width * ratio);
+    canvas.height = Math.round(bitmap.height * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    // WebP si el navegador lo genera; si no, PNG (con transparencia) o JPEG
+    const toBlob = (type, q) => new Promise(r => canvas.toBlob(r, type, q));
+    let blob = await toBlob('image/webp', 0.86);
+    if (!blob || blob.type !== 'image/webp') blob = keepAlpha ? await toBlob('image/png') : await toBlob('image/jpeg', 0.86);
+    const ext = blob.type.split('/')[1].replace('jpeg', 'jpg');
+
+    const ref = storage.ref(`restaurants/${restaurantId}/section-${imgKey}-${Date.now()}.${ext}`);
+    await ref.put(blob, { contentType: blob.type, cacheControl: 'public, max-age=31536000' });
+    return ref.getDownloadURL();
+}
+
+// Borra del Storage la imagen anterior de la sección (solo si era nuestra)
+function deleteOldSectionImage(prevUrl, newUrl) {
+    if (!storage || !prevUrl || prevUrl === newUrl || !/\/section-img\d/.test(decodeURIComponent(prevUrl))) return;
+    try { storage.refFromURL(prevUrl).delete().catch(() => {}); } catch { /* URL ajena */ }
 }
 
 function compressToBase64(file, maxW, maxH, mimeType, quality) {
@@ -775,8 +829,9 @@ async function guardarMenu() {
         const zoomSlider   = zone.querySelector('.zoom-slider');
         const heightSlider = zone.querySelector('.height-slider');
         const flipBtn      = zone.querySelector('.img-flip-btn');
-        if (posSlider)    imageConfigActual[`${key}_pos`]    = parseInt(posSlider.value);
+        if (posSlider)    imageConfigActual[`${key}_shiftX`] = parseInt(posSlider.value);
         if (posYSlider)   imageConfigActual[`${key}_shiftY`] = -parseInt(posYSlider.value);
+        if (zone.dataset.posX !== undefined) imageConfigActual[`${key}_pos`]  = parseInt(zone.dataset.posX);
         if (zone.dataset.posY !== undefined) imageConfigActual[`${key}_posY`] = parseInt(zone.dataset.posY);
         if (zoomSlider)   imageConfigActual[`${key}_zoom`]   = parseInt(zoomSlider.value);
         if (heightSlider) imageConfigActual[`${key}_height`] = parseInt(heightSlider.value);
