@@ -1297,3 +1297,15 @@ body.preview-mode .section-toolbar { display: none !important; }
     color: rgba(255,255,255,.7); font-size: 10px; cursor: pointer; user-select: none; white-space: nowrap;
 }
 .img-bg-toggle input { margin: 0; width: 12px; height: 12px; accent-color: #c8b89a; cursor: pointer; }
+
+/* Botón "Quitar fondo" sobre una imagen de sección ya cargada */
+.pos-controls .ctrl-row { flex-wrap: wrap; row-gap: 5px; }
+.img-removebg-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 8px; border-radius: 6px; cursor: pointer;
+    background: rgba(200,184,154,.18); border: 1px solid rgba(200,184,154,.45);
+    color: #f2ead9; font: 10px/1 inherit; white-space: nowrap;
+}
+.img-removebg-btn:hover { background: rgba(200,184,154,.35); color: #fff; }
+.img-removebg-btn[hidden] { display: none; }
+.drop-zone.uploading .img-removebg-btn { opacity: .4; pointer-events: none; }

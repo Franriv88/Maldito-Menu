@@ -398,6 +398,8 @@ async function renderAdminMenu() {
                             <label class="img-bg-toggle" title="Si está marcada, al subir una imagen se le quita el fondo automáticamente">
                                 <input type="checkbox" class="img-bgremove-check"> Quitar fondo al subir
                             </label>
+                            <button class="img-removebg-btn" type="button" ${imageConfig[sec.imgKey] ? '' : 'hidden'}
+                                    title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
                         </div>
                     </div>
@@ -552,6 +554,28 @@ function initDropZones() {
             if (!s) return;
             s.addEventListener('input', e => { e.stopPropagation(); applyImageFrame(zone); });
             s.addEventListener('change', e => { e.stopPropagation(); saveFrame({ [field]: toSaved(parseInt(s.value)) }); });
+        });
+
+        // Quitar el fondo de la imagen ya cargada (sin volver a subirla)
+        zone.querySelector('.img-removebg-btn')?.addEventListener('click', async e => {
+            e.stopPropagation();
+            const bg  = zone.querySelector('.image-bg');
+            const url = (bg?.style.backgroundImage.match(/^url\((["']?)(.*)\1\)$/) || [])[2];
+            if (!url || zone.classList.contains('uploading')) return;
+            const ok = await confirmModal({
+                title: 'Quitar el fondo de la imagen',
+                html: `<p>Se va a quitar el fondo de la imagen actual y se guardará así.</p>
+                       <p class="cm-hint">Puede tardar unos segundos. Si no te gusta el resultado, volvé a subir la imagen original.</p>`,
+                confirmText: 'Quitar fondo',
+            });
+            if (!ok) return;
+            try {
+                const blob = await (await fetch(url)).blob();
+                await uploadImage(new File([blob], 'imagen', { type: blob.type || 'image/png' }), zone.dataset.imgKey, zone, overlay, { removeBg: true });
+            } catch (err) {
+                console.error('No se pudo leer la imagen actual:', err);
+                alert('No se pudo leer la imagen actual. Probá volviendo a subirla con "Quitar fondo al subir" marcado.');
+            }
         });
 
         zone.querySelector('.img-reset-btn')?.addEventListener('click', e => {
@@ -831,13 +855,14 @@ function initImageDrag(zone, onDone) {
     zone.addEventListener('pointercancel', end);
 }
 
-async function uploadImage(file, imgKey, zone, overlaySpan) {
+async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
     const textoOriginal = overlaySpan.textContent;
     zone.classList.add('uploading');
     let fileToProcess = file;
 
-    // 1. Quitar el fondo solo si el admin lo eligió (casilla "Quitar fondo al subir")
-    const removeBg = !!zone.querySelector('.img-bgremove-check')?.checked;
+    // 1. Quitar el fondo solo si el admin lo eligió (casilla "Quitar fondo al subir"
+    //    o botón "Quitar fondo" sobre una imagen ya cargada → opts.removeBg)
+    const removeBg = opts.removeBg ?? !!zone.querySelector('.img-bgremove-check')?.checked;
     if (removeBg) try {
         overlaySpan.textContent = 'Eliminando fondo…';
         const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
@@ -848,6 +873,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
         console.error('❌ Background removal error:', bgErr);
         overlaySpan.textContent = `Error: ${bgErr.message?.slice(0, 80) ?? 'ver consola'}`;
         await new Promise(r => setTimeout(r, 5000));
+        // Sobre una imagen ya cargada no tiene sentido re-guardar la misma: se deja como estaba
+        if (opts.removeBg) { overlaySpan.textContent = textoOriginal; zone.classList.remove('uploading'); return; }
     }
 
     // 2. Alta resolución (hasta 1600 px) en Firebase Storage, para poder agrandarla sin
@@ -875,6 +902,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
         if (imageBg) imageBg.style.backgroundImage = `url('${url}')`;
         applyImageFrame(zone); // recalcula el aviso de resolución
         deleteOldSectionImage(prev, url);
+        const rmBtn = zone.querySelector('.img-removebg-btn');
+        if (rmBtn) rmBtn.hidden = false; // ya hay una imagen propia: se le puede quitar el fondo
 
     } catch (error) {
         console.error('Error al procesar imagen:', error);
