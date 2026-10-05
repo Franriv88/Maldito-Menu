@@ -636,6 +636,14 @@ exports.onOrderWritten = onDocumentWritten(
     async event => {
         const after  = event.data?.after?.data();
         const before = event.data?.before?.data();
+
+        // Aviso para las comanderas en la nube: "hay algo para imprimir".
+        // printerPoll lee solo este campo mientras no haya trabajos (1 lectura por consulta).
+        if (after?.printStatus === "queued" && before?.printStatus !== "queued") {
+            await db.collection("restaurants").doc(event.params.r).collection("private").doc("ordering")
+                .set({ printHintAt: Date.now() }, { merge: true });
+        }
+
         if (!after || after.status !== "en_cocina" || before?.status === "en_cocina") return;
         if (after.webhookSentAt) return;
 
@@ -697,9 +705,32 @@ const xmlEsc = s => String(s).replace(/[<>&'"]/g, c => ({ "<": "&lt;", ">": "&gt
 async function authPrinter(req) {
     const r = String(req.query.r || ""), k = String(req.query.k || "");
     if (!r || !k) return null;
-    const priv = (await db.collection("restaurants").doc(r).collection("private").doc("ordering").get()).data();
+    const privRef = db.collection("restaurants").doc(r).collection("private").doc("ordering");
+    const priv = (await privRef.get()).data();
     if (!priv?.printerKey || priv.printerKey !== k) return null;
-    return db.collection("restaurants").doc(r);
+    return { restRef: db.collection("restaurants").doc(r), privRef, priv };
+}
+
+// Ahorro de lecturas: las impresoras consultan cada pocos segundos. Si no hubo
+// pedidos nuevos para imprimir desde el último chequeo, se responde "nada" sin
+// consultar la colección de pedidos. Cada 2 min (por instancia) se hace un
+// chequeo completo igual, para recuperar trabajos trabados.
+const lastFullCheck = new Map();
+const FULL_CHECK_EVERY = 2 * 60 * 1000;
+
+function printerIdle({ restRef, priv }) {
+    const hint    = priv.printHintAt || 0;
+    const checked = priv.printCheckedAt || 0;
+    const recent  = Date.now() - (lastFullCheck.get(restRef.id) || 0) < FULL_CHECK_EVERY;
+    return hint <= checked && recent;
+}
+
+// Llamar cuando la cola quedó vacía: marca hasta qué aviso ya se revisó
+async function markQueueEmpty({ restRef, privRef, priv }) {
+    lastFullCheck.set(restRef.id, Date.now());
+    if ((priv.printHintAt || 0) > (priv.printCheckedAt || 0)) {
+        await privRef.set({ printCheckedAt: priv.printHintAt }, { merge: true });
+    }
 }
 
 // Toma el pedido en cola más antiguo y lo marca como "printing"
@@ -715,25 +746,42 @@ async function claimNextJob(restRef) {
 exports.printerPoll = onRequest(
     { invoker: "public" },
     async (req, res) => {
-        const restRef = await authPrinter(req);
-        if (!restRef) { res.status(403).send("Forbidden"); return; }
+        const printer = await authPrinter(req);
+        if (!printer) { res.status(403).send("Forbidden"); return; }
+        const { restRef } = printer;
+        const isStar = req.query.t === "star";
+
+        // Confirmaciones de impresión (Star DELETE / Epson SetResponse) se procesan siempre;
+        // las consultas "¿hay algo?" se responden sin leer pedidos si no hubo avisos nuevos.
+        const isAck = req.method === "DELETE" || req.body?.ConnectionType === "SetResponse";
+        if (!isAck && printerIdle(printer)) {
+            if (isStar && req.method === "POST") res.json({ jobReady: false });
+            else if (isStar) res.status(404).send("");
+            else res.status(200).send("");
+            return;
+        }
 
         // Pedidos "trabados" en printing por más de 2 minutos vuelven a la cola
-        const stale = await restRef.collection("pedidos").where("printStatus", "==", "printing").limit(20).get();
-        await Promise.all(stale.docs
-            .filter(d => Date.now() - (d.data().printClaimedAt?.toMillis?.() || 0) > 2 * 60 * 1000)
-            .map(d => d.ref.update({ printStatus: "queued" })));
+        let printingLeft = 0;
+        if (!isAck) {
+            const stale = await restRef.collection("pedidos").where("printStatus", "==", "printing").limit(20).get();
+            const expired = stale.docs.filter(d => Date.now() - (d.data().printClaimedAt?.toMillis?.() || 0) > 2 * 60 * 1000);
+            printingLeft = stale.size - expired.length;
+            await Promise.all(expired.map(d => d.ref.update({ printStatus: "queued" })));
+        }
+        const noMoreWork = () => printingLeft === 0 ? markQueueEmpty(printer) : null;
 
         // ── Star CloudPRNT ──
-        if (req.query.t === "star") {
+        if (isStar) {
             if (req.method === "POST") {
                 const next = await restRef.collection("pedidos").where("printStatus", "==", "queued").limit(1).get();
+                if (next.empty) await noMoreWork();
                 res.json(next.empty ? { jobReady: false } : { jobReady: true, mediaTypes: ["text/plain"] });
                 return;
             }
             if (req.method === "GET") {
                 const job = await claimNextJob(restRef);
-                if (!job) { res.status(404).send(""); return; }
+                if (!job) { await noMoreWork(); res.status(404).send(""); return; }
                 res.set("X-Star-Cut", "full; feed=true");
                 res.type("text/plain").send(ticketLines(job.data(), 42).join("\n"));
                 return;
@@ -765,7 +813,7 @@ exports.printerPoll = onRequest(
         }
 
         const job = await claimNextJob(restRef);
-        if (!job) { res.status(200).send(""); return; }
+        if (!job) { await noMoreWork(); res.status(200).send(""); return; }
         // Las 2 primeras líneas (pedido y mesa) ya van arriba en letra doble
         const text = ticketLines(job.data(), 42).slice(2).map(l => `<text>${xmlEsc(l)}&#10;</text>`).join("");
         res.type("text/xml; charset=utf-8").send(
