@@ -333,6 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${sec.imgKey}_vAlign`]] ?? 50;
             const posY = typeof imageConfig[`${sec.imgKey}_posY`] === 'number' ? imageConfig[`${sec.imgKey}_posY`] : legacyY;
             const zoom = typeof imageConfig[`${sec.imgKey}_zoom`] === 'number' ? imageConfig[`${sec.imgKey}_zoom`] : 100;
+            // Desplazamiento vertical en % del alto del recuadro (negativo = sube)
+            const shiftY = typeof imageConfig[`${sec.imgKey}_shiftY`] === 'number' ? imageConfig[`${sec.imgKey}_shiftY`] : 0;
 
             let contentHTML = '';
             sec.categorias.forEach(cat => {
@@ -357,8 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.className = `menu-section ${layoutClass}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image${flipH ? ' img-flipped' : ''}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${posY}%;background-size:auto ${zoom}%;min-height:${heightVal}px;"></div>`;
+                <div class="menu-image${flipH ? ' img-flipped' : ''}" style="min-height:${heightVal}px;">
+                    <div class="menu-image-layer"
+                         style="background-image:url('${imgSrc}');background-position:${posVal}% ${posY}%;background-size:auto ${zoom}%;transform:translateY(${shiftY}%);"></div>
+                </div>`;
             menuContainer.appendChild(sectionEl);
         });
 

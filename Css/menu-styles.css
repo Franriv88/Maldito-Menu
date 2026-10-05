@@ -545,3 +545,12 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 .item-desc .desc-line { display: block; }
 .item-desc .desc-list { margin: 0; padding-left: 1.1em; }
 .item-desc .desc-list li { margin: 0; padding: 0; }
+
+/* Capa de la imagen de sección: permite desplazarla en vertical (shiftY) sin
+   depender del zoom; el recuadro (.menu-image) recorta lo que sobresale */
+.menu-image-layer {
+    position: absolute; inset: 0;
+    background-repeat: no-repeat;
+    background-size: auto 100%;
+    background-position: 50% center;
+}
