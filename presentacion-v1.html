@@ -7,7 +7,8 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <title>Cubierto — Presentación</title>
+    <title>Cubierto — Presentación · Versión 1</title>
+    <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -251,11 +252,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 .tech-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;max-width:860px}
 .tech-group{background:var(--card);border:1px solid rgba(200,184,154,.07);border-radius:14px;padding:1.4rem 1.6rem}
 .tech-group h4{font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;padding-bottom:.6rem;border-bottom:1px solid rgba(200,184,154,.07)}
-.tech-item{display:flex;align-items:center;gap:.6rem;font-size:.76rem;color:rgba(200,184,154,.7);margin-bottom:.5rem;text-align:left;line-height:1.4}
-.slide[data-slide="8"] .tech-group{padding:1.1rem 1.5rem}
-.slide[data-slide="8"] .tech-group h4{margin-bottom:.7rem;padding-bottom:.5rem}
-.slide[data-slide="8"] .tech-item{margin-bottom:.4rem}
-.slide[data-slide="8"] .h2{font-size:clamp(1.6rem,3.6vw,3rem)}
+.tech-item{display:flex;align-items:center;gap:.6rem;font-size:.76rem;color:rgba(200,184,154,.7);margin-bottom:.5rem}
 .tech-item::before{content:'✦';font-size:.5rem;color:rgba(200,184,154,.35)}
 
 /* ── SWEETALERT2 TOAST THEME ────────────────── */
@@ -512,8 +509,8 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             </div>
             <div class="pain">
                 <div class="pain-icon">💸</div>
-                <h4>Las apps de delivery cobran comisión</h4>
-                <p>Te dan visibilidad, pero se quedan con una parte de cada venta y ponen las reglas de tu propio negocio.</p>
+                <h4>Las plataformas cobran comisión</h4>
+                <p>PedidosYa, Rappi: te dan visibilidad pero se quedan con parte de cada venta y dictan las reglas.</p>
             </div>
         </div>
     </div>
@@ -540,7 +537,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             <div class="sol-card">
                 <div class="sol-num">03</div>
                 <div class="sol-h">QR y link listos</div>
-                <p class="sol-p">En tu local, cada mesa tiene su propio QR para pedir desde la mesa. Para delivery o catering, un QR con tu logo y un link para compartir por WhatsApp, redes e Instagram.</p>
+                <p class="sol-p">Un QR único con tu logo en el centro para cada mesa. Un link que podés compartir por WhatsApp, redes e Instagram.</p>
             </div>
         </div>
     </div>
@@ -558,22 +555,22 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                 <div class="feat">
                     <div class="feat-icon">✏</div>
                     <div class="feat-text">
-                        <h4>Editás sobre tu propio menú</h4>
-                        <p>Tocás un producto, un precio o una descripción y lo cambiás ahí mismo, viendo cómo queda. Sin formularios.</p>
+                        <h4>Edición inline</h4>
+                        <p>Hacé clic sobre cualquier producto, precio o descripción y editalo directamente, sin formularios.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">＋</div>
                     <div class="feat-text">
-                        <h4>Agregar, quitar y ordenar</h4>
-                        <p>Sumás productos con un clic, los quitás con la ×, y subís o bajás secciones enteras para ordenar tu carta.</p>
+                        <h4>Agregar y eliminar</h4>
+                        <p>Sumá productos por categoría con un clic. Eliminá con el botón ×.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">☁</div>
                     <div class="feat-text">
-                        <h4>Todo queda guardado</h4>
-                        <p>Con un botón, tus cambios llegan al instante al celular de tus clientes. Podés editar desde la computadora o el celular.</p>
+                        <h4>Guardado en la nube</h4>
+                        <p>Un botón "Guardar Menú" sincroniza todo con Firebase. Disponible al instante en el menú público.</p>
                     </div>
                 </div>
             </div>
@@ -582,12 +579,12 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             <div class="mock-admin">
                 <div class="mock-topbar">
                     <span>← Panel</span>
-                    <span class="brand">Cubierto</span>
-                    <span style="margin-left:auto">Mi restaurante &nbsp;|&nbsp; Ver menú &nbsp;|&nbsp; Cerrar sesión</span>
+                    <span class="brand">PACoffee</span>
+                    <span style="margin-left:auto">Francisco Rivas &nbsp;|&nbsp; Ver menú &nbsp;|&nbsp; Cerrar sesión</span>
                 </div>
                 <div class="mock-body">
                     <div class="mock-menu">
-                        <div class="mock-logo-area">Cubierto</div>
+                        <div class="mock-logo-area">PACoffee</div>
                         <div class="mock-cat">Café de especialidad</div>
                         <div class="mock-item"><span>Café</span><span class="price">$ 3500</span></div>
                         <div class="mock-item"><span>Cortado</span><span class="price">$ 10000</span></div>
@@ -595,7 +592,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-item"><span>Mocaccino</span><span class="price">$ 4570</span></div>
                         <div style="font-size:.52rem;color:rgba(200,184,154,.25);margin-top:.3rem;border:1px dashed rgba(200,184,154,.1);padding:.2rem .4rem;border-radius:4px">+ Agregar</div>
                         <div class="mock-cat" style="margin-top:.6rem">Café Frío</div>
-                        <div class="mock-item"><span>Iced Latte</span><span class="price">$ 5000</span></div>
+                        <div class="mock-item"><span>Hice Latte</span><span class="price">$ 5000</span></div>
                         <div class="mock-item"><span>Irlandés Volador</span><span class="price">$ 7500</span></div>
                     </div>
                     <div class="mock-sidebar">
@@ -641,7 +638,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
     <div class="cols" style="align-items:center">
         <div style="flex:1.1">
             <div class="mock-menu-pub">
-                <div class="mock-pub-header">Cubierto</div>
+                <div class="mock-pub-header">PACoffee</div>
                 <div class="mock-pub-section">
                     <div class="mock-pub-content">
                         <div class="mock-pub-cat">Café de especialidad</div>
@@ -649,7 +646,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-item"><span>Cortado</span><span>$10000</span></div>
                         <div class="mock-pub-item"><span>Macchiato</span><span>$6500</span></div>
                         <div class="mock-pub-cat" style="margin-top:.5rem">Café Frío</div>
-                        <div class="mock-pub-item"><span>Iced Latte</span><span>$5000</span></div>
+                        <div class="mock-pub-item"><span>Hice Latte</span><span>$5000</span></div>
                         <div class="mock-pub-item"><span>Irlandés Volador</span><span>$7500</span></div>
                     </div>
                     <div class="mock-pub-img">☕</div>
@@ -673,22 +670,22 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                 <div class="feat">
                     <div class="feat-icon" style="font-size:.7rem">🎨</div>
                     <div class="feat-text">
-                        <h4>Todos los colores, a tu gusto</h4>
-                        <p>Elegís cualquier color para los títulos, los productos, el fondo de la página y el del menú, y cada ícono de tus redes sociales.</p>
+                        <h4>Paleta de colores completa</h4>
+                        <p>Fondo de página, fondo del menú, color de títulos y productos. 4 pickers independientes.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon" style="font-size:.7rem">Aa</div>
                     <div class="feat-text">
-                        <h4>Tipografías y tamaños</h4>
-                        <p>Más de 20 tipografías para el texto y los títulos, cada una con su propio tamaño. Ves el resultado mientras elegís.</p>
+                        <h4>Tipografía y tamaño</h4>
+                        <p>7 familias tipográficas. Slider de tamaño de 11 a 20px. Los cambios se ven en tiempo real.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon" style="font-size:.7rem">🖼</div>
                     <div class="feat-text">
-                        <h4>Logo, fondos e imágenes</h4>
-                        <p>Tu logo con el tamaño y la transparencia que quieras. Fotos de fondo con desenfoque y un velo de color. Y la inteligencia artificial quita el fondo de tus fotos con un clic.</p>
+                        <h4>Logo + eliminación de fondo IA</h4>
+                        <p>Subís tu logo, la IA elimina el fondo automáticamente.</p>
                     </div>
                 </div>
             </div>
@@ -750,29 +747,29 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                 <div class="feat">
                     <div class="feat-icon">🖼</div>
                     <div class="feat-text">
-                        <h4>Cada sección, a tu manera</h4>
-                        <p>Texto con imagen, dos columnas de productos o una gran imagen a lo ancho. Movés, agrandás o achicás cada foto hasta que quede perfecta, y se ve igual en cualquier celular.</p>
+                        <h4>Imágenes por sección</h4>
+                        <p>Café, bebidas, salados, dulces: cada sección tiene su imagen con posición y altura ajustables.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">👆</div>
                     <div class="feat-text">
-                        <h4>Descripciones que se despliegan</h4>
-                        <p>Cada producto muestra su descripción al tocarlo, con listas para detallar lo que incluye. Limpio y ordenado.</p>
+                        <h4>Acordeón interactivo</h4>
+                        <p>Cada producto despliega su descripción al toque. Experiencia limpia y ordenada.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">⬆</div>
                     <div class="feat-text">
-                        <h4>Compartir y contactarte</h4>
-                        <p>Tus clientes comparten el menú desde su celular y te escriben por WhatsApp, Instagram o email con un toque.</p>
+                        <h4>Botón Compartir nativo</h4>
+                        <p>El cliente puede compartir el menú por WhatsApp, Instagram o cualquier app desde su celular.</p>
                     </div>
                 </div>
             </div>
         </div>
         <div style="flex:.9;display:flex;justify-content:center">
             <div class="mock-menu-pub" style="max-width:280px">
-                <div class="mock-pub-header" style="font-size:1.8rem">Cubierto</div>
+                <div class="mock-pub-header" style="font-size:1.8rem">PACoffee</div>
                 <div class="mock-pub-section">
                     <div class="mock-pub-content">
                         <div class="mock-pub-cat">Café de especialidad</div>
@@ -811,7 +808,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
 <div class="slide" data-slide="7">
     <div class="cols" style="align-items:center;justify-content:center;gap:clamp(3rem,6vw,7rem)">
         <div class="mock-qr-wrap">
-            <div class="mock-qr-title">Cubierto</div>
+            <div class="mock-qr-title">PACoffee</div>
             <div class="mock-qr-canvas">
                 <!-- QR pattern approximation -->
                 <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
@@ -864,32 +861,32 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                     <rect x="86" y="126" width="5" height="5" fill="#111"/><rect x="96" y="126" width="5" height="5" fill="#111"/>
                 </svg>
             </div>
-            <div class="mock-qr-url">cubierto.menu/menu.html?r=tu-local</div>
+            <div class="mock-qr-url">cubierto.menu/menu.html?r=PACoffee</div>
             <button class="mock-qr-btn">⬇ Descargar QR</button>
         </div>
         <div style="display:flex;flex-direction:column;gap:1.6rem;max-width:400px">
-            <p class="label">QR · NFC · Link</p>
-            <div class="h2">Tu menú, a un<br><span style="font-style:italic">escaneo de distancia.</span></div>
+            <p class="label">QR + Link para compartir</p>
+            <div class="h2">Un QR para<br><span style="font-style:italic">cada mesa.</span></div>
             <div class="feat-list">
                 <div class="feat">
-                    <div class="feat-icon">🍽</div>
+                    <div class="feat-icon">⬛</div>
                     <div class="feat-text">
-                        <h4>En tu local: cada mesa con su QR</h4>
-                        <p>Cada mesa tiene su propio QR (y si querés, un sticker NFC para apoyar el celular). El cliente pide desde la mesa y el pedido llega directo a tu cocina.</p>
+                        <h4>QR con tu logo en el centro</h4>
+                        <p>Generado automáticamente con corrección de error alta. Tu logo ocupa el centro.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">🔗</div>
                     <div class="feat-text">
-                        <h4>Delivery, catering y take away</h4>
-                        <p>Un QR con tu logo en el centro y un link para tu bio de Instagram, WhatsApp o Google Maps. Ideal si solo querés mostrar tu menú.</p>
+                        <h4>Link listo para compartir</h4>
+                        <p>Un URL único por restaurante. Funciona en Instagram bio, WhatsApp, Google Maps.</p>
                     </div>
                 </div>
                 <div class="feat">
                     <div class="feat-icon">⬇</div>
                     <div class="feat-text">
-                        <h4>Listo para imprimir</h4>
-                        <p>Descargás los QR en alta calidad, o una hoja con los stickers de todas tus mesas, numerados y listos para pegar.</p>
+                        <h4>Descargable en alta calidad</h4>
+                        <p>El QR se descarga en PNG listo para imprimir en mesas, pizarras o packaging.</p>
                     </div>
                 </div>
             </div>
@@ -898,43 +895,40 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
 </div>
 
 <!-- ────────────────────────────────────────────
-     S 9 — TODO LO QUE INCLUYE
+     S 9 — FUNCIONALIDADES TÉCNICAS
 ──────────────────────────────────────────── -->
 <div class="slide" data-slide="8">
-    <div class="center" style="gap:1.2rem;width:100%;max-width:960px">
-        <p class="label">Todo en un solo lugar</p>
-        <div class="h2" style="text-align:center">Todo lo que incluye Cubierto,<br><span style="font-style:italic">pensado para tu día a día.</span></div>
+    <div class="center" style="gap:1.8rem;width:100%;max-width:960px">
+        <p class="label">Bajo el capó</p>
+        <div class="h2" style="text-align:center">Tecnología de nivel enterprise,<br><span style="font-style:italic">operada por cualquier restaurante.</span></div>
         <div class="tech-col-grid">
             <div class="tech-group">
-                <h4>Tu menú</h4>
-                <div class="tech-item">Cambiás precios, platos y fotos cuando quieras, sin depender de nadie</div>
-                <div class="tech-item">Descripciones en texto o en lista, y platos o menús sin precio</div>
-                <div class="tech-item">Secciones en el orden que quieras, con texto, fotos o ambos</div>
-                <div class="tech-item">Colores, tipografías, logo y redes con la identidad de tu marca</div>
-                <div class="tech-item">Quitá el fondo de tus fotos con inteligencia artificial</div>
+                <h4>Base de datos & backend</h4>
+                <div class="tech-item">Firebase Firestore — actualizaciones en &lt;1 segundo</div>
+                <div class="tech-item">Autenticación segura con Google (OAuth 2.0)</div>
+                <div class="tech-item">Arquitectura multi-tenant — cada restaurante aislado</div>
+                <div class="tech-item">Firebase Hosting — CDN global, HTTPS automático</div>
             </div>
             <div class="tech-group">
-                <h4>Pedidos desde la mesa</h4>
-                <div class="tech-item">Cada mesa con su QR o sticker NFC para pedir sin esperar al mozo</div>
-                <div class="tech-item">El cliente marca restricciones: sin TACC, vegano y más</div>
-                <div class="tech-item">Cada pedido con el nombre de quien lo hizo, para dividir la cuenta</div>
-                <div class="tech-item">Tablero de pedidos en vivo, con aviso sonoro para tu equipo</div>
-                <div class="tech-item">Comandas impresas en tu impresora o enviadas a tu sistema de caja</div>
+                <h4>Inteligencia artificial</h4>
+                <div class="tech-item">Eliminación de fondo por IA (@imgly background removal)</div>
+                <div class="tech-item">Detección de transparencia — no reprocesa lo que ya es PNG</div>
+                <div class="tech-item">Auto-contraste de texto según el color de fondo elegido</div>
+                <div class="tech-item">Generación de QR con logo embebido en el browser</div>
             </div>
             <div class="tech-group">
-                <h4>Para tus clientes</h4>
-                <div class="tech-item">Sin descargar ninguna app: escanean y listo</div>
-                <div class="tech-item">Se ve perfecto en cualquier celular</div>
-                <div class="tech-item">Siempre actualizado: lo que cambiás se ve al instante</div>
-                <div class="tech-item">Comparten tu menú y te contactan con un toque</div>
-                <p style="font-size:.7rem;color:var(--muted);margin-top:1rem;text-align:left;font-style:italic">Algunas funciones dependen del plan elegido.</p>
+                <h4>Diseño & frontend</h4>
+                <div class="tech-item">100% responsive — mobile-first, sin apps nativas</div>
+                <div class="tech-item">Variables CSS en tiempo real — cambios sin recargar</div>
+                <div class="tech-item">PWA-ready — funciona sin conexión (caché local)</div>
+                <div class="tech-item">Open Graph dinámico — preview en redes sociales</div>
             </div>
             <div class="tech-group">
-                <h4>Para tu negocio</h4>
-                <div class="tech-item">Varios locales desde una misma cuenta</div>
-                <div class="tech-item">Ingresás con tu cuenta de Google, tus datos siempre protegidos</div>
-                <div class="tech-item">Sin comisiones por venta: pagás un plan fijo con Mercado Pago</div>
-                <div class="tech-item">Pizarra de “fuera de carta” opcional para tus especiales</div>
+                <h4>Gestión para el admin</h4>
+                <div class="tech-item">Dashboard multi-restaurante por cuenta</div>
+                <div class="tech-item">Edición de nombre inline desde el panel</div>
+                <div class="tech-item">Logo personalizado con eliminación de fondo</div>
+                <div class="tech-item">Preview en tiempo real en el editor admin</div>
             </div>
         </div>
     </div>
