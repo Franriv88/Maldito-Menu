@@ -84,29 +84,29 @@
     z-index: 1000;
 }
 
+/* Botón Guardar: pastilla color arena (marca Cubierto) */
 #saveMenuBtn {
-    padding: 15px 25px;
-    font-size: 1rem;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 50px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px;
+    font: 600 .92rem/1 inherit;
+    letter-spacing: .3px;
+    background: #c8b89a;
+    color: #161412;
+    border: 1px solid #c8b89a;
+    border-radius: 999px;
     cursor: pointer;
-    box-shadow: 0 4px 0 #218838;
-    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 10px 28px rgba(0,0,0,.45);
+    transition: background .18s, border-color .18s, color .18s, transform .12s, box-shadow .18s;
     user-select: none;
 }
-
-#saveMenuBtn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #218838;
-}
-
-#saveMenuBtn.is-saving {
-    transform: translateY(4px);
-    box-shadow: none;
-    cursor: not-allowed;
-}
+#saveMenuBtn:hover  { background: #d9cbb0; border-color: #d9cbb0; transform: translateY(-1px); box-shadow: 0 14px 32px rgba(0,0,0,.5); }
+#saveMenuBtn:active { transform: translateY(1px); box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+#saveMenuBtn:focus-visible { outline: 2px solid #f2ead9; outline-offset: 3px; }
+#saveMenuBtn.is-saving { cursor: progress; opacity: .9; transform: none; }
+#saveMenuBtn.is-saving svg { animation: save-spin 1s linear infinite; }
+#saveMenuBtn.is-saved { background: #3fb96b; border-color: #3fb96b; color: #fff; }
+#saveMenuBtn.is-error { background: #c0392b; border-color: #c0392b; color: #fff; }
+@keyframes save-spin { to { transform: rotate(360deg); } }
 
 
 /* ============================================================
@@ -496,7 +496,7 @@ body.no-descriptions .input-description { display: none !important; }
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: rgba(124,108,92,0.55);
+    color: rgba(200,184,154,.62); /* más contraste en modo oscuro */
     margin-bottom: 6px;
 }
 
@@ -843,8 +843,10 @@ body.preview-mode .input-description { pointer-events: none; cursor: default; }
 }
 
 /* save button */
-body.light #saveMenuBtn { background: #6b5135; }
-body.light #saveMenuBtn:hover { background: #5a4229; }
+body.light #saveMenuBtn { background: #6b5135; border-color: #6b5135; color: #fff; box-shadow: 0 10px 24px rgba(60,42,20,.28); }
+body.light #saveMenuBtn:hover { background: #5a4229; border-color: #5a4229; }
+body.light #saveMenuBtn.is-saved { background: #23894a; border-color: #23894a; }
+body.light #saveMenuBtn.is-error { background: #c0392b; border-color: #c0392b; }
 
 /* sidebar */
 body.light .admin-sidebar { background: #f2ede6; }
@@ -1100,3 +1102,58 @@ body.light .social-row:hover { background: rgba(100,80,50,.07); }
 body.light .social-row.drag-over { border-color: rgba(100,80,50,.3); background: rgba(100,80,50,.05); }
 body.light .social-remove-btn { color: rgba(180,60,60,.5); }
 body.light .social-remove-btn:hover { color: rgba(200,40,40,.85); }
+
+.social-empty { font-size: .7rem; color: rgba(200,184,154,.45); padding: .2rem 0; margin: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   Modo claro: más contraste en el editor
+   Textos más oscuros y cada sección como tarjeta para separar las capas.
+   ══════════════════════════════════════════════════════════ */
+body.light .admin-sidebar { background: #ebe3d7; }
+body.light .sidebar-title { color: #3a2e22; border-bottom-color: rgba(100,80,50,.3); font-weight: 600; }
+body.light .sidebar-section {
+    background: #fffdf9;
+    border: 1px solid rgba(100,80,50,.2);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(60,42,20,.06);
+}
+body.light .sidebar-section:last-child { padding-bottom: 12px; border-bottom: 1px solid rgba(100,80,50,.2); }
+body.light .sidebar-divider { border-top-color: rgba(100,80,50,.3); }
+body.light .ctrl-label { color: #4a3a28; font-weight: 600; }
+body.light .ctrl-label-inline { color: #5a4630; }
+body.light .color-hex,
+body.light .bg-remove-toggle { color: #5a4630; }
+body.light .color-ctrl-row { border-bottom-color: rgba(100,80,50,.14); }
+body.light .ctrl-select,
+body.light .ctrl-input-text,
+body.light .color-hex-input,
+body.light .social-url-input,
+body.light .social-url-prefixed { border-color: rgba(100,80,50,.38); color: #2e241a; }
+body.light .ctrl-input-text::placeholder,
+body.light .social-url-input::placeholder,
+body.light .social-wa-input::placeholder { color: rgba(60,42,20,.45); }
+body.light .social-url-prefix { color: rgba(60,42,20,.62); }
+body.light .seg-btn { border-color: rgba(100,80,50,.4); color: #5a4630; }
+body.light .seg-btn.active { background: #6b5135; border-color: #6b5135; color: #fff; }
+body.light .mini-drop { border-color: rgba(100,80,50,.4); color: #5a4630; background: #f7f2ea; }
+body.light .social-pick-btn { color: #3a2e22; border-color: rgba(100,80,50,.35); background: #f7f2ea; }
+body.light .social-pick-btn[disabled] { opacity: .35; }
+body.light .social-color-preset-btn { color: #4a3a28; border-color: rgba(100,80,50,.35); background: #f7f2ea; }
+body.light .social-color-preset-btn:hover { color: #2e241a; border-color: rgba(100,80,50,.6); background: #efe6d8; }
+body.light .social-drag { color: rgba(60,42,20,.55); }
+body.light .social-remove-btn { color: rgba(170,50,40,.8); }
+body.light .social-empty { color: rgba(60,42,20,.55); }
+body.light .plan-lock-badge { color: #6b5135; background: rgba(100,80,50,.1); border-color: rgba(100,80,50,.3); }
+.ctrl-value { color: #c8b89a; }
+body.light .ctrl-value { color: #6b5135; }
+body.light .bg-img-thumb { background-color: #e6ddcf; border-color: rgba(100,80,50,.35); }
+body.light .btn-bg-upload { background: #f7f2ea; border-color: rgba(100,80,50,.38); color: #3a2e22; }
+body.light .btn-bg-upload:hover { background: #efe6d8; }
+
+/* Modo oscuro: un poco más de contraste en textos secundarios del editor */
+body:not(.light) .ctrl-label-inline { color: rgba(200,184,154,.62); }
+body:not(.light) .seg-btn:not(.active) { color: rgba(200,184,154,.6); }
+body:not(.light) .mini-drop { color: rgba(200,184,154,.55); }
+body:not(.light) .bg-remove-toggle { color: rgba(200,184,154,.62); }

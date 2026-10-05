@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Lobster&family=Dancing+Script:wght@400;700&family=UnifrakturMaguntia&family=Abril+Fatface&family=Oswald:wght@400;600&family=Merriweather:ital,wght@0,300;0,400;1,300&family=Pacifico&family=Great+Vibes&family=Raleway:wght@300;400;600&family=Bebas+Neue&family=Satisfy&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./Css/menu-styles.css">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
     <style>
         /* topbar heredado de styles.css */
     </style>
@@ -43,7 +43,7 @@
 
     <!-- Botón guardar (fijo) -->
     <div class="save-container">
-        <button id="saveMenuBtn">Guardar Menú</button>
+        <button id="saveMenuBtn"><i data-lucide="save" style="width:17px;height:17px;stroke-width:1.75"></i><span>Guardar menú</span></button>
     </div>
 
     <div class="admin-layout">
@@ -142,11 +142,11 @@
             <div class="sidebar-section">
                 <div class="size-controls-row">
                     <div class="size-ctrl">
-                        <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" style="color:#c8b89a">14px</span></label>
+                        <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" class="ctrl-value">14px</span></label>
                         <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
                     </div>
                     <div class="size-ctrl">
-                        <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" style="color:#c8b89a">20px</span></label>
+                        <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" class="ctrl-value">20px</span></label>
                         <input type="range" id="cfg-titleFontSize" min="14" max="42" value="20" class="ctrl-slider">
                     </div>
                 </div>
@@ -222,11 +222,11 @@
                 <!-- Tamaño y opacidad del logo -->
                 <div class="size-controls-row" style="margin-top:6px">
                     <div class="size-ctrl">
-                        <label class="ctrl-label">Tamaño <span id="cfg-logoSizeVal" style="color:#c8b89a">200px</span></label>
+                        <label class="ctrl-label">Tamaño <span id="cfg-logoSizeVal" class="ctrl-value">200px</span></label>
                         <input type="range" id="cfg-logoSize" min="40" max="860" value="200" class="ctrl-slider">
                     </div>
                     <div class="size-ctrl">
-                        <label class="ctrl-label">Opacidad <span id="cfg-logoOpacityVal" style="color:#c8b89a">100%</span></label>
+                        <label class="ctrl-label">Opacidad <span id="cfg-logoOpacityVal" class="ctrl-value">100%</span></label>
                         <input type="range" id="cfg-logoOpacity" min="10" max="100" value="100" class="ctrl-slider">
                     </div>
                 </div>
@@ -255,7 +255,7 @@
             </div>
 
             <div class="sidebar-section feature-gated-section" id="socialsSection">
-                <label class="ctrl-label">Redes sociales <span class="plan-lock-badge" id="socialsBadge"></span></label>
+                <label class="ctrl-label">Redes sociales y contacto <span class="plan-lock-badge" id="socialsBadge"></span></label>
                 <div id="socialsContainer" class="socials-list"></div>
                 <div id="socialColorPresets" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
                 <div class="social-picker-grid" id="socialPickerRow"></div>
@@ -273,7 +273,7 @@
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js"></script>
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=10"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>
