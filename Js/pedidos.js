@@ -660,7 +660,7 @@ function updateSettingsVisibility() {
 
     if (mode === 'epson' || mode === 'star') {
         document.getElementById('cloudUrl').textContent = privateCfg.printerKey
-            ? `${FUNCTIONS_BASE}/printerPoll?r=${restaurantId}&k=${privateCfg.printerKey}&t=${mode}`
+            ? `${location.origin}/api/printerPoll?r=${restaurantId}&k=${privateCfg.printerKey}&t=${mode}`
             : 'Guardá la configuración para generar la URL';
         document.getElementById('cloudMenuName').textContent = mode === 'epson'
             ? 'Configuración de Server Direct Print' : 'CloudPRNT';

@@ -18,6 +18,15 @@
       "fix-cors.js",
       "design-system.html",
       "design-system.png"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/printerPoll",
+        "function": {
+          "functionId": "printerPoll",
+          "region": "us-central1"
+        }
+      }
     ]
   },
   "firestore": {

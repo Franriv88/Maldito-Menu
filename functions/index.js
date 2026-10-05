@@ -15,7 +15,7 @@ const db   = getFirestore();
 const auth = getAuth();
 
 const SUPERADMIN_EMAIL = "frivasv2388@gmail.com";
-const APP_URL          = "https://maldito-cafe.web.app";
+const APP_URL          = "https://cubierto.menu";
 
 // ── Helpers ───────────────────────────────────────────────────
 
