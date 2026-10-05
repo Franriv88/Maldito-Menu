@@ -583,3 +583,21 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 .menu-section.mode-image-wide { flex-direction: column; }
 .menu-section.mode-image-wide .menu-image { flex: 0 0 auto; width: 100%; order: -1; }
 .menu-section.mode-image-wide .menu-content { display: none; }
+
+/* Descripción desplegable: se anima la ALTURA REAL del texto (técnica grid 0fr → 1fr),
+   sin rebote y con un desvanecido suave. Antes se animaba max-height 0 → 600px con
+   rebote, y como el texto mide ~40px se abría casi de golpe. */
+.item-details {
+    display: grid;
+    grid-template-rows: 0fr;
+    max-height: none;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+    transition: grid-template-rows .55s cubic-bezier(.4, 0, .2, 1),
+                opacity .45s ease,
+                margin-top .55s cubic-bezier(.4, 0, .2, 1);
+}
+.item-details > * { min-height: 0; overflow: hidden; }
+.item-details.visible { grid-template-rows: 1fr; max-height: none; opacity: 1; margin-top: .2rem; }
+@media (prefers-reduced-motion: reduce) { .item-details { transition: none; } }

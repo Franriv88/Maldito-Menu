@@ -402,16 +402,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const sleep = ms => new Promise(res => setTimeout(res, ms));
+    // Muestra que los productos se pueden abrir: abre suavemente la primera descripción,
+    // la deja un momento y la cierra. Una sola vez por visita (renderMenu se llama varias
+    // veces mientras llegan estilos, imágenes y títulos) y nunca si el usuario pidió
+    // "reducir movimiento" o ya tocó algún producto.
+    let demoHecha = false, usuarioInteractuo = false;
+    menuContainer.addEventListener('click', () => { usuarioInteractuo = true; }, { once: true });
     async function iniciarDemostracionAcordeon() {
-        const primer = document.querySelector('.menu-item');
-        if (!primer) return;
-        const det = primer.querySelector('.item-details');
-        if (!det) return;
-        await sleep(900);
-        for (let i = 0; i < 2; i++) {
-            det.classList.add('visible'); await sleep(500);
-            det.classList.remove('visible'); await sleep(500);
-        }
+        if (demoHecha) return;
+        demoHecha = true;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        await sleep(1200);
+        const det = document.querySelector('.menu-item .item-details'); // ya renderizado y estable
+        if (!det || usuarioInteractuo || det.classList.contains('visible')) return;
+        det.classList.add('visible');
+        await sleep(1800);
+        if (!usuarioInteractuo) det.classList.remove('visible');
     }
 
     // ── Botón compartir ────────────────────────────────────────

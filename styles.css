@@ -1305,3 +1305,6 @@ body.preview-mode .section-toolbar { display: none !important; }
 
 /* Editor: una sección "solo imagen" no tiene productos (se eliminan al elegir el diseño) */
 .admin-page .menu-section.mode-image-wide .menu-content { display: none; }
+
+/* Editor: las descripciones siempre visibles (no se anima el desplegable del menú) */
+.admin-page .item-details { grid-template-rows: 1fr !important; transition: none !important; }
