@@ -905,10 +905,27 @@ async function uploadSectionImage(file, imgKey, keepAlpha) {
     if (!blob || blob.type !== 'image/webp') blob = keepAlpha ? await toBlob('image/png') : await toBlob('image/jpeg', 0.86);
     const ext = blob.type.split('/')[1].replace('jpeg', 'jpg');
 
-    const ref = storage.ref(`restaurants/${restaurantId}/section-${imgKey}-${Date.now()}.${ext}`);
-    await ref.put(blob, { contentType: blob.type, cacheControl: 'public, max-age=31536000' });
+    // Si Storage no responde (ej. el bucket no está activado), el SDK reintenta hasta 10 min
+    // y la subida queda "Procesando…". Se corta a los 15 s y se usa el guardado alternativo;
+    // tras un fallo no se reintenta Storage en esta sesión.
+    if (window.storageUnavailable) return null;
+    const ref  = storage.ref(`restaurants/${restaurantId}/section-${imgKey}-${Date.now()}.${ext}`);
+    const task = ref.put(blob, { contentType: blob.type, cacheControl: 'public, max-age=31536000' });
+    let timer;
+    try {
+        await Promise.race([
+            task,
+            new Promise((_, reject) => { timer = setTimeout(() => { try { task.cancel(); } catch {} reject(new Error('Storage no respondió a tiempo')); }, STORAGE_TIMEOUT_MS); }),
+        ]);
+    } catch (err) {
+        window.storageUnavailable = true;
+        throw err;
+    } finally {
+        clearTimeout(timer);
+    }
     return ref.getDownloadURL();
 }
+const STORAGE_TIMEOUT_MS = 15000;
 
 // Borra del Storage la imagen anterior de la sección (solo si era nuestra)
 function deleteOldSectionImage(prevUrl, newUrl) {
