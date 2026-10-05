@@ -18,7 +18,7 @@ function socialSvg(network, color, size = 22) {
 }
 
 function safeUrl(url) {
-    if (/^mailto:[^s@<>"']+@[^s@<>"']+.[^s@<>"']+$/i.test(url)) return url;
+    if (/^mailto:[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/i.test(url)) return url;
     try {
         const u = new URL(url);
         return (u.protocol === 'http:' || u.protocol === 'https:') ? url : '#';
