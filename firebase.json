@@ -5,9 +5,19 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "fix-cors.js",
+      "functions/**",
+      "public/**",
+      "docs/**",
+      "**/*.md",
+      "**/*.log",
+      "package.json",
+      "package-lock.json",
+      "firestore.rules",
+      "storage.rules",
       "cors.json",
-      "firestore.rules"
+      "fix-cors.js",
+      "design-system.html",
+      "design-system.png"
     ]
   },
   "firestore": {

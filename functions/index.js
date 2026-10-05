@@ -631,7 +631,8 @@ exports.placeOrder = onRequest(
 // firmado con HMAC-SHA256 en el header X-Cubierto-Signature.
 
 exports.onOrderWritten = onDocumentWritten(
-    "restaurants/{r}/pedidos/{orderId}",
+    // Los triggers de Firestore deben estar en la región de la base de datos
+    { document: "restaurants/{r}/pedidos/{orderId}", region: "southamerica-west1" },
     async event => {
         const after  = event.data?.after?.data();
         const before = event.data?.before?.data();
