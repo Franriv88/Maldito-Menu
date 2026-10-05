@@ -87,7 +87,8 @@ restaurants/{restaurantId}/
                    titleColor, textColor, bgPage, bgMenu, headerMode,
                    logoBase64, logoStorageUrl, faviconBase64, faviconStorageUrl,
                    logoSize, logoOpacity }
-    images:      { img1..img4: URL de Storage (o base64 viejo), img1_layout, img1_height, img1_flipH,
+    images:      { (img1..img4 viejos: se migran solos a imageData al abrir el editor),
+                   img1_layout, img1_height, img1_flipH,
                    encuadre: img1_pos / img1_posY (anclaje 0–100 = centro del zoom),
                    img1_shiftX / img1_shiftY (desplazamiento en % del recuadro),
                    img1_zoom (20–300, % del alto del recuadro),
@@ -102,6 +103,8 @@ users/{uid}/
   { email, displayName, lastLogin, createdAt,
     subscription: { status, planType, paidUntil, paidAt, paymentInitiated } }
 
+  imageData/{img1..img4}: { src }  ← cada imagen de sección en SU PROPIO documento (límite 1 MB c/u;
+                                     antes iban todas juntas en config/images y MALIK llegó a 1022 KB)
   config/ordering:  { enabled, approvalMode: 'manual'|'direct', tableSessions, wifiCheck,
                      geo: {enabled, lat, lng, radius},
                      tables: [{id, label}], printMode: 'browser'|'epson'|'star'|'none', paperWidth }

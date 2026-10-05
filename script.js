@@ -309,15 +309,21 @@ async function renderAdminMenu() {
     const container = document.getElementById('admin-menu-container');
 
     try {
-        const [productsSnap, imagesDoc, stylesDoc, footerDoc, catTitlesDoc] = await Promise.all([
+        const [productsSnap, imagesDoc, stylesDoc, footerDoc, catTitlesDoc, imageDataSnap] = await Promise.all([
             restRef().collection('productos').orderBy('orden', 'asc').orderBy('ordenProducto', 'asc').get(),
             restRef().collection('config').doc('images').get().catch(() => ({ exists: false, data: () => ({}) })),
             restRef().collection('config').doc('styles').get().catch(() => ({ exists: false, data: () => ({}) })),
             restRef().collection('config').doc('footer').get().catch(() => ({ exists: false, data: () => ({}) })),
             restRef().collection('config').doc('categoryTitles').get().catch(() => ({ exists: false, data: () => ({}) })),
+            restRef().collection('imageData').get().catch(() => ({ forEach() {} })),
         ]);
 
         const imageConfig  = imagesDoc.exists     ? imagesDoc.data()     : {};
+        // Cada imagen de sección vive en su propio documento (imageData/{imgN}); las viejas
+        // pueden seguir dentro de config/images hasta que se migran (ver migrateLegacyImages)
+        const imageData = {};
+        imageDataSnap?.forEach?.(d => { imageData[d.id] = d.data()?.src; });
+        const sectionImage = key => imageData[key] || imageConfig[key] || null;
         const styleConfig  = stylesDoc.exists     ? stylesDoc.data()     : {};
         const footerConfig = footerDoc.exists     ? footerDoc.data()     : {};
         const catTitles    = catTitlesDoc.exists  ? catTitlesDoc.data()  : {};
@@ -347,7 +353,7 @@ async function renderAdminMenu() {
             const savedLayout = imageConfig[`${sec.imgKey}_layout`];
             const effectiveLayout = savedLayout || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
-            const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
+            const imgSrc  = sectionImage(sec.imgKey) || sec.imgDefault;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
             const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, sec.imgKey);
@@ -395,7 +401,7 @@ async function renderAdminMenu() {
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
                             <span class="flip-label">Voltear</span>
-                            <button class="img-removebg-btn" type="button" ${imageConfig[sec.imgKey] ? '' : 'hidden'}
+                            <button class="img-removebg-btn" type="button" ${sectionImage(sec.imgKey) ? '' : 'hidden'}
                                     title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
                         </div>
@@ -412,6 +418,7 @@ async function renderAdminMenu() {
         initDropZones();
         initCategoryTitleEditors();
         updateSectionMoveButtons();
+        if (!isReadonly) migrateLegacyImages(imageConfig, imageData); // en segundo plano
 
     } catch (err) {
         console.error('Error cargando menú:', err);
@@ -892,8 +899,10 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
 
         // 3. Guardar la referencia en Firestore
         overlaySpan.textContent = 'Guardando…';
-        const prev = (await restRef().collection('config').doc('images').get()).data()?.[imgKey];
-        await restRef().collection('config').doc('images').set({ [imgKey]: url }, { merge: true });
+        // Cada imagen en su propio documento (sin el límite de 1 MB compartido); si quedaba una
+        // versión vieja dentro de config/images se borra para liberar ese documento.
+        const prev = (await restRef().collection('imageData').doc(imgKey).get()).data()?.src;
+        await saveSectionImageData(imgKey, url);
         const imageBg = zone.querySelector('.image-bg');
         if (imageBg) imageBg.style.backgroundImage = `url('${url}')`;
         applyImageFrame(zone); // recalcula el aviso de resolución
@@ -907,6 +916,44 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
     } finally {
         overlaySpan.textContent = textoOriginal;
         zone.classList.remove('uploading');
+    }
+}
+
+// ── Imágenes de sección en su propio documento ────────────────
+// Antes las 4 imágenes iban juntas dentro de config/images (límite de 1 MB por documento:
+// MALIK llegó a 1022 KB y no podía subir más). Ahora cada una va en imageData/{imgN}.
+// Primero se escribe el documento nuevo y recién después se borra la copia vieja.
+async function saveSectionImageData(imgKey, src) {
+    await restRef().collection('imageData').doc(imgKey).set({ src, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await restRef().collection('config').doc('images').set({ [imgKey]: firebase.firestore.FieldValue.delete() }, { merge: true });
+}
+
+// Migración automática al abrir el editor: mueve las imágenes viejas a su propio documento
+// y, si eran PNG/JPEG, las convierte a WebP 90 % (solo si así pesan menos).
+async function migrateLegacyImages(imageConfig, imageData) {
+    for (const { imgKey } of SECCIONES_CONFIG) {
+        const legacy = imageConfig[imgKey];
+        if (!legacy) continue;
+        try {
+            if (imageData[imgKey]) {
+                // ya migrada: solo falta liberar la copia vieja
+                await restRef().collection('config').doc('images').set({ [imgKey]: firebase.firestore.FieldValue.delete() }, { merge: true });
+                continue;
+            }
+            let src = legacy;
+            if (/^data:image\/(png|jpeg)/.test(legacy)) {
+                const blob  = await (await fetch(legacy)).blob();
+                const isPng = blob.type === 'image/png';
+                // mismas dimensiones (ya eran ≤ 500/900 px); calidad alta para no degradar
+                const lighter = await compressToBase64(new File([blob], imgKey, { type: blob.type }),
+                    isPng ? 500 : 900, isPng ? 500 : 675, isPng ? 'image/png' : 'image/jpeg', 1);
+                if (lighter.length < legacy.length) src = lighter;
+            }
+            await saveSectionImageData(imgKey, src);
+            console.info(`Imagen ${imgKey} migrada: ${Math.round(legacy.length * 0.75 / 1024)} KB → ${Math.round(src.length * 0.75 / 1024)} KB`);
+        } catch (err) {
+            console.warn(`No se pudo migrar la imagen ${imgKey} (queda donde estaba):`, err);
+        }
     }
 }
 

@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastSnapshot  = null;
     let imageConfig   = {};
+    let imageData     = {};   // imageData/{imgN}.src: cada imagen de sección en su propio documento
     let restData      = {};
     let stylesConfig  = {};
     let footerConfig  = {};
@@ -92,6 +93,13 @@ document.addEventListener('DOMContentLoaded', () => {
         imageConfig = doc.exists ? doc.data() : {};
         if (lastSnapshot !== null) renderMenu();
     }, err => console.error('Error config:', err));
+
+    // ── Listener: imágenes de sección (una por documento; las viejas siguen en config/images) ──
+    restRef.collection('imageData').onSnapshot(snap => {
+        imageData = {};
+        snap.forEach(d => { imageData[d.id] = d.data()?.src; });
+        if (lastSnapshot !== null) renderMenu();
+    }, err => console.error('Error imágenes:', err));
 
     // ── Listener: footer (redes sociales, dirección, aviso) ───
     restRef.collection('config').doc('footer').onSnapshot(doc => {
@@ -337,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Diseño de la sección: text-image (por defecto), text-text (2 columnas) o image-wide
             const mode = ['text-image', 'text-text', 'image-wide'].includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
             const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
-            const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
+            const imgSrc  = imageData[sec.imgKey] || imageConfig[sec.imgKey] || sec.imgDefault;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
             // Encuadre (mismo modelo que el editor, ver imageFrame en script.js):
