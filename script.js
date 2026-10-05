@@ -953,6 +953,8 @@ function populateStyleControls(cfg) {
     setVal('cfg-logoOpacity',     cfg.logoOpacity != null ? cfg.logoOpacity : 100);
     const hidePricesBox = document.getElementById('cfg-hidePrices');
     if (hidePricesBox) hidePricesBox.checked = !!cfg.hidePrices;
+    const disclaimerBox = document.getElementById('cfg-showDisclaimer');
+    if (disclaimerBox) disclaimerBox.checked = cfg.showDisclaimer !== false;
     document.body.classList.toggle('prices-hidden', !!cfg.hidePrices);
 
     const sv = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
@@ -1044,6 +1046,11 @@ async function confirmModal({ title, html, confirmText = 'Confirmar', cancelText
 
 function initStyleControls() {
     const root = document.documentElement;
+
+    // ── Cartel "Fuera de carta en pizarra" (opcional, se guarda al instante) ──
+    const disclaimerBox = document.getElementById('cfg-showDisclaimer');
+    if (disclaimerBox) disclaimerBox.addEventListener('change', () =>
+        saveStyleField('showDisclaimer', disclaimerBox.checked));
 
     // ── Publicar el menú sin precios (pide confirmación al activarlo) ──
     const hidePricesBox = document.getElementById('cfg-hidePrices');

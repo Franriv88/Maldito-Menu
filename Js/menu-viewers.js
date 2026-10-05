@@ -212,8 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             header.innerHTML = `<h1>${restData.nombre || ''}</h1>`;
         }
+        // "Fuera de carta en pizarra": opcional (visible salvo que el admin lo desactive)
         const disclaimer = document.getElementById('menu-disclaimer');
-        if (disclaimer) disclaimer.style.display = 'block';
+        if (disclaimer) disclaimer.style.display = stylesConfig.showDisclaimer === false ? 'none' : 'block';
     }
 
     // ── Footer ─────────────────────────────────────────────────
