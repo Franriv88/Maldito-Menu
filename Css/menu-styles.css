@@ -518,3 +518,23 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 .to-sum { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 12px;
     border-top: 2px solid var(--title-color); color: var(--title-color); font-size: 1.05rem; }
 .to-empty { text-align: center; opacity: .7; padding: 24px 8px; margin: 0; }
+
+/* Menú del email en el footer (app de correo / Gmail / copiar) */
+.email-pop {
+    position: absolute; z-index: 90; min-width: 220px; max-width: calc(100vw - 24px);
+    display: flex; flex-direction: column; gap: 6px; padding: 12px;
+    background: var(--primary-color); color: var(--text-color);
+    border: 1px solid color-mix(in srgb, var(--title-color) 35%, transparent);
+    border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.45);
+    font-family: var(--main-font-family);
+}
+.email-pop-addr { font-size: .85rem; color: var(--title-color); text-align: center; padding: 2px 4px 6px; word-break: break-all; }
+.email-pop-btn {
+    display: block; width: 100%; min-height: 42px; padding: 10px 12px; box-sizing: border-box;
+    border-radius: 10px; border: 1px solid color-mix(in srgb, var(--text-color) 25%, transparent);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent); color: var(--text-color);
+    font: .88rem var(--main-font-family); text-align: center; text-decoration: none; cursor: pointer;
+}
+.email-pop-btn:hover, .email-pop-btn:focus-visible {
+    background: var(--title-color); color: var(--primary-color); border-color: var(--title-color); outline: none;
+}

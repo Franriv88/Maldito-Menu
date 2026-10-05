@@ -219,8 +219,12 @@ document.addEventListener('DOMContentLoaded', () => {
             socials.forEach(s => {
                 if (!SOCIAL_NETS[s.network]) return;
                 const href = s.url ? safeUrl(s.url) : '#';
-                const target = href !== '#' && !href.startsWith('mailto:') ? ' target="_blank" rel="noopener noreferrer"' : '';
-                html += `<a class="footer-social-link" href="${href}"${target} title="${SOCIAL_NETS[s.network].label}">${socialSvg(s.network, s.color)}</a>`;
+                const isMail = href.startsWith('mailto:');
+                const target = href !== '#' && !isMail ? ' target="_blank" rel="noopener noreferrer"' : '';
+                // Email: el clic abre un menú (app de correo / Gmail / copiar), porque en muchas PCs
+                // no hay app de correo configurada y un mailto: solo no hace nada
+                const mailAttr = isMail ? ` data-email="${href.slice(7)}" aria-haspopup="dialog"` : '';
+                html += `<a class="footer-social-link" href="${href}"${target}${mailAttr} title="${SOCIAL_NETS[s.network].label}">${socialSvg(s.network, s.color)}</a>`;
             });
             html += '</div>';
         }
@@ -229,6 +233,50 @@ document.addEventListener('DOMContentLoaded', () => {
         if (address) html += `<p class="footer-address">${address}</p>`;
 
         footer.innerHTML = html;
+    }
+
+    // ── Menú del email (footer) ────────────────────────────────
+    document.addEventListener('click', e => {
+        const link = e.target.closest('.footer-social-link[data-email]');
+        const pop  = document.getElementById('emailPop');
+        if (pop && !e.target.closest('#emailPop') && link?.dataset.email !== pop.dataset.email) pop.remove();
+        if (!link) return;
+        e.preventDefault();
+        if (pop && pop.dataset.email === link.dataset.email) { pop.remove(); return; }
+        openEmailPop(link);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('emailPop')?.remove(); });
+
+    function openEmailPop(link) {
+        const email = link.dataset.email;
+        const enc   = encodeURIComponent(email);
+        const pop   = document.createElement('div');
+        pop.id = 'emailPop';
+        pop.className = 'email-pop';
+        pop.setAttribute('role', 'dialog');
+        pop.setAttribute('aria-label', 'Contactar por email');
+        pop.dataset.email = email;
+        pop.innerHTML = `
+            <div class="email-pop-addr">${email.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>
+            <a class="email-pop-btn" href="mailto:${email}">Escribir email</a>
+            <a class="email-pop-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to=${enc}" target="_blank" rel="noopener noreferrer">Abrir en Gmail</a>
+            <button class="email-pop-btn" type="button" data-copy>Copiar dirección</button>`;
+        pop.querySelector('[data-copy]').addEventListener('click', async ev => {
+            const btn = ev.currentTarget;
+            try { await navigator.clipboard.writeText(email); btn.textContent = '¡Copiada!'; }
+            catch { btn.textContent = email; }
+            setTimeout(() => pop.remove(), 1200);
+        });
+        pop.querySelectorAll('a.email-pop-btn').forEach(a => a.addEventListener('click', () => setTimeout(() => pop.remove(), 300)));
+        document.body.appendChild(pop);
+
+        // Posicionar arriba del ícono, sin salirse de la pantalla
+        const r = link.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+        const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
+        const top  = r.top - h - 10 > 12 ? r.top - h - 10 : r.bottom + 10;
+        pop.style.left = `${left}px`;
+        pop.style.top  = `${top + window.scrollY}px`;
+        pop.querySelector('.email-pop-btn').focus();
     }
 
     // ── Render menú ────────────────────────────────────────────
