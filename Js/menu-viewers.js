@@ -21,6 +21,7 @@ function socialSvg(network, color, size = 22) {
 // columna en escritorio). El recuadro conserva esa proporción en cualquier pantalla, así la
 // imagen se ve igual en un celular, solo más chica. Mismo valor que IMG_REF_WIDTH en script.js.
 const IMG_REF_WIDTH = 344;
+const IMG_REF_WIDE  = 860; // "Imagen a lo ancho": referencia = ancho completo del menú
 
 // Descripción de producto: respeta los saltos de línea y convierte las líneas que
 // empiezan con "-", "•" o "*" en una lista con viñetas. Escapa HTML.
@@ -330,6 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
+            // Diseño de la sección: text-image (por defecto), text-text (2 columnas) o image-wide
+            const mode = ['text-image', 'text-text', 'image-wide'].includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
+            const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
             const imgSrc  = imageConfig[sec.imgKey] || sec.imgDefault;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
@@ -362,12 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const sectionEl = document.createElement('div');
-            sectionEl.className = `menu-section ${layoutClass}`;
+            sectionEl.className = `menu-section ${mode === 'text-image' ? layoutClass : ''} mode-${mode}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image" style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};min-height:0;">
+                <div class="menu-image" style="aspect-ratio:${refW} / ${heightVal};min-height:0;">
                     <div class="menu-image-layer"
-                         style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
+                         style="aspect-ratio:${refW} / ${heightVal};background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });

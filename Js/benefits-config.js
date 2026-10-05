@@ -10,6 +10,7 @@ const BENEFITS_CONFIG = [
     { id: 'socials',        label: 'Redes sociales',            type: 'bool' },
     // optIn: solo habilitado si el plan lo marca explícitamente (los planes viejos no lo heredan)
     { id: 'table_orders',   label: 'Pedidos desde la mesa (QR/NFC)', type: 'bool', optIn: true },
+    { id: 'section_layouts', label: 'Diseños de sección (texto + texto, imagen a lo ancho)', type: 'bool', optIn: true },
 ];
 
 // Devuelve el objeto benefits del plan que coincide con planType, o null si no se encuentra

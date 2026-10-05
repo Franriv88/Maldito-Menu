@@ -343,6 +343,8 @@ async function renderAdminMenu() {
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
             const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, sec.imgKey);
+            const mode = SECTION_MODES.includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
+            const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
 
             const contentHTML = sec.categorias.map(cat => {
                 const productos  = byCategory[cat] || [];
@@ -358,11 +360,12 @@ async function renderAdminMenu() {
             }).join('');
 
             return `
-            <div class="menu-section ${layoutClass}" style="position:relative">
-                <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
+            <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${sec.imgKey}" data-mode="${mode}" style="position:relative">
+                <button class="layout-picker-btn" type="button" title="Elegir qué va en cada lado de esta sección">${licon('layout-panel-top', 13)} Diseño</button>
+                ${layoutPickerHTML()}
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}"
-                     style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};height:auto;min-height:0;">
+                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}" data-ref-w="${refW}"
+                     style="aspect-ratio:${refW} / ${heightVal};height:auto;min-height:0;">
                     <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:${frameTransform(shiftX, shiftY, flipH)};"></div>
                     <div class="drop-overlay"><span>Clic para cambiar la imagen · arrastrala para encuadrar</span></div>
                     <div class="img-res-warning" hidden>${licon('alert-triangle', 12)} Con este zoom puede verse pixelada: subí una imagen más grande</div>
@@ -445,15 +448,31 @@ function handleContainerClick(e) {
     const deleteBtn = e.target.closest('.delete-item-btn');
     if (deleteBtn) { deleteBtn.closest('.admin-item').remove(); return; }
 
-    const layoutBtn = e.target.closest('.layout-toggle-btn');
-    if (layoutBtn) {
-        const section = layoutBtn.closest('.menu-section');
-        const imgKey  = layoutBtn.dataset.imgKey;
-        section.classList.toggle('layout-reversed');
-        const newLayout = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
-        restRef().collection('config').doc('images').set(
-            { [`${imgKey}_layout`]: newLayout }, { merge: true }
-        ).catch(err => console.error('Error guardando layout:', err));
+    // ── Selector de diseño de la sección ──
+    const pickerBtn = e.target.closest('.layout-picker-btn');
+    if (pickerBtn) {
+        const picker = pickerBtn.closest('.menu-section').querySelector('.layout-picker');
+        const open = picker.hidden;
+        document.querySelectorAll('.layout-picker').forEach(p => { p.hidden = true; });
+        picker.hidden = !open;
+        if (open) renderLayoutPicker(pickerBtn.closest('.menu-section'));
+        return;
+    }
+    const lpOpt = e.target.closest('.lp-opt');
+    if (lpOpt) {
+        const section = lpOpt.closest('.menu-section');
+        const sides = sectionSides(section);
+        sides[lpOpt.closest('.lp-side').dataset.side === 'left' ? 0 : 1] = lpOpt.dataset.v;
+        setSectionSides(section, sides);
+        return;
+    }
+    if (e.target.closest('.lp-swap')) {
+        const section = e.target.closest('.menu-section');
+        setSectionSides(section, sectionSides(section).reverse());
+        return;
+    }
+    if (e.target.closest('.lp-close')) {
+        e.target.closest('.layout-picker').hidden = true;
         return;
     }
 
@@ -532,8 +551,8 @@ function initDropZones() {
         if (heightSlider) {
             heightSlider.addEventListener('input', e => {
                 e.stopPropagation();
-                // El alto se guarda "a 344 px de ancho": el recuadro mantiene la proporción
-                zone.style.aspectRatio = `${IMG_REF_WIDTH} / ${heightSlider.value}`;
+                // El alto se guarda "al ancho de referencia": el recuadro mantiene la proporción
+                zone.style.aspectRatio = `${zone.dataset.refW || IMG_REF_WIDTH} / ${heightSlider.value}`;
                 const bg = zone.querySelector('.image-bg');
                 if (bg) { bg.style.top = '0'; bg.style.bottom = '0'; }
                 updateResolutionWarning(zone); // el alto del recuadro también cambia el tamaño mostrado
@@ -567,6 +586,92 @@ function initDropZones() {
     });
 }
 
+// ── Diseño de la sección: qué va en cada lado ─────────────────
+// Modos guardados en config/images como imgN_mode (+ imgN_layout para el orden):
+//   text-image  Texto | Imagen (layout normal) o Imagen | Texto (layout reversed)
+//   text-text   Texto | Texto  → los productos se reparten en 2 columnas
+//   image-wide  Imagen | Imagen → imagen a lo ancho, con los productos debajo
+// text-text e image-wide requieren el beneficio de plan "section_layouts".
+const SECTION_MODES = ['text-image', 'text-text', 'image-wide'];
+
+function layoutPickerHTML() {
+    const side = (name, label) => `
+        <div class="lp-side" data-side="${name}">
+            <span class="lp-side-label">${label}</span>
+            <div class="lp-opts">
+                <button type="button" class="lp-opt" data-v="image">${licon('image', 18)}<span>Imagen</span></button>
+                <button type="button" class="lp-opt" data-v="text">${licon('type', 18)}<span>Texto</span></button>
+            </div>
+        </div>`;
+    return `
+        <div class="layout-picker" hidden>
+            <div class="lp-head">
+                <span>Elegí qué va en cada lado</span>
+                <button type="button" class="lp-close" aria-label="Cerrar">${licon('x', 14)}</button>
+            </div>
+            <div class="lp-sides">
+                ${side('left', 'Izquierda')}
+                <button type="button" class="lp-swap" title="Intercambiar lados">${licon('arrow-left-right', 16)}</button>
+                ${side('right', 'Derecha')}
+            </div>
+            <p class="lp-hint">Texto + Texto: los productos en dos columnas · Imagen + Imagen: la imagen a lo ancho, con los productos debajo.</p>
+            <p class="lp-lock" hidden>${licon('lock', 12)} Texto + Texto e Imagen a lo ancho no están incluidos en tu plan.</p>
+        </div>`;
+}
+
+const canUseSectionLayouts = () => !!hasBenefit(window.userBenefits, 'section_layouts');
+
+function sectionSides(section) {
+    const mode = section.dataset.mode || 'text-image';
+    if (mode === 'text-text')  return ['text', 'text'];
+    if (mode === 'image-wide') return ['image', 'image'];
+    return section.classList.contains('layout-reversed') ? ['image', 'text'] : ['text', 'image'];
+}
+
+function renderLayoutPicker(section) {
+    const picker = section.querySelector('.layout-picker');
+    const [l, r] = sectionSides(section);
+    picker.querySelectorAll('.lp-side').forEach(s => {
+        const v = s.dataset.side === 'left' ? l : r;
+        s.querySelectorAll('.lp-opt').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+    });
+    picker.querySelector('.lp-lock').hidden = canUseSectionLayouts();
+}
+
+function setSectionSides(section, [l, r]) {
+    const mode = l === r ? (l === 'text' ? 'text-text' : 'image-wide') : 'text-image';
+    if (mode !== 'text-image' && !canUseSectionLayouts()) {
+        const lock = section.querySelector('.lp-lock');
+        lock.hidden = false;
+        lock.classList.remove('pulse'); void lock.offsetWidth; lock.classList.add('pulse');
+        return;
+    }
+    const reversed = mode === 'text-image' && l === 'image';
+    section.classList.remove(...SECTION_MODES.map(m => `mode-${m}`));
+    section.classList.add(`mode-${mode}`);
+    section.classList.toggle('layout-reversed', reversed);
+    section.dataset.mode = mode;
+
+    // El recuadro de imagen cambia de referencia (columna 344 px o ancho completo 860 px)
+    const zone = section.querySelector('.drop-zone');
+    if (zone) {
+        zone.dataset.refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
+        zone.style.aspectRatio = `${zone.dataset.refW} / ${zone.querySelector('.height-slider')?.value || 300}`;
+        updateResolutionWarning(zone);
+    }
+    renderLayoutPicker(section);
+    restRef().collection('config').doc('images').set({
+        [`${section.dataset.imgKey}_mode`]: mode,
+        [`${section.dataset.imgKey}_layout`]: reversed ? 'reversed' : 'normal',
+    }, { merge: true }).catch(err => console.error('Error guardando diseño de sección:', err));
+}
+
+// Cerrar el selector al hacer clic afuera
+document.addEventListener('click', e => {
+    if (e.target.closest('.layout-picker, .layout-picker-btn')) return;
+    document.querySelectorAll('.layout-picker').forEach(p => { p.hidden = true; });
+});
+
 // ── Encuadre de imágenes de sección ───────────────────────────
 // Modelo (igual en el editor y en el menú público):
 // - posX / posY: punto de anclaje de la imagen dentro del recuadro (0–100). Es también
@@ -578,6 +683,7 @@ function initDropZones() {
 //   columna de imagen en el menú de escritorio). El recuadro mantiene esa PROPORCIÓN en
 //   cualquier pantalla, así la imagen se ve igual en celular, solo más chica.
 const IMG_REF_WIDTH = 344;
+const IMG_REF_WIDE  = 860; // "Imagen a lo ancho": referencia = ancho completo del menú
 const clamp01 = v => Math.max(0, Math.min(100, v));
 
 function imageFrame(imageConfig, key) {
@@ -840,12 +946,10 @@ async function guardarMenu() {
         if (heightSlider) imageConfigActual[`${key}_height`] = parseInt(heightSlider.value);
         if (flipBtn)      imageConfigActual[`${key}_flipH`]  = flipBtn.classList.contains('active');
     });
-    document.querySelectorAll('.layout-toggle-btn[data-img-key]').forEach(btn => {
-        const key = btn.dataset.imgKey;
-        const section = btn.closest('.menu-section');
-        if (key && section) {
-            imageConfigActual[`${key}_layout`] = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
-        }
+    document.querySelectorAll('.menu-section[data-img-key]').forEach(section => {
+        const key = section.dataset.imgKey;
+        imageConfigActual[`${key}_layout`] = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
+        imageConfigActual[`${key}_mode`]   = section.dataset.mode || 'text-image';
     });
 
     try {
