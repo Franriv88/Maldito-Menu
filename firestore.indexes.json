@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orden", "order": "ASCENDING" },
+        { "fieldPath": "ordenProducto", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "pedidos",
       "queryScope": "COLLECTION",
       "fields": [
