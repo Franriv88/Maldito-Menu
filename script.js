@@ -395,9 +395,6 @@ async function renderAdminMenu() {
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
                             <span class="flip-label">Voltear</span>
-                            <label class="img-bg-toggle" title="Si está marcada, al subir una imagen se le quita el fondo automáticamente">
-                                <input type="checkbox" class="img-bgremove-check"> Quitar fondo al subir
-                            </label>
                             <button class="img-removebg-btn" type="button" ${imageConfig[sec.imgKey] ? '' : 'hidden'}
                                     title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
@@ -574,7 +571,7 @@ function initDropZones() {
                 await uploadImage(new File([blob], 'imagen', { type: blob.type || 'image/png' }), zone.dataset.imgKey, zone, overlay, { removeBg: true });
             } catch (err) {
                 console.error('No se pudo leer la imagen actual:', err);
-                alert('No se pudo leer la imagen actual. Probá volviendo a subirla con "Quitar fondo al subir" marcado.');
+                alert('No se pudo leer la imagen actual. Probá volviendo a subirla y después usá "Quitar fondo".');
             }
         });
 
@@ -860,9 +857,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
     zone.classList.add('uploading');
     let fileToProcess = file;
 
-    // 1. Quitar el fondo solo si el admin lo eligió (casilla "Quitar fondo al subir"
-    //    o botón "Quitar fondo" sobre una imagen ya cargada → opts.removeBg)
-    const removeBg = opts.removeBg ?? !!zone.querySelector('.img-bgremove-check')?.checked;
+    // 1. La imagen se sube tal cual; el fondo solo se quita con el botón "Quitar fondo" (opts.removeBg)
+    const removeBg = !!opts.removeBg;
     if (removeBg) try {
         overlaySpan.textContent = 'Eliminando fondo…';
         const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
@@ -1510,7 +1506,7 @@ function initStyleControls() {
     }
 
     // ── Logo ──────────────────────────────────────────────────
-    initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false, 'logoBgRemove');
+    initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false, null); // el fondo se quita con el botón "Quitar fondo"
 
     document.getElementById('logoRemoveBgNowBtn')?.addEventListener('click', function () {
         removeBgFromPreview('logoPreview', 'logoBase64', false, this);
