@@ -22,7 +22,14 @@
 
     let cfg = null, table = null, hidePrices = false, active = false, tableOpen = false;
     let cart = load(sessionStorage, CART_KEY, {});        // { productId: { qty, name, price } }
-    let myOrders = load(localStorage, ORDERS_KEY, []);    // [{ id, number, at }]
+    const restrictions = new Set();                       // ids de RESTRICTIONS marcados en el pedido actual
+    // "Mis pedidos" vive en el celular y se limpia solo a las 6 h (cada visita empieza vacía)
+    const MY_ORDERS_TTL = 6 * 3600 * 1000;
+    const isFresh = o => Date.now() - (o.at || 0) < MY_ORDERS_TTL;
+    let myOrders = load(localStorage, ORDERS_KEY, []).filter(isFresh);   // [{ id, number, at }]
+    save(localStorage, ORDERS_KEY, myOrders);
+    const NAME_KEY = `diner_name_${restaurantId}`;         // nombre recordado para dividir la cuenta
+    let ordersTab = 'mine', tableData = null, tablePoll = null;
     const orderUnsubs = {};
     const orderState  = {};
 
@@ -135,10 +142,14 @@
 
         const bar = document.getElementById('toBar');
         if (!bar) return;
+        if (myOrders.some(o => !isFresh(o))) {
+            myOrders = myOrders.filter(isFresh);
+            save(localStorage, ORDERS_KEY, myOrders);
+        }
         const n = cartCount();
         const live = myOrders.filter(o => !['entregado', 'rechazado'].includes(orderState[o.id]?.status));
         bar.innerHTML = `
-            ${myOrders.length ? `<button class="to-bar-orders" type="button">Mis pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>` : ''}
+            <button class="to-bar-orders" type="button">Pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>
             <button class="to-bar-cart" type="button" ${n ? '' : 'disabled'}>
                 ${n ? `Ver pedido · ${n} ${n === 1 ? 'producto' : 'productos'}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : 'Agregá productos con +'}
             </button>`;
@@ -183,6 +194,7 @@
     function closeSheet() {
         document.getElementById('toSheet')?.classList.remove('open');
         document.body.style.overflow = '';
+        clearInterval(tablePoll); tablePoll = null;
     }
 
     function openCart() {
@@ -204,11 +216,20 @@
                         </div>
                     </div>`).join('')}
             </div>
-            <label class="to-field">Aclaraciones (opcional)
-                <textarea id="toNote" maxlength="300" rows="2" placeholder="Ej: sin azúcar, leche de almendras…"></textarea>
+            ${typeof RESTRICTIONS === 'undefined' ? '' : `
+            <div class="to-field">¿Alguna restricción? (opcional)
+                <div class="to-restrictions">
+                    ${RESTRICTIONS.map(x => `
+                        <button type="button" class="to-restr${restrictions.has(x.id) ? ' on' : ''}" data-r="${x.id}" aria-pressed="${restrictions.has(x.id)}">
+                            ${restrictionIcon(x.id, 18)}<span>${esc(x.label)}</span>
+                        </button>`).join('')}
+                </div>
+            </div>`}
+            <label class="to-field">Otras aclaraciones (opcional)
+                <textarea id="toNote" maxlength="300" rows="2" placeholder="Ej: leche de almendras, la carne bien cocida…"></textarea>
             </label>
             <label class="to-field">Tu nombre (opcional)
-                <input id="toName" maxlength="60" placeholder="Para que el mozo te encuentre">
+                <input id="toName" maxlength="60" placeholder="Para el mozo y para dividir la cuenta" value="${esc(load(localStorage, NAME_KEY, ''))}">
             </label>
             ${hidePrices ? '' : `<div class="to-total"><span>Total</span><b>${money(cartTotal())}</b></div>`}
             <p class="to-hint">Pagás al final, en el local.</p>
@@ -216,6 +237,12 @@
             <button class="to-send" type="button" id="toSend">Enviar pedido</button>`);
 
         el.querySelector('.to-x').addEventListener('click', closeSheet);
+        el.querySelectorAll('.to-restr').forEach(b => b.addEventListener('click', () => {
+            const on = !restrictions.has(b.dataset.r);
+            if (on) restrictions.add(b.dataset.r); else restrictions.delete(b.dataset.r);
+            b.classList.toggle('on', on);
+            b.setAttribute('aria-pressed', on);
+        }));
         el.querySelectorAll('.to-stepper button').forEach(b => b.addEventListener('click', () => {
             const id = b.closest('.to-line').dataset.id;
             setQty(id, (cart[id]?.qty || 0) + Number(b.dataset.d));
@@ -252,6 +279,7 @@
             items: Object.entries(cart).map(([id, l]) => ({ id, qty: l.qty })),
             note: el.querySelector('#toNote').value.trim(),
             name: el.querySelector('#toName').value.trim(),
+            restrictions: [...restrictions],
         };
         const post = async body => {
             const r = await fetch(`${FUNCTIONS_BASE}/placeOrder`, {
@@ -276,10 +304,13 @@
             if (!ok) throw new Error(data.error || 'No se pudo enviar el pedido.');
 
             cart = {};
+            restrictions.clear();
             save(sessionStorage, CART_KEY, cart);
             myOrders.unshift({ id: data.orderId, number: data.number, at: Date.now() });
-            myOrders = myOrders.slice(0, 10);
+            myOrders = myOrders.slice(0, 20);
             save(localStorage, ORDERS_KEY, myOrders);
+            if (payload.name) save(localStorage, NAME_KEY, payload.name);
+            tableData = null; // que "Pedidos de la mesa" se recargue
             watchOrder(data.orderId);
             renderBar();
             openSheet(`
@@ -289,7 +320,7 @@
                     <p>${data.status === 'pendiente'
                         ? 'El equipo lo confirma en un momento y pasa a cocina.'
                         : 'Ya está en cocina.'}</p>
-                    <p class="to-hint">Podés seguir su estado en <b>Mis pedidos</b>.</p>
+                    <p class="to-hint">Podés seguir su estado en <b>Pedidos</b>.</p>
                     <button class="to-send" type="button">Seguir mirando el menú</button>
                 </div>`).querySelector('.to-send').addEventListener('click', closeSheet);
         } catch (e) {
@@ -299,24 +330,84 @@
         }
     }
 
-    function openOrders() {
+    // ── Pedidos: "Mis pedidos" (este celular) y "Pedidos de la mesa" (todos) ──
+
+    const countsForBill = o => o.status !== 'rechazado';
+
+    function orderBlock(o, { title, mine = false }) {
+        const st = STATUS[o.status] || { label: 'Cargando…', cls: '' };
+        return `
+        <div class="to-order${mine ? ' mine' : ''}">
+            <div class="to-order-head"><b>${title}</b><span class="to-status ${st.cls}">${st.label}</span></div>
+            ${o.items ? `<ul>${o.items.map(i => `<li><span>${i.qty} × ${esc(i.nombre)}</span>${hidePrices ? '' : `<span>${money(i.precio * i.qty)}</span>`}</li>`).join('')}</ul>` : ''}
+            ${o.restrictions?.length ? `<div class="to-order-restr">${o.restrictions.map(x => `<span>${restrictionIcon(x.id, 13)} ${esc(x.label)}</span>`).join('')}</div>` : ''}
+            ${!hidePrices && o.items ? `<div class="to-order-total"><span>${o.status === 'rechazado' ? 'No se cobra' : 'Subtotal'}</span><b>${money(o.total)}</b></div>` : ''}
+        </div>`;
+    }
+
+    function mineHTML() {
+        const mine = myOrders.filter(isFresh);
+        if (!mine.length) return '<p class="to-empty">Todavía no hiciste pedidos desde este celular.</p>';
+        const total = mine.reduce((s, o) => s + (orderState[o.id] && countsForBill(orderState[o.id]) ? orderState[o.id].total || 0 : 0), 0);
+        return mine.map(o => orderBlock({ ...(orderState[o.id] || {}), status: orderState[o.id]?.status },
+                { title: `Pedido #${o.number}`, mine: true })).join('')
+            + (hidePrices ? '' : `<div class="to-sum"><span>Tu total</span><b>${money(total)}</b></div>`);
+    }
+
+    function tableHTML() {
+        if (!tableData) return '<p class="to-empty">Cargando los pedidos de la mesa…</p>';
+        if (tableData.error) return `<p class="to-empty">${esc(tableData.error)}</p>`;
+        if (!tableData.orders.length) return '<p class="to-empty">Todavía no hay pedidos en esta mesa.</p>';
+        const mineIds = new Set(myOrders.map(o => o.id));
+        const total = tableData.orders.filter(countsForBill).reduce((s, o) => s + o.total, 0);
+        return `<p class="to-hint" style="margin:0 0 4px">Cada pedido muestra el nombre de quien lo hizo, para dividir la cuenta.</p>`
+            + tableData.orders.slice().reverse().map(o => orderBlock(o, {
+                title: `#${o.number} · ${esc(o.customerName || 'Sin nombre')}${mineIds.has(o.id) ? ' (vos)' : ''}`,
+                mine: mineIds.has(o.id),
+            })).join('')
+            + (hidePrices ? '' : `<div class="to-sum"><span>Total de la mesa</span><b>${money(total)}</b></div>`);
+    }
+
+    async function fetchTableOrders() {
+        try {
+            const r = await fetch(`${FUNCTIONS_BASE}/tableOrders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ r: restaurantId, mesa: mesaId }),
+            });
+            const data = await r.json().catch(() => ({}));
+            tableData = r.ok ? { orders: data.orders || [] } : { error: data.error || 'No se pudieron cargar los pedidos.' };
+        } catch {
+            tableData = tableData || { error: 'Sin conexión. Reintentando…' };
+        }
+        if (ordersTab === 'table' && document.querySelector('#toSheet.open .to-orders')) openOrders('table');
+    }
+
+    function openOrders(tab = ordersTab) {
+        ordersTab = tab;
+        const sheetBody = document.querySelector('#toSheet .to-sheet');
+        const keepScroll = document.querySelector('#toSheet.open .to-orders') ? sheetBody.scrollTop : 0;
         const el = openSheet(`
             <div class="to-sheet-head">
-                <h3>Mis pedidos</h3>
+                <h3>Pedidos · ${esc(table.label)}</h3>
                 <button class="to-x" type="button" aria-label="Cerrar">×</button>
             </div>
-            <div class="to-orders">
-                ${myOrders.map(o => {
-                    const d  = orderState[o.id];
-                    const st = STATUS[d?.status] || { label: 'Cargando…', cls: '' };
-                    return `
-                    <div class="to-order">
-                        <div class="to-order-head"><b>Pedido #${o.number}</b><span class="to-status ${st.cls}">${st.label}</span></div>
-                        ${d ? `<ul>${d.items.map(i => `<li>${i.qty} × ${esc(i.nombre)}</li>`).join('')}</ul>` : ''}
-                    </div>`;
-                }).join('')}
-            </div>`);
+            <div class="to-tabs" role="tablist">
+                <button type="button" role="tab" class="to-tab${tab === 'mine' ? ' on' : ''}" data-tab="mine" aria-selected="${tab === 'mine'}">Mis pedidos</button>
+                <button type="button" role="tab" class="to-tab${tab === 'table' ? ' on' : ''}" data-tab="table" aria-selected="${tab === 'table'}">Pedidos de la mesa</button>
+            </div>
+            <div class="to-orders">${tab === 'mine' ? mineHTML() : tableHTML()}</div>`);
+        el.scrollTop = keepScroll;
         el.querySelector('.to-x').addEventListener('click', closeSheet);
+        el.querySelectorAll('.to-tab').forEach(b => b.addEventListener('click', () => openOrders(b.dataset.tab)));
+
+        // La vista de la mesa se actualiza cada 15 s mientras está abierta
+        if (tab === 'table' && !tablePoll) {
+            fetchTableOrders();
+            tablePoll = setInterval(fetchTableOrders, 15000);
+        } else if (tab === 'mine' && tablePoll) {
+            clearInterval(tablePoll); tablePoll = null;
+        }
     }
 
     function watchOrder(id) {

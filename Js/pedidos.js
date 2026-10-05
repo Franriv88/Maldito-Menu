@@ -146,7 +146,9 @@ function initBoardControls() {
     });
     const sound = document.getElementById('soundOn');
     sound.checked = lsGet('pedidos_sound') !== '0';
-    sound.addEventListener('change', () => lsSet('pedidos_sound', sound.checked ? '1' : '0'));
+    sound.addEventListener('change', () => { lsSet('pedidos_sound', sound.checked ? '1' : '0'); renderSoundHint(); });
+    document.getElementById('testSoundBtn').addEventListener('click', () => { unlockAudio(); setTimeout(beep, 50); });
+    renderSoundHint();
 
     document.querySelector('.pd-board').addEventListener('click', onBoardClick);
     setInterval(() => { renderBoard(); renderTableStrip(); }, 30 * 1000); // refresca "hace X min"
@@ -233,6 +235,8 @@ function orderCard(o, isNew) {
         </div>
         <div class="pd-card-meta">${minutesAgo(o)}${o.customerName ? ` · ${esc(o.customerName)}` : ''}</div>
         ${verificationBadges(o)}
+        ${o.restrictions?.length ? `<div class="pd-restr">${o.restrictions.map(x =>
+            `<span>${typeof restrictionIcon === 'function' ? restrictionIcon(x.id, 14) : ''} ${esc(x.label)}</span>`).join('')}</div>` : ''}
         <ul class="pd-items">${(o.items || []).map(i => `<li><b>${i.qty}×</b>${esc(i.nombre)}${i.nota ? `<small>${esc(i.nota)}</small>` : ''}</li>`).join('')}</ul>
         ${o.note ? `<div class="pd-note">${licon('message-square', 13)} ${esc(o.note)}</div>` : ''}
         <div class="pd-card-foot">
@@ -367,21 +371,45 @@ function renderWifiStatus() {
 
 // ── Alertas de pedido nuevo ───────────────────────────────────
 
+// Los navegadores solo permiten audio después de que la persona interactúa con la
+// página: si el AudioContext se crea antes, queda "suspended" y no suena (sin error).
+// Por eso se crea/reanuda con el primer toque o tecla, y se avisa mientras esté bloqueado.
 let audioCtx = null;
-function beep() {
-    if (lsGet('pedidos_sound') === '0') return;
+
+function unlockAudio() {
     try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        [0, 0.25].forEach(offset => {
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.frequency.value = 880; osc.type = 'sine';
-            gain.gain.setValueAtTime(0.25, audioCtx.currentTime + offset);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + offset + 0.2);
-            osc.connect(gain).connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime + offset); osc.stop(audioCtx.currentTime + offset + 0.2);
-        });
-    } catch { /* el navegador bloquea audio hasta la primera interacción */ }
+        if (audioCtx.state === 'suspended') audioCtx.resume().then(renderSoundHint, () => {});
+    } catch { /* sin soporte de audio */ }
+    renderSoundHint();
 }
+
+const audioReady = () => audioCtx?.state === 'running';
+
+function renderSoundHint() {
+    const hint = document.getElementById('soundHint');
+    if (!hint) return;
+    hint.classList.toggle('pd-hidden', audioReady() || lsGet('pedidos_sound') === '0');
+}
+
+function beep() {
+    if (lsGet('pedidos_sound') === '0' || !audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    // 3 tonos ascendentes, fuerte y corto, para escucharse en una cocina
+    [[0, 784], [0.18, 988], [0.36, 1319]].forEach(([offset, freq]) => {
+        const t = audioCtx.currentTime + offset;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.32);
+    });
+}
+
+['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, unlockAudio, { passive: true }));
 
 function alertNewOrders(fresh) {
     beep();
@@ -429,12 +457,14 @@ function ticketHTML(o) {
         .meta { font-size: .9em; } hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
         .it { font-size: 1.15em; font-weight: bold; margin: 1mm 0; } .nt { margin: 0 0 1mm 4mm; font-style: italic; }
         .note { border: 1px solid #000; padding: 1mm 2mm; margin-top: 2mm; }
+        .restr { background: #000; color: #fff; font-weight: bold; font-size: 1.2em; text-align: center; padding: 1.5mm; margin-bottom: 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .end { height: 12mm; }
     </style></head><body>
         <h1>${esc(o.mesaLabel)}</h1>
         <h2>Pedido #${o.number}</h2>
         <div class="meta">${time}${o.customerName ? ' · ' + esc(o.customerName) : ''}<br>${esc(restName)}</div>
         <hr>
+        ${o.restrictions?.length ? `<div class="restr">${o.restrictions.map(x => esc(x.label).toUpperCase()).join('<br>')}</div>` : ''}
         ${(o.items || []).map(i => `<div class="it">${i.qty} x ${esc(i.nombre)}</div>${i.nota ? `<div class="nt">&gt; ${esc(i.nota)}</div>` : ''}`).join('')}
         ${o.note ? `<div class="note">NOTA: ${esc(o.note)}</div>` : ''}
         <hr><div class="end"></div>
@@ -610,6 +640,7 @@ function initSettingsTab() {
         number: 0, mesaLabel: 'Mesa de prueba', customerName: 'Prueba',
         items: [{ qty: 2, nombre: 'Café con leche', nota: 'uno sin azúcar' }, { qty: 1, nombre: 'Medialunas x3' }],
         note: 'Ticket de prueba de Cubierto',
+        restrictions: [{ id: 'sin_tacc', label: 'Sin TACC' }],
     }));
     document.getElementById('copyCloudUrl').addEventListener('click', async () => {
         await navigator.clipboard.writeText(document.getElementById('cloudUrl').textContent);

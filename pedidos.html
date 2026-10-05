@@ -67,6 +67,9 @@
             padding: 6px 12px; border-radius: 999px; border: 1px solid var(--pd-border);
             background: var(--pd-surface); color: var(--pd-muted);
         }
+        button.pd-chip { cursor: pointer; font-family: inherit; }
+        #soundHint { animation: pd-pulse 1.6s ease-in-out infinite; }
+        @keyframes pd-pulse { 50% { opacity: .55; } }
         .pd-chip.on { color: var(--pd-green); border-color: color-mix(in srgb, var(--pd-green) 45%, transparent); }
         .pd-chip.off { color: var(--pd-red); border-color: color-mix(in srgb, var(--pd-red) 45%, transparent); }
         .pd-chip input { accent-color: var(--pd-accent); margin: 0; }
@@ -90,6 +93,11 @@
         .pd-items li { padding: 3px 0; }
         .pd-items b { display: inline-block; min-width: 26px; color: var(--pd-accent); }
         .pd-items small { display: block; color: var(--pd-amber); padding-left: 26px; }
+        .pd-restr { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .pd-restr span {
+            display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 7px;
+            font-size: .78rem; font-weight: 700; color: #fff; background: var(--pd-red);
+        }
         .pd-note { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: .82rem; background: color-mix(in srgb, var(--pd-amber) 12%, transparent); color: var(--pd-text); }
         .pd-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         .pd-total { font-size: .85rem; color: var(--pd-muted); }
@@ -204,7 +212,11 @@
                 <input type="checkbox" id="isPrinterDevice"> Esta pantalla imprime los tickets
             </label>
             <span class="pd-spacer"></span>
+            <button class="pd-chip off" id="soundHint" type="button" title="Los navegadores bloquean el sonido hasta que tocás la página">
+                <i data-lucide="volume-x" style="width:14px;height:14px"></i> Tocá acá para activar el sonido
+            </button>
             <label class="pd-chip"><input type="checkbox" id="soundOn" checked> Sonido</label>
+            <button class="pd-chip" id="testSoundBtn" type="button"><i data-lucide="volume-2" style="width:14px;height:14px"></i> Probar</button>
         </div>
         <div class="pd-tablestrip" id="tableStrip" aria-label="Mesas"></div>
         <div class="pd-board">
@@ -335,7 +347,8 @@
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js"></script>
-    <script src="./Js/pedidos.js"></script>
+    <script src="./Js/restrictions.js?v=2"></script>
+    <script src="./Js/pedidos.js?v=2"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

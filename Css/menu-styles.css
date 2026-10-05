@@ -485,3 +485,36 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 .to-toast.show { transform: translate(-50%, 0); }
 .to-banner { flex-wrap: wrap; }
 .to-banner-sub { flex-basis: 100%; text-align: center; font-size: .72rem; opacity: .75; }
+
+/* Restricciones alimentarias (chips con ícono) */
+.to-restrictions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.to-restr {
+    display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 10px;
+    border-radius: 10px; cursor: pointer; text-align: left;
+    font: .85rem var(--main-font-family); color: var(--text-color);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-color) 25%, transparent);
+    transition: background .15s, border-color .15s, color .15s;
+}
+.to-restr.on {
+    color: var(--primary-color); background: var(--title-color); border-color: var(--title-color); font-weight: 600;
+}
+.to-order-restr { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.to-order-restr span {
+    display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--title-color) 45%, transparent); color: var(--title-color);
+}
+
+/* Pedidos: pestañas "Mis pedidos" / "Pedidos de la mesa" y totales para dividir la cuenta */
+.to-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 8px; border-radius: 12px;
+    background: color-mix(in srgb, var(--text-color) 10%, transparent); }
+.to-tab { min-height: 40px; border: none; border-radius: 9px; cursor: pointer; background: transparent;
+    font: 600 .85rem var(--main-font-family); color: var(--text-color); }
+.to-tab.on { background: var(--title-color); color: var(--primary-color); }
+.to-order.mine { border-left: 3px solid var(--title-color); padding-left: 10px; }
+.to-order ul { list-style: none; padding-left: 0; }
+.to-order li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+.to-order-total { display: flex; justify-content: space-between; margin-top: 6px; font-size: .82rem; opacity: .85; }
+.to-sum { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 12px;
+    border-top: 2px solid var(--title-color); color: var(--title-color); font-size: 1.05rem; }
+.to-empty { text-align: center; opacity: .7; padding: 24px 8px; margin: 0; }

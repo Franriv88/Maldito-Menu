@@ -17,7 +17,8 @@
       "cors.json",
       "fix-cors.js",
       "design-system.html",
-      "design-system.png"
+      "design-system.png",
+      "firestore.indexes.json"
     ],
     "rewrites": [
       {
@@ -30,7 +31,8 @@
     ]
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "functions": [
     {

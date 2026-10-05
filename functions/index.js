@@ -408,6 +408,13 @@ exports.redeemCoupon = onRequest(
 //   3. GPS (solo se pide si 1 y 2 no alcanzan)
 // ══════════════════════════════════════════════════════════════
 
+// Restricciones alimentarias que el comensal puede marcar (misma lista que Js/restrictions.js)
+const RESTRICTIONS = {
+    sin_tacc: "Sin TACC", sin_lactosa: "Sin lactosa", vegano: "Vegano", vegetariano: "Vegetariano",
+    sin_azucar: "Sin azúcar", sin_frutos_secos: "Sin frutos secos", sin_huevo: "Sin huevo",
+    sin_pescado: "Sin pescado ni mariscos",
+};
+
 const TABLE_SESSION_TTL = 6 * 3600 * 1000;   // mesa abierta sin actividad → se considera cerrada
 const KNOWN_IP_TTL      = 30 * 60 * 1000;    // IP del local válida si el tablero la reportó hace < 30 min
 
@@ -489,7 +496,7 @@ exports.placeOrder = onRequest(
     { cors: true, invoker: "public" },
     async (req, res) => {
         if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
-        const { r, mesa, items, note, name, coords } = req.body || {};
+        const { r, mesa, items, note, name, coords, restrictions } = req.body || {};
         if (typeof r !== "string" || typeof mesa !== "string" || !Array.isArray(items) || !items.length) {
             res.status(400).json({ error: "Pedido inválido" }); return;
         }
@@ -580,9 +587,10 @@ exports.placeOrder = onRequest(
             const number = await db.runTransaction(async tx => {
                 const priv = (await tx.get(privRef)).data() || {};
 
-                // Límite: 6 pedidos cada 10 minutos por mesa
+                // Límite: 15 pedidos cada 10 minutos por mesa (alcanza para un grupo grande
+                // donde cada uno pide desde su celular)
                 const recent = ((priv.rate || {})[mesa] || []).filter(t => now - t < 10 * 60 * 1000);
-                if (recent.length >= 6) throw Object.assign(new Error("rate"), { code: "rate" });
+                if (recent.length >= 15) throw Object.assign(new Error("rate"), { code: "rate" });
 
                 // Número de pedido diario (se reinicia cada día, hora Argentina)
                 const today = new Date(now - 3 * 3600 * 1000).toISOString().slice(0, 10);
@@ -596,6 +604,8 @@ exports.placeOrder = onRequest(
                     items:      lines,
                     total:      lines.reduce((s, l) => s + l.precio * l.qty, 0),
                     note:       String(note || "").slice(0, 300),
+                    restrictions: [...new Set(Array.isArray(restrictions) ? restrictions : [])]
+                        .filter(id => RESTRICTIONS[id]).map(id => ({ id, label: RESTRICTIONS[id] })),
                     customerName: String(name || "").slice(0, 60),
                     status:     direct ? "en_cocina" : "pendiente",
                     printStatus: direct ? "queued" : "none",
@@ -623,6 +633,65 @@ exports.placeOrder = onRequest(
             console.error("placeOrder:", err.message);
             res.status(500).json({ error: "No se pudo enviar el pedido. Intentá de nuevo." });
         }
+    }
+);
+
+// ── Pedidos de la mesa (vista compartida para los comensales) ─
+// Devuelve los pedidos de la "visita" actual de la mesa, para que todos los de la
+// mesa vean lo pedido y puedan dividir la cuenta. La visita empieza cuando se
+// CERRÓ la mesa por última vez (el grupo anterior pagó) — no cuando se abrió,
+// porque el primer pedido de un grupo llega con la mesa cerrada y al aceptarlo se abre.
+//  - sin cierre registrado → últimas 6 horas
+//  - sin "mesa abierta" activado → últimas 3 horas
+// Nunca más de 6 horas atrás.
+
+exports.tableOrders = onRequest(
+    { cors: true, invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const { r, mesa } = req.body || {};
+        if (typeof r !== "string" || typeof mesa !== "string") { res.status(400).json({ error: "Datos inválidos" }); return; }
+
+        const restRef = db.collection("restaurants").doc(r);
+        const [cfgSnap, mesaSnap] = await Promise.all([
+            restRef.collection("config").doc("ordering").get(),
+            restRef.collection("mesas").doc(mesa).get(),
+        ]);
+        const cfg = cfgSnap.data() || {};
+        if (!cfg.enabled || !(cfg.tables || []).some(t => t.id === mesa)) {
+            res.status(404).json({ error: "Mesa no disponible" }); return;
+        }
+
+        const now = Date.now();
+        const m   = mesaSnap.data() || {};
+        let since = cfg.tableSessions !== false
+            ? (m.closedAt?.toMillis?.() || 0)
+            : now - 3 * 3600 * 1000;
+        since = Math.max(since, now - 6 * 3600 * 1000);
+
+        // Requiere índice compuesto pedidos(mesaId, createdAt) — ver firestore.indexes.json
+        const snap = await restRef.collection("pedidos")
+            .where("mesaId", "==", mesa)
+            .where("createdAt", ">=", Timestamp.fromMillis(since))
+            .orderBy("createdAt", "asc")
+            .limit(60)
+            .get();
+
+        res.json({
+            orders: snap.docs.map(d => {
+                const o = d.data();
+                return {
+                    id:           d.id,
+                    number:       o.number,
+                    status:       o.status,
+                    customerName: o.customerName || "",
+                    items:        (o.items || []).map(i => ({ nombre: i.nombre, qty: i.qty, precio: i.precio })),
+                    total:        o.total || 0,
+                    restrictions: o.restrictions || [],
+                    createdAt:    o.createdAt?.toMillis?.() || null,
+                };
+            }),
+        });
     }
 );
 
@@ -661,6 +730,7 @@ exports.onOrderWritten = onDocumentWritten(
             total:        after.total,
             note:         after.note,
             customerName: after.customerName,
+            restrictions: after.restrictions || [],
             createdAt:    after.createdAt?.toDate?.().toISOString() || null,
         });
         const signature = crypto.createHmac("sha256", priv.webhookSecret || "").update(body).digest("hex");
@@ -691,6 +761,10 @@ function ticketLines(o, width = 42) {
             .toISOString().slice(11, 16) + (o.customerName ? `  ${o.customerName}` : ""),
         line,
     ];
+    // Restricciones bien visibles arriba del ticket
+    if (o.restrictions?.length) {
+        out.push(`*** ${o.restrictions.map(x => x.label.toUpperCase()).join(" / ")} ***`, line);
+    }
     for (const it of o.items || []) {
         out.push(`${it.qty} x ${it.nombre}`.slice(0, width));
         if (it.nota) out.push(`   > ${it.nota}`);
