@@ -23,7 +23,7 @@ function licon(name, size = 16) {
     try {
         // En v0.309 createElement recibe la definición del ícono (lucide.Sun),
         // no el nombre como string. Convertimos kebab → PascalCase para buscarlo.
-        const def = lucide[_toPascal(resolved)];
+        const def = lucide[_toPascal(resolved)] || lucide[_toPascal(name)];
         const el  = def ? lucide.createElement(def) : lucide.createElement(resolved);
         el.setAttribute('width', size);
         el.setAttribute('height', size);

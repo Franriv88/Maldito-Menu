@@ -11,7 +11,9 @@
       }
     }
     </script>
-    <link rel="icon" id="favicon-link" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88' font-family='Georgia,serif' font-style='italic' fill='%23c8b89a'>C</text></svg>">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Lobster&family=Dancing+Script:wght@400;700&family=UnifrakturMaguntia&family=Abril+Fatface&family=Oswald:wght@400;600&family=Merriweather:ital,wght@0,300;0,400;1,300&family=Pacifico&family=Great+Vibes&family=Raleway:wght@300;400;600&family=Bebas+Neue&family=Satisfy&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -31,6 +33,7 @@
         </div>
         <div class="topbar-right">
             <span id="topbarUserName"></span>
+            <a id="ordersLink" href="#"><i data-lucide="chef-hat" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Pedidos</a>
             <a id="viewMenuLink" href="#" target="_blank"><i data-lucide="eye" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Ver menú</a>
             <button class="theme-btn" id="themeBtn"><i data-lucide="sun" style="width:15px;height:15px;stroke-width:1.75"></i></button>
             <button id="logoutBtn">Cerrar sesión</button>
@@ -234,24 +237,6 @@
                 <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar logo</button>
             </div>
 
-            <!-- Favicon -->
-            <div class="sidebar-section">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:.45rem">
-                    <label class="ctrl-label" style="margin:0">Ícono de pestaña (favicon)</label>
-                    <button id="faviconInfoBtn" title="¿Qué es un favicon?" style="width:16px;height:16px;border-radius:50%;background:rgba(124,108,92,.15);border:1px solid rgba(124,108,92,.3);color:rgba(200,184,154,.6);font-size:.6rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;padding:0">?</button>
-                </div>
-                <div class="mini-drop" id="faviconDrop">
-                    <span id="faviconDropText">Arrastrá o clic</span>
-                    <img id="faviconPreview" style="display:none;width:32px;height:32px;margin-top:6px;border-radius:4px;">
-                </div>
-                <label class="bg-remove-toggle">
-                    <input type="checkbox" id="faviconBgRemove" checked>
-                    <span>Quitar fondo al subir</span>
-                </label>
-                <button class="btn-remove-bg-now" id="faviconRemoveBgNowBtn" style="display:none"><i data-lucide="sparkles" class="icon" style="width:12px;height:12px;stroke-width:1.75"></i> Quitar fondo ahora</button>
-                <button class="btn-remove-asset" id="faviconRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar ícono</button>
-            </div>
-
             <!-- ── PIE DEL MENÚ ── -->
             <hr class="sidebar-divider">
             <h3 class="sidebar-title">Pie del menú</h3>
@@ -277,24 +262,6 @@
 
         </aside>
 
-        <!-- Modal favicon info -->
-        <div id="faviconModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center">
-            <div style="background:#1a1a1a;border:1px solid rgba(124,108,92,.25);border-radius:16px;padding:1.8rem;max-width:420px;width:90%;position:relative">
-                <button onclick="document.getElementById('faviconModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;color:rgba(200,184,154,.5);font-size:1.2rem;cursor:pointer;line-height:1">×</button>
-                <h3 style="color:#c8b89a;margin:0 0 .8rem;font-size:1rem;font-weight:600">¿Qué es un Favicon?</h3>
-                <p style="color:rgba(200,184,154,.6);font-size:.8rem;line-height:1.6;margin:0 0 1rem">Es el pequeño ícono que aparece en la <strong style="color:#c8b89a">pestaña del navegador</strong>, en los marcadores y cuando un usuario guarda el menú en el celular como acceso directo.</p>
-                <div style="background:#0e0e0e;border-radius:10px;padding:1rem;font-family:monospace;font-size:.72rem;color:rgba(200,184,154,.5)">
-                    <div style="background:#2a2a2a;border-radius:6px 6px 0 0;padding:.4rem .7rem;display:flex;align-items:center;gap:.5rem;width:fit-content;min-width:140px">
-                        <div style="width:14px;height:14px;background:rgba(200,184,154,.15);border-radius:3px;border:1px solid rgba(200,184,154,.2);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#c8b89a;font-style:italic;font-weight:700">C</div>
-                        <span style="color:rgba(200,184,154,.7);font-size:.68rem">Mi Restaurante</span>
-                        <span style="color:rgba(200,184,154,.25);font-size:.65rem">×</span>
-                    </div>
-                    <div style="border-top:2px solid #c8b89a;margin-top:-1px;padding:.3rem .5rem;color:rgba(200,184,154,.3);font-size:.65rem">🔒 maldito-cafe.web.app/menu?r=...</div>
-                </div>
-                <p style="color:rgba(200,184,154,.4);font-size:.7rem;margin:.8rem 0 0;line-height:1.5">Recomendado: imagen cuadrada de al menos <strong style="color:rgba(200,184,154,.6)">64×64px</strong>, con fondo transparente si es posible.</p>
-            </div>
-        </div>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
@@ -305,7 +272,7 @@
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=3"></script>
     <script src="./Js/benefits-config.js"></script>
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=8"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

@@ -7,6 +7,11 @@ service cloud.firestore {
              request.auth.token.email == 'frivasv2388@gmail.com';
     }
 
+    function isOwner(restaurantId) {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid;
+    }
+
     match /restaurants/{restaurantId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -14,22 +19,50 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
                             && (resource.data.ownerId == request.auth.uid || isSuperAdmin());
 
+      // Menú, config y estilos: lectura pública
       match /{sub}/{docId} {
-        allow read: if true;
-        allow write: if request.auth != null
-                     && (get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid || isSuperAdmin());
+        allow read: if !(sub in ['pedidos', 'private']);
+        allow write: if !(sub in ['pedidos', 'private'])
+                     && (isOwner(restaurantId) || isSuperAdmin());
+      }
+
+      // Pedidos: los crea solo el servidor (placeOrder).
+      // get público = el comensal sigue su pedido con el id (aleatorio) que recibió.
+      match /pedidos/{orderId} {
+        allow get:    if true;
+        allow list:   if isOwner(restaurantId) || isSuperAdmin();
+        allow update: if (isOwner(restaurantId) || isSuperAdmin())
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['status', 'printStatus', 'printedAt', 'sentToKitchenAt', 'updatedAt']);
+        allow delete: if isOwner(restaurantId) || isSuperAdmin();
+      }
+
+      // Secretos (clave de impresora, webhook): solo el dueño
+      match /private/{docId} {
+        allow read, write: if isOwner(restaurantId) || isSuperAdmin();
       }
     }
 
     match /appConfig/{docId} {
-      allow read:  if true;
+      allow read:  if docId != 'coupons' || isSuperAdmin();
       allow write: if isSuperAdmin();
     }
 
+    // users/{uid}.subscription solo la escribe el servidor (Functions) o el superadmin.
+    // Excepción: al registrarse el usuario puede crearla como { status: 'unpaid' }.
     match /users/{userId} {
+      function initialSubscriptionOnly() {
+        return !('subscription' in request.resource.data)
+            || request.resource.data.subscription == { 'status': 'unpaid' };
+      }
+
       allow read:   if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
-      allow create: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
-      allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow create: if isSuperAdmin()
+                    || (request.auth != null && request.auth.uid == userId && initialSubscriptionOnly());
+      allow update: if isSuperAdmin()
+                    || (request.auth != null && request.auth.uid == userId
+                        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription'])
+                            || (!('subscription' in resource.data) && initialSubscriptionOnly())));
       allow delete: if isSuperAdmin();
     }
 

@@ -115,10 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
         if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
         if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
-
-        // Favicon: preferir URL HTTP real (Storage) → fallback a base64
-        const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
-        if (iconSrc) setFavicon(iconSrc);
+        // El favicon es siempre el de Cubierto (no se reemplaza por el del restaurante)
     }
 
     // ── Fondo del menú (imagen + blur + overlay) ──────────────────
@@ -154,19 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.classList.add('has-menu-bg');
     }
 
-    // ── Favicon (fuerza recarga para evitar caché del browser) ──
-    function setFavicon(src) {
-        const old = document.getElementById('favicon-link');
-        if (old) old.remove();
-        const link = document.createElement('link');
-        link.rel = 'icon'; link.id = 'favicon-link'; link.href = src;
-        document.head.appendChild(link);
-    }
-
-    // ── Meta tags para compartir (og:image, og:title, favicon) ─
+    // ── Meta tags para compartir (og:image, og:title) ──────────
     function updateShareMeta() {
         const nombre  = restData.nombre || 'Menú';
-        const logoSrc = stylesConfig.faviconBase64 || stylesConfig.logoBase64 || '';
 
         const setMeta = (prop, val, isName) => {
             const attr = isName ? 'name' : 'property';
@@ -281,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 productos.forEach(item => {
                     const desc = item.descripcion || 'El clásico de la casa.';
                     contentHTML += `
-                        <div class="menu-item">
+                        <div class="menu-item" data-id="${item.id}" data-price="${String(item.precio ?? '').replace(/"/g, '')}">
                             <div class="item-header">
                                 <span class="producto">${item.nombre}</span>
                                 ${stylesConfig.hidePrices ? '' : `<span class="precio">$${item.precio}</span>`}
@@ -301,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         iniciarDemostracionAcordeon();
+        window.TableOrdering?.decorate(menuContainer); // botones "+" si se pide desde la mesa
     }
 
     // ── Acordeón ───────────────────────────────────────────────

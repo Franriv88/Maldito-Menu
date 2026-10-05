@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <title>Cubierto — Presentación</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -680,7 +683,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                     <div class="feat-icon" style="font-size:.7rem">🖼</div>
                     <div class="feat-text">
                         <h4>Logo + eliminación de fondo IA</h4>
-                        <p>Subís tu logo, la IA elimina el fondo automáticamente. También para el favicon de la pestaña.</p>
+                        <p>Subís tu logo, la IA elimina el fondo automáticamente.</p>
                     </div>
                 </div>
             </div>
@@ -922,7 +925,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                 <h4>Gestión para el admin</h4>
                 <div class="tech-item">Dashboard multi-restaurante por cuenta</div>
                 <div class="tech-item">Edición de nombre inline desde el panel</div>
-                <div class="tech-item">Logo y favicon personalizados con eliminación de fondo</div>
+                <div class="tech-item">Logo personalizado con eliminación de fondo</div>
                 <div class="tech-item">Preview en tiempo real en el editor admin</div>
             </div>
         </div>
@@ -1322,7 +1325,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
             phone:       prefilledData.phone,
             createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
             lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
-            subscription: { status: 'unpaid' },
+            ...(!snap.data()?.subscription && { subscription: { status: 'unpaid' } }),
         }, { merge: true });
         window.location.href = './checkout.html';
         return;
@@ -1374,7 +1377,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
         phone:       form.phone,
         createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
         lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
-        subscription: { status: 'unpaid' },
+        ...(!snap.data()?.subscription && { subscription: { status: 'unpaid' } }),
     }, { merge: true });
 
     window.location.href = './checkout.html';

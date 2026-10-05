@@ -111,6 +111,7 @@ function buildCard(id, data) {
         </div>
         <div class="card-actions">
             <a href="admin.html?r=${id}" class="btn-card btn-edit">${licon('pencil',13)} Editar menú</a>
+            <a href="pedidos.html?r=${id}" class="btn-card">${licon('chef-hat',13)} Pedidos</a>
             <a href="${menuUrl}" target="_blank" class="btn-card">${licon('eye',13)} Ver menú</a>
             <button class="btn-card" data-qr="${id}" data-name="${esc(data.nombre)}">${licon('qr-code',13)} QR / Link</button>
             <button class="btn-card btn-delete" data-del="${id}" data-name="${esc(data.nombre)}">${licon('trash-2',13)} Eliminar</button>

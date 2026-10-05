@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SuperAdmin — Cubierto</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88' font-family='Georgia,serif' font-style='italic' fill='%23c8b89a'>C</text></svg>">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -481,8 +483,8 @@ function renderPlans() {
             <div class="sa-plan-meta">${p.durationDays} días de acceso</div>
             ${p.savingsLabel ? `<div class="sa-plan-saving">${esc(p.savingsLabel)}</div>` : ''}
             ${benefitBadges ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:.4rem 0">${benefitBadges}</div>` : ''}
-            <div class="sa-plan-link-status ${p.mpLink ? 'has-link' : 'no-link'}">
-                ${p.mpLink ? `${licon('link-2',12)} Link MP configurado` : `${licon('alert-triangle',12)} Sin link de pago`}
+            <div class="sa-plan-link-status has-link">
+                ${licon('link-2',12)} Cobro automático con Mercado Pago
             </div>
             <div class="sa-plan-actions">
                 <button class="sa-btn sa-btn-unblock" onclick="editPlan(${i})" style="flex:1">Editar</button>
@@ -510,8 +512,7 @@ async function editPlan(idx) {
             <input id="sp-price" type="number" min="0" style="${inp}" value="${plan.price}" placeholder="20000">
             <label style="${lbl}">Duración (días)</label>
             <input id="sp-days"  type="number" min="1" style="${inp}" value="${plan.durationDays}" placeholder="30">
-            <label style="${lbl}">Link de Mercado Pago</label>
-            <input id="sp-link"  type="url" style="${inp}" value="${esc(plan.mpLink || '')}" placeholder="https://mpago.la/...">
+            <input id="sp-link"  type="hidden" value="${esc(plan.mpLink || '')}">
             <label style="${lbl}">Etiqueta de ahorro (opcional)</label>
             <input id="sp-save" style="${inp}" value="${esc(plan.savingsLabel || '')}" placeholder="Ej: Ahorrás $6.000">
             <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:rgba(200,184,154,.6);margin-top:.3rem">
@@ -530,7 +531,7 @@ async function editPlan(idx) {
                 </div>
                 ${BENEFITS_CONFIG.filter(b => b.type === 'bool').map(b => `
                     <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.78rem;color:rgba(200,184,154,.65);margin:.3rem 0">
-                        <input type="checkbox" id="sp-${b.id}" ${plan.benefits?.[b.id]!==false?'checked':''} style="accent-color:#c8b89a">
+                        <input type="checkbox" id="sp-${b.id}" ${(b.optIn ? plan.benefits?.[b.id]===true : plan.benefits?.[b.id]!==false)?'checked':''} style="accent-color:#c8b89a">
                         ${b.label}
                     </label>`).join('')}
             </div>

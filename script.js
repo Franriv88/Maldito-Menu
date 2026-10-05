@@ -209,6 +209,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('adminRestName').textContent   = nombre;
         document.getElementById('topbarUserName').textContent  = user.displayName || user.email;
         document.getElementById('viewMenuLink').href = `./menu.html?r=${restaurantId}`;
+        document.getElementById('ordersLink').href   = `./pedidos.html?r=${restaurantId}`;
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = './login.html'));
         document.getElementById('saveMenuBtn').addEventListener('click', guardarMenu);
         initThemeToggle('themeBtn');
@@ -709,15 +710,6 @@ function applyStyles(cfg) {
     if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
     if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
     if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
-    // Favicon: preferir URL Storage (HTTP real) → fallback a base64
-    const iconSrc = cfg.faviconStorageUrl || cfg.logoStorageUrl || cfg.faviconBase64 || cfg.logoBase64;
-    if (iconSrc) {
-        const old = document.getElementById('favicon-link') || document.querySelector('link[rel="icon"]');
-        if (old) old.remove();
-        const link = document.createElement('link');
-        link.rel = 'icon'; link.id = 'favicon-link'; link.href = iconSrc;
-        document.head.appendChild(link);
-    }
     const logoPreview    = document.getElementById('logoPreview');
     const logoRemove     = document.getElementById('logoRemoveBtn');
     const logoRemoveBgNow = document.getElementById('logoRemoveBgNowBtn');
@@ -725,14 +717,6 @@ function applyStyles(cfg) {
         if (logoPreview)    { logoPreview.src = cfg.logoBase64; logoPreview.style.display = 'block'; }
         if (logoRemove)     logoRemove.style.display     = 'block';
         if (logoRemoveBgNow) logoRemoveBgNow.style.display = 'block';
-    }
-    const favPreview     = document.getElementById('faviconPreview');
-    const favRemove      = document.getElementById('faviconRemoveBtn');
-    const favRemoveBgNow = document.getElementById('faviconRemoveBgNowBtn');
-    if (cfg.faviconBase64) {
-        if (favPreview)     { favPreview.src = cfg.faviconBase64; favPreview.style.display = 'block'; }
-        if (favRemove)      favRemove.style.display      = 'block';
-        if (favRemoveBgNow) favRemoveBgNow.style.display = 'block';
     }
 
     // Fondos de imagen (menuBg / pageBg)
@@ -1003,15 +987,11 @@ function initStyleControls() {
         });
     }
 
-    // ── Logo y favicon ────────────────────────────────────────
+    // ── Logo ──────────────────────────────────────────────────
     initMiniDrop('logoDrop',    'logoPreview',    'logoRemoveBtn',    'logoBase64',    false, 'logoBgRemove');
-    initMiniDrop('faviconDrop', 'faviconPreview', 'faviconRemoveBtn', 'faviconBase64', true,  'faviconBgRemove');
 
     document.getElementById('logoRemoveBgNowBtn')?.addEventListener('click', function () {
         removeBgFromPreview('logoPreview', 'logoBase64', false, this);
-    });
-    document.getElementById('faviconRemoveBgNowBtn')?.addEventListener('click', function () {
-        removeBgFromPreview('faviconPreview', 'faviconBase64', true, this);
     });
 
     document.getElementById('logoRemoveBtn')?.addEventListener('click', async () => {
@@ -1023,22 +1003,6 @@ function initStyleControls() {
         if (b) b.style.display = 'none';
         if (g) g.style.display = 'none';
         updateAdminHeader();
-    });
-    document.getElementById('faviconRemoveBtn')?.addEventListener('click', async () => {
-        const del = firebase.firestore.FieldValue.delete();
-        await restRef().collection('config').doc('styles').update({ faviconBase64: del, faviconStorageUrl: del });
-        if (storage) storage.ref(`restaurants/${restaurantId}/favicon.png`).delete().catch(() => {});
-        const p = document.getElementById('faviconPreview'), b = document.getElementById('faviconRemoveBtn'), g = document.getElementById('faviconRemoveBgNowBtn');
-        if (p) { p.src = ''; p.style.display = 'none'; }
-        if (b) b.style.display = 'none';
-        if (g) g.style.display = 'none';
-        const link = document.querySelector('link[rel="icon"]');
-        if (link) link.href = './img/icons/MalditoCaféIcon.jpg';
-    });
-
-    // ── Favicon info modal ────────────────────────────────────
-    document.getElementById('faviconInfoBtn')?.addEventListener('click', () => {
-        document.getElementById('faviconModal').style.display = 'flex';
     });
 }
 

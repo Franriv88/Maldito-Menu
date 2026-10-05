@@ -8,6 +8,8 @@ const BENEFITS_CONFIG = [
     { id: 'descriptions',   label: 'Descripción de productos',  type: 'bool' },
     { id: 'extra_sections', label: 'Secciones adicionales',     type: 'bool' },
     { id: 'socials',        label: 'Redes sociales',            type: 'bool' },
+    // optIn: solo habilitado si el plan lo marca explícitamente (los planes viejos no lo heredan)
+    { id: 'table_orders',   label: 'Pedidos desde la mesa (QR/NFC)', type: 'bool', optIn: true },
 ];
 
 // Devuelve el objeto benefits del plan que coincide con planType, o null si no se encuentra
@@ -21,6 +23,7 @@ function getPlanBenefits(plans, planType) {
 function hasBenefit(benefits, id) {
     if (!benefits) return true;
     if (id === 'restaurants') return benefits.restaurants || 1;
+    if (BENEFITS_CONFIG.find(b => b.id === id)?.optIn) return benefits[id] === true;
     return benefits[id] !== false;
 }
 

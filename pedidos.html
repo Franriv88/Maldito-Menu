@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos en mesa</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        :root {
+            --pd-bg:      #0e0e0e;
+            --pd-surface: #161616;
+            --pd-raised:  #1d1d1d;
+            --pd-border:  rgba(124,108,92,.18);
+            --pd-text:    #ddd0bb;
+            --pd-muted:   rgba(200,184,154,.5);
+            --pd-accent:  #c8b89a;
+            --pd-green:   #3fb96b;
+            --pd-amber:   #e6aa28;
+            --pd-blue:    #6aa5f0;
+            --pd-red:     #e0697a;
+        }
+        body.light {
+            --pd-bg:      #f2ede6;
+            --pd-surface: #ffffff;
+            --pd-raised:  #f8f4ee;
+            --pd-border:  rgba(100,80,50,.16);
+            --pd-text:    #3a2e22;
+            --pd-muted:   rgba(60,42,20,.55);
+            --pd-accent:  #6b5135;
+            --pd-green:   #23894a;
+            --pd-amber:   #a8740a;
+            --pd-blue:    #2f6fc0;
+            --pd-red:     #c0392b;
+        }
+        body { background: var(--pd-bg); color: var(--pd-text); margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+
+        .pd-tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid var(--pd-border); overflow-x: auto; }
+        .pd-tab {
+            background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;
+            color: var(--pd-muted); font: 600 .85rem inherit; padding: 10px 14px; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .pd-tab.active { color: var(--pd-accent); border-bottom-color: var(--pd-accent); }
+        .pd-panel { display: none; padding: 16px; max-width: 1400px; margin: 0 auto; }
+        .pd-panel.active { display: block; }
+        .pd-count { background: var(--pd-amber); color: #111; border-radius: 10px; font-size: .7rem; padding: 1px 7px; }
+        .pd-count:empty { display: none; }
+
+        /* Bloqueo por plan */
+        .pd-locked {
+            max-width: 520px; margin: 48px auto; text-align: center; padding: 28px;
+            background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px;
+        }
+        .pd-locked h2 { color: var(--pd-accent); margin: 10px 0 8px; font-size: 1.2rem; }
+        .pd-locked p { color: var(--pd-muted); line-height: 1.5; margin: 0; }
+
+        /* Barra de estado del tablero */
+        .pd-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .pd-toolbar .pd-spacer { flex: 1; }
+        .pd-chip {
+            display: inline-flex; align-items: center; gap: 6px; font-size: .78rem;
+            padding: 6px 12px; border-radius: 999px; border: 1px solid var(--pd-border);
+            background: var(--pd-surface); color: var(--pd-muted);
+        }
+        .pd-chip.on { color: var(--pd-green); border-color: color-mix(in srgb, var(--pd-green) 45%, transparent); }
+        .pd-chip.off { color: var(--pd-red); border-color: color-mix(in srgb, var(--pd-red) 45%, transparent); }
+        .pd-chip input { accent-color: var(--pd-accent); margin: 0; }
+
+        /* Tablero */
+        .pd-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+        @media (max-width: 900px) { .pd-board { grid-template-columns: 1fr; } }
+        .pd-col { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; padding: 12px; min-height: 120px; }
+        .pd-col-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 4px 10px; font-size: .75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--pd-muted); }
+        .pd-col-head b { color: var(--pd-text); font-size: .85rem; letter-spacing: 0; }
+        .pd-empty { color: var(--pd-muted); font-size: .8rem; text-align: center; padding: 24px 8px; opacity: .7; }
+
+        .pd-card { background: var(--pd-raised); border: 1px solid var(--pd-border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .pd-card.is-new { animation: pd-flash 1.2s ease 2; }
+        @keyframes pd-flash { 50% { border-color: var(--pd-amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pd-amber) 30%, transparent); } }
+        .pd-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+        .pd-card-num { font-size: 1.15rem; font-weight: 700; color: var(--pd-accent); }
+        .pd-card-mesa { font-size: 1rem; font-weight: 700; }
+        .pd-card-meta { font-size: .72rem; color: var(--pd-muted); margin-top: 2px; }
+        .pd-items { list-style: none; margin: 10px 0 0; padding: 0; font-size: .9rem; }
+        .pd-items li { padding: 3px 0; }
+        .pd-items b { display: inline-block; min-width: 26px; color: var(--pd-accent); }
+        .pd-items small { display: block; color: var(--pd-amber); padding-left: 26px; }
+        .pd-note { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: .82rem; background: color-mix(in srgb, var(--pd-amber) 12%, transparent); color: var(--pd-text); }
+        .pd-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .pd-total { font-size: .85rem; color: var(--pd-muted); }
+        .pd-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pd-btn {
+            border: 1px solid var(--pd-border); background: var(--pd-surface); color: var(--pd-text);
+            border-radius: 8px; padding: 7px 12px; font: 600 .78rem inherit; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 5px; min-height: 34px;
+        }
+        .pd-btn:hover { border-color: var(--pd-accent); }
+        .pd-btn.primary { background: var(--pd-accent); color: var(--pd-bg); border-color: var(--pd-accent); }
+        .pd-btn.ok { background: var(--pd-green); color: #fff; border-color: var(--pd-green); }
+        .pd-btn.danger { color: var(--pd-red); }
+        .pd-btn:disabled { opacity: .5; cursor: default; }
+        .pd-print-tag { font-size: .68rem; color: var(--pd-muted); display: inline-flex; align-items: center; gap: 4px; }
+        .pd-history { margin-top: 18px; font-size: .8rem; color: var(--pd-muted); }
+        .pd-history summary { cursor: pointer; padding: 6px 0; }
+        .pd-history table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .pd-history td { padding: 6px 8px; border-top: 1px solid var(--pd-border); }
+
+        /* Mesas */
+        .pd-section { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+        .pd-section h3 { margin: 0 0 4px; font-size: .95rem; color: var(--pd-accent); }
+        .pd-section > p { margin: 0 0 12px; font-size: .8rem; color: var(--pd-muted); line-height: 1.5; }
+        .pd-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .pd-table { background: var(--pd-raised); border: 1px solid var(--pd-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+        .pd-table input { width: 100%; text-align: center; font-weight: 700; }
+        .pd-qr { width: 150px; height: 150px; background: #fff; border-radius: 8px; padding: 6px; }
+        .pd-qr svg { width: 100%; height: 100%; display: block; }
+        .pd-table .pd-actions { justify-content: center; }
+
+        /* Formularios */
+        .pd-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 10px; }
+        .pd-field { display: flex; flex-direction: column; gap: 5px; font-size: .75rem; color: var(--pd-muted); min-width: 140px; flex: 1; }
+        .pd-input, .pd-select {
+            background: var(--pd-bg); color: var(--pd-text); border: 1px solid var(--pd-border);
+            border-radius: 8px; padding: 9px 11px; font: .88rem inherit; width: 100%; box-sizing: border-box;
+        }
+        .pd-input:focus, .pd-select:focus { outline: none; border-color: var(--pd-accent); }
+        .pd-switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: .88rem; }
+        .pd-switch input { width: 18px; height: 18px; accent-color: var(--pd-accent); }
+        .pd-radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--pd-border); border-radius: 10px; cursor: pointer; margin-top: 8px; }
+        .pd-radio input { margin-top: 3px; accent-color: var(--pd-accent); }
+        .pd-radio b { display: block; font-size: .88rem; }
+        .pd-radio span { font-size: .78rem; color: var(--pd-muted); line-height: 1.45; }
+        .pd-radio:has(input:checked) { border-color: var(--pd-accent); background: color-mix(in srgb, var(--pd-accent) 7%, transparent); }
+        .pd-code {
+            display: flex; gap: 6px; align-items: center; margin-top: 8px;
+            font: .78rem ui-monospace, Consolas, monospace; background: var(--pd-bg);
+            border: 1px solid var(--pd-border); border-radius: 8px; padding: 8px 10px; word-break: break-all;
+        }
+        .pd-code span { flex: 1; }
+        .pd-help { font-size: .78rem; color: var(--pd-muted); line-height: 1.55; margin: 8px 0 0; }
+        .pd-help ol { margin: 6px 0 0; padding-left: 18px; }
+        .pd-save-bar { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(transparent, var(--pd-bg) 35%); display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+        .pd-msg { font-size: .8rem; color: var(--pd-green); }
+        .pd-hidden { display: none !important; }
+
+        /* Franja de mesas abiertas/cerradas */
+        .pd-tablestrip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .pd-tablestrip:empty { display: none; }
+        .pd-tchip {
+            display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px;
+            min-width: 92px; padding: 7px 12px; border-radius: 10px; cursor: pointer; text-align: left;
+            border: 1px solid var(--pd-border); background: var(--pd-surface); color: var(--pd-muted); font: inherit;
+        }
+        .pd-tchip b { font-size: .85rem; color: var(--pd-text); }
+        .pd-tchip small { font-size: .7rem; }
+        .pd-tchip.open { border-color: color-mix(in srgb, var(--pd-green) 55%, transparent); background: color-mix(in srgb, var(--pd-green) 9%, var(--pd-surface)); }
+        .pd-tchip.open small { color: var(--pd-green); }
+        .pd-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+        .pd-badge { font-size: .66rem; padding: 2px 7px; border-radius: 999px; display: inline-flex; align-items: center; gap: 3px; }
+        .pd-badge.ok { background: color-mix(in srgb, var(--pd-green) 15%, transparent); color: var(--pd-green); }
+        .pd-badge.warn { background: color-mix(in srgb, var(--pd-amber) 16%, transparent); color: var(--pd-amber); }
+        .pd-status-line { font-size: .8rem; margin-top: 8px; color: var(--pd-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+        /* Ticket para impresión desde el navegador */
+        #printFrame { position: absolute; width: 0; height: 0; border: 0; visibility: hidden; }
+    </style>
+</head>
+<body class="admin-page">
+
+    <div class="admin-topbar">
+        <div class="topbar-left">
+            <a href="dashboard.html" class="btn-back" id="backLink"><i data-lucide="arrow-left" class="icon" style="width:13px;height:13px;stroke-width:2"></i> Panel</a>
+            <span id="topbarRestName">Cargando...</span>
+        </div>
+        <div class="topbar-right">
+            <a id="editMenuLink" href="#"><i data-lucide="pencil" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Editar menú</a>
+            <button class="theme-btn" id="themeBtn"><i data-lucide="sun" style="width:15px;height:15px;stroke-width:1.75"></i></button>
+        </div>
+    </div>
+
+    <nav class="pd-tabs" role="tablist">
+        <button class="pd-tab active" data-tab="board" role="tab"><i data-lucide="chef-hat" style="width:15px;height:15px"></i> Pedidos <span class="pd-count" id="pendingCount"></span></button>
+        <button class="pd-tab" data-tab="tables" role="tab"><i data-lucide="qr-code" style="width:15px;height:15px"></i> Mesas, QR y NFC</button>
+        <button class="pd-tab" data-tab="settings" role="tab"><i data-lucide="settings" style="width:15px;height:15px"></i> Configuración</button>
+    </nav>
+
+    <div id="lockedMsg" class="pd-locked pd-hidden">
+        <i data-lucide="lock" style="width:28px;height:28px;color:var(--pd-accent)"></i>
+        <h2>Pedidos desde la mesa</h2>
+        <p>Tu plan actual no incluye pedidos desde la mesa. Los comensales escanean el QR o acercan el celular al sticker NFC de su mesa y piden desde el menú; el pedido llega a esta pantalla y a tu comandera.<br><br>Para activarlo, contactá a <a href="mailto:frivasv2388@gmail.com" style="color:var(--pd-accent)">frivasv2388@gmail.com</a>.</p>
+    </div>
+
+    <!-- ── Tablero / comandera ── -->
+    <section class="pd-panel active" id="tab-board">
+        <div class="pd-toolbar">
+            <span class="pd-chip" id="statusChip"></span>
+            <span class="pd-chip" id="modeChip"></span>
+            <label class="pd-chip pd-hidden" id="printerChip" title="Activalo solo en la PC/tablet que tiene la impresora conectada">
+                <input type="checkbox" id="isPrinterDevice"> Esta pantalla imprime los tickets
+            </label>
+            <span class="pd-spacer"></span>
+            <label class="pd-chip"><input type="checkbox" id="soundOn" checked> Sonido</label>
+        </div>
+        <div class="pd-tablestrip" id="tableStrip" aria-label="Mesas"></div>
+        <div class="pd-board">
+            <div class="pd-col"><div class="pd-col-head">Nuevos <b id="cnt-pendiente">0</b></div><div id="col-pendiente"></div></div>
+            <div class="pd-col"><div class="pd-col-head">En cocina <b id="cnt-en_cocina">0</b></div><div id="col-en_cocina"></div></div>
+            <div class="pd-col"><div class="pd-col-head">Listos para entregar <b id="cnt-listo">0</b></div><div id="col-listo"></div></div>
+        </div>
+        <details class="pd-history">
+            <summary id="historySummary">Entregados y rechazados hoy</summary>
+            <table><tbody id="historyBody"></tbody></table>
+        </details>
+    </section>
+
+    <!-- ── Mesas ── -->
+    <section class="pd-panel" id="tab-tables">
+        <div class="pd-section">
+            <h3>Mesas</h3>
+            <p>Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.</p>
+            <div class="pd-row" style="margin-top:0">
+                <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> Agregar mesa</button>
+                <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
+                <button class="pd-btn" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos los stickers</button>
+            </div>
+        </div>
+        <div class="pd-tables" id="tablesGrid"></div>
+        <p class="pd-help" id="nfcHelp"></p>
+    </section>
+
+    <!-- ── Configuración ── -->
+    <section class="pd-panel" id="tab-settings">
+        <div class="pd-section">
+            <h3>Pedidos desde la mesa</h3>
+            <label class="pd-switch"><input type="checkbox" id="cfgEnabled"> Recibir pedidos desde el menú</label>
+            <p class="pd-help">Si está apagado, el QR/NFC abre el menú normal sin botón de pedir.</p>
+        </div>
+
+        <div class="pd-section">
+            <h3>¿Qué pasa cuando llega un pedido?</h3>
+            <label class="pd-radio"><input type="radio" name="approval" value="manual">
+                <div><b>Lo acepta el mozo o la caja</b><span>El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.</span></div></label>
+            <label class="pd-radio"><input type="radio" name="approval" value="direct">
+                <div><b>Va directo a cocina si se verificó que el comensal está en el local</b><span>Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.</span></div></label>
+        </div>
+
+        <div class="pd-section">
+            <h3>Verificar que el comensal esté en el local</h3>
+            <p>Evita pedidos de quien se llevó una foto del QR. Se usan en este orden y, si alguno confirma la presencia, no se le pide nada al comensal.</p>
+            <label class="pd-switch"><input type="checkbox" id="cfgSessions"> <span><b>Mesa abierta</b> — los pedidos de una mesa abierta van directo a cocina</span></label>
+            <p class="pd-help">La mesa se abre sola cuando aceptás su primer pedido (o tocándola arriba del tablero) y se cierra cuando la marcás como cobrada. Si nadie pide durante 6 horas, se cierra sola. Desde una mesa cerrada se puede pedir igual, pero lo tiene que aceptar el mozo.</p>
+            <label class="pd-switch" style="margin-top:14px"><input type="checkbox" id="cfgWifi"> <span><b>Wi-Fi del local</b> — si el comensal está conectado al Wi-Fi del restaurante, se lo da por verificado</span></label>
+            <p class="pd-help">Funciona solo: esta pantalla registra la red del local mientras está abierta. Tiene que estar conectada al <b>mismo Wi-Fi que usan los clientes</b>. Si el comensal usa datos móviles, se pasa al siguiente método.</p>
+            <div class="pd-status-line" id="wifiStatus"></div>
+        </div>
+
+        <div class="pd-section">
+            <h3>GPS (opcional)</h3>
+            <label class="pd-switch"><input type="checkbox" id="cfgGeo"> Pedir ubicación si la mesa está cerrada y el comensal no está en el Wi-Fi</label>
+            <p class="pd-help">El celular pide permiso de ubicación y el servidor compara la distancia con la del local. Adentro de edificios el GPS puede errar 20–100 m, por eso conviene un radio de al menos 100 m. Si lo dejás apagado, esos pedidos quedan en "Nuevos" para que los acepte el mozo.</p>
+            <div id="geoFields">
+                <div class="pd-row">
+                    <label class="pd-field">Latitud <input class="pd-input" id="cfgLat" inputmode="decimal" placeholder="-34.6037"></label>
+                    <label class="pd-field">Longitud <input class="pd-input" id="cfgLng" inputmode="decimal" placeholder="-58.3816"></label>
+                    <label class="pd-field">Radio permitido: <b id="radiusVal">150 m</b> <input type="range" id="cfgRadius" min="50" max="500" step="10" value="150" style="accent-color:var(--pd-accent)"></label>
+                </div>
+                <div class="pd-row">
+                    <button class="pd-btn" id="useMyLocation"><i data-lucide="locate-fixed" style="width:14px;height:14px"></i> Usar mi ubicación actual (estando en el local)</button>
+                    <a class="pd-btn" id="mapLink" target="_blank" rel="noopener"><i data-lucide="map-pin" style="width:14px;height:14px"></i> Ver en Google Maps</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="pd-section">
+            <h3>Comandera</h3>
+            <p>Elegí cómo se imprimen los pedidos en cocina. Funciona con cualquier marca.</p>
+            <label class="pd-radio"><input type="radio" name="printMode" value="browser">
+                <div><b>Impresora conectada a una PC o tablet</b><span>Cualquier térmica (USB, red o Bluetooth) instalada en la compu de la cocina/caja: Xprinter, 3nStar, Epson, Hasar, Gadnic… Dejás esta página abierta y cada pedido se imprime solo.</span></div></label>
+            <label class="pd-radio"><input type="radio" name="printMode" value="epson">
+                <div><b>Epson con impresión en la nube</b><span>TM-m30, TM-T88VI/VII, TM-m50 y otras con "Server Direct Print". Imprime sin PC.</span></div></label>
+            <label class="pd-radio"><input type="radio" name="printMode" value="star">
+                <div><b>Star con CloudPRNT</b><span>TSP143IV, mC-Print3, mC-Print2 y otras Star con CloudPRNT. Imprime sin PC.</span></div></label>
+            <label class="pd-radio"><input type="radio" name="printMode" value="none">
+                <div><b>Sin impresora (solo pantalla)</b><span>La cocina ve y marca los pedidos en esta pantalla, desde una tablet o TV.</span></div></label>
+
+            <div id="pm-browser" class="pd-hidden">
+                <div class="pd-row">
+                    <label class="pd-field" style="max-width:220px">Ancho del papel
+                        <select class="pd-select" id="cfgPaper"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
+                    <button class="pd-btn" id="testPrintBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir ticket de prueba</button>
+                </div>
+                <div class="pd-help">Para que imprima <b>sin mostrar el cuadro de diálogo</b>:
+                    <ol>
+                        <li>En la PC de la cocina, configurá la térmica como <b>impresora predeterminada</b> de Windows.</li>
+                        <li>Creá un acceso directo de Chrome con este destino:<br><span class="pd-code"><span>"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing <span class="url-here"></span></span></span></li>
+                        <li>Abrí esa ventana, entrá con tu cuenta y marcá <b>"Esta pantalla imprime los tickets"</b> en la pestaña Pedidos.</li>
+                    </ol>
+                </div>
+            </div>
+            <div id="pm-cloud" class="pd-hidden">
+                <p class="pd-help">Configurá esta URL en la impresora (página web de configuración de la impresora → <span id="cloudMenuName"></span>). La impresora consulta cada pocos segundos si hay pedidos nuevos.</p>
+                <div class="pd-code"><span id="cloudUrl">Guardá la configuración para generar la URL</span><button class="pd-btn" id="copyCloudUrl" type="button">Copiar</button></div>
+                <div class="pd-help" id="cloudSteps"></div>
+                <div class="pd-row"><button class="pd-btn danger" id="regenKeyBtn">Regenerar clave de la impresora</button></div>
+            </div>
+        </div>
+
+        <div class="pd-section">
+            <h3>Integración con sistema de gestión / POS (avanzado)</h3>
+            <p>Si el restaurante usa un sistema propio (Fudo, Maxirest, un desarrollo a medida, Zapier, Make…), cada pedido que pasa a cocina se envía a esta URL como JSON firmado.</p>
+            <label class="pd-field">URL del webhook (https)
+                <input class="pd-input" id="cfgWebhook" placeholder="https://mi-sistema.com/api/pedidos"></label>
+            <div class="pd-code"><span>Firma: header <b>X-Cubierto-Signature</b> = HMAC-SHA256 del body con la clave <b id="webhookSecret">—</b></span></div>
+        </div>
+
+        <div class="pd-save-bar">
+            <span class="pd-msg" id="saveMsg"></span>
+            <button class="pd-btn primary" id="saveCfgBtn">Guardar configuración</button>
+        </div>
+    </section>
+
+    <iframe id="printFrame" title="Impresión de ticket"></iframe>
+
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="./Js/theme.js"></script>
+    <script src="./Js/firebase-config.js?v=3"></script>
+    <script src="./Js/benefits-config.js"></script>
+    <script src="./Js/pedidos.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
+</body>
+</html>

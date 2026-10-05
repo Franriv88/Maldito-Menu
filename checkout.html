@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cubierto — Suscripción</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88' font-family='Georgia,serif' font-style='italic' fill='%23c8b89a'>C</text></svg>">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -256,7 +258,7 @@ function licon(name, size = 16) {
     const resolved = aliases[name] || name;
     const toPascal = s => s.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
     try {
-        const def = lucide[toPascal(resolved)];
+        const def = lucide[toPascal(resolved)] || lucide[toPascal(name)];
         const el  = def ? lucide.createElement(def) : lucide.createElement(resolved);
         el.setAttribute('width', size); el.setAttribute('height', size);
         el.setAttribute('stroke-width', '1.75');
@@ -272,6 +274,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const params = new URLSearchParams(location.search);
 const paymentStatus = params.get('status') || params.get('collection_status');
+const paymentId     = params.get('payment_id') || params.get('collection_id');
+const FUNCTIONS_BASE = 'https://us-central1-maldito-cafe.cloudfunctions.net';
+
+// Llama a una Cloud Function autenticada con el token del usuario
+async function callFn(name, body) {
+    const token = await auth.currentUser.getIdToken();
+    const r = await fetch(`${FUNCTIONS_BASE}/${name}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Error de conexión');
+    return data;
+}
 
 auth.onAuthStateChanged(async user => {
     if (!user) { window.location.href = './index.html'; return; }
@@ -301,36 +318,32 @@ auth.onAuthStateChanged(async user => {
 
     // ── Volvió de MP ───────────────────────────────────────────
     if (paymentStatus) {
-        if (paymentStatus === 'approved' || paymentStatus === 'success') {
-            // Activación automática
-            const planType = userData.subscription?.planType;
-            const plan     = plans.find(p => p.id === planType);
-            const days     = plan?.durationDays || 30;
+        // El estado de la URL no es confiable: se verifica el pago contra la API de MP
+        let verified = null;
+        if (paymentId && paymentId !== 'null') {
+            try { verified = await callFn('checkPayment', { paymentId }); }
+            catch (e) { console.warn('checkPayment:', e.message); }
+        }
+        const realStatus = verified?.status || paymentStatus;
 
-            const paidUntil = new Date();
-            paidUntil.setDate(paidUntil.getDate() + days);
-
-            await userRef.set({
-                subscription: {
-                    status:    'active',
-                    planType:  planType || null,
-                    paidAt:    firebase.firestore.FieldValue.serverTimestamp(),
-                    paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil),
-                }
-            }, { merge: true });
-
+        if (realStatus === 'active') {
             document.getElementById('successTitle').textContent = '¡Suscripción activada!';
             document.getElementById('successMsg').textContent   =
-                `Tu plan ${plan?.label || 'de suscripción'} está activo por ${days} días.`;
+                `Tu plan ${verified.plan || 'de suscripción'} está activo por ${verified.days || 30} días.`;
             document.getElementById('successState').style.display = 'block';
 
-        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
-            // Pago en proceso (transferencia, efectivo, etc.)
-            await userRef.set({ subscription: { status: 'pending_payment', paidAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+        } else if (realStatus === 'approved' || realStatus === 'success') {
+            // Aprobado según MP pero todavía no confirmado: el webhook lo activa en segundos
+            document.getElementById('successTitle').textContent = 'Pago recibido';
+            document.getElementById('successMsg').textContent   =
+                'Estamos confirmando tu pago con Mercado Pago. Tu plan se activa en unos instantes.';
+            document.getElementById('successState').style.display = 'block';
 
+        } else if (realStatus === 'pending' || realStatus === 'in_process') {
+            // Pago en proceso (transferencia, efectivo, etc.): el servidor ya lo marcó pending_payment
             document.getElementById('successTitle').textContent = 'Pago en proceso';
             document.getElementById('successMsg').textContent   =
-                'Tu pago está siendo procesado. El administrador confirmará tu acceso en breve.';
+                'Tu pago está siendo procesado. Tu plan se activa automáticamente cuando Mercado Pago lo acredite.';
             document.getElementById('redirectMsg').style.display = 'none';
             document.getElementById('successState').style.display = 'block';
             return; // no redirigir automáticamente
@@ -377,9 +390,6 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('dynamicPlans').style.display = 'none';
     } else {
         renderPlans(plans);
-        if (plans.every(p => !p.mpLink)) {
-            document.getElementById('noConfigMsg').style.display = 'block';
-        }
     }
 
     document.getElementById('skipBtn').addEventListener('click', () => {
@@ -405,24 +415,24 @@ auth.onAuthStateChanged(async user => {
                             : b.label;
                         return `<li class="co-feat-item${on?'':' disabled'}"><span class="co-feat-check">${on?'✓':'–'}</span><span>${lbl}</span></li>`;
                     }).join('')}</ul>` : ''}
-                    <button class="btn-pay co-pay-btn" data-id="${p.id}" ${!p.mpLink ? 'disabled' : ''} style="margin-top:auto">
+                    <button class="btn-pay co-pay-btn" data-id="${p.id}" style="margin-top:auto">
                         <span class="mp-logo">mp</span> Pagar
                     </button>
                 </div>`;
         }).join('');
 
-        container.querySelectorAll('.co-pay-btn:not([disabled])').forEach(btn => {
+        container.querySelectorAll('.co-pay-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const plan = plans.find(p => p.id === btn.dataset.id);
-                if (!plan) return;
+                const original = btn.innerHTML;
                 btn.disabled = true; btn.textContent = 'Redirigiendo...';
                 try {
-                    await userRef.set({ subscription: { status: 'pending_payment', planType: plan.id, paymentInitiated: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
-                } catch(e) { console.warn(e); }
-                const url = new URL(plan.mpLink);
-                if (user.email) url.searchParams.set('payer[email]', user.email);
-                url.searchParams.set('external_reference', user.uid);
-                window.location.href = url.toString();
+                    // El servidor crea el pago con el precio real del plan
+                    const { url } = await callFn('createPayment', { planId: btn.dataset.id });
+                    window.location.href = url;
+                } catch (e) {
+                    btn.disabled = false; btn.innerHTML = original;
+                    alert(e.message);
+                }
             });
         });
     }
@@ -453,51 +463,15 @@ auth.onAuthStateChanged(async user => {
         couponMsg.textContent = 'Verificando…';
 
         try {
-            const snap = await db.collection('appConfig').doc('coupons').get();
-            const list = snap.exists ? (snap.data().list || []) : [];
-            const idx  = list.findIndex(c => c.code === code && c.active);
-
-            if (idx === -1) {
-                couponMsg.style.color = '#e06070';
-                couponMsg.textContent = 'Código inválido o ya utilizado.';
-                couponApply.disabled = false;
-                return;
-            }
-            const coupon = list[idx];
-            if (coupon.usesMax > 0 && (coupon.usesCount || 0) >= coupon.usesMax) {
-                couponMsg.style.color = '#e06070';
-                couponMsg.textContent = 'Este cupón ya alcanzó su límite de usos.';
-                couponApply.disabled = false;
-                return;
-            }
-
-            // Aplicar: activar suscripción al plan del cupón
-            const plan = plans.find(p => p.id === coupon.planId);
-            const days = plan?.durationDays || 30;
-            const paidUntil = new Date();
-            paidUntil.setDate(paidUntil.getDate() + days);
-
-            await userRef.set({
-                subscription: {
-                    status:    'active',
-                    planType:  coupon.planId,
-                    paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil),
-                    paidAt:    firebase.firestore.FieldValue.serverTimestamp(),
-                    coupon:    code,
-                }
-            }, { merge: true });
-
-            // Descontar uso del cupón
-            list[idx].usesCount = (list[idx].usesCount || 0) + 1;
-            await db.collection('appConfig').doc('coupons').set({ list });
-
+            // El servidor valida el cupón, descuenta el uso y activa el plan
+            const result = await callFn('redeemCoupon', { code });
             couponMsg.style.color = '#5cbf7a';
-            couponMsg.textContent = `¡Cupón aplicado! Plan ${plan?.label || coupon.planId} activado.`;
+            couponMsg.textContent = `¡Cupón aplicado! Plan ${result.plan} activado.`;
             setTimeout(() => { window.location.href = './dashboard.html'; }, 1500);
         } catch (err) {
             console.error(err);
             couponMsg.style.color = '#e06070';
-            couponMsg.textContent = 'Error al verificar el cupón. Intentá de nuevo.';
+            couponMsg.textContent = err.message || 'Error al verificar el cupón. Intentá de nuevo.';
             couponApply.disabled = false;
         }
     });

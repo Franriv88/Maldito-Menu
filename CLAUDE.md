@@ -35,6 +35,10 @@ styles.css          Estilos del admin + superadmin (dark/light mode)
 Css/menu-styles.css Estilos del menú público (CSS variables)
 Js/theme.js         Toggle dark/light + helper licon() global
 Js/firebase-config.js Config de Firebase (compartida)
+pedidos.html        Pedidos en mesa (restaurante): tablero/comandera, mesas QR/NFC, config
+Js/pedidos.js       Lógica de pedidos.html (impresión desde navegador, QR, Web NFC)
+Js/table-ordering.js Carrito del comensal en menu.html (se activa con ?mesa=)
+functions/index.js  Cloud Functions: OTP, pagos MP, cupones, placeOrder, printerPoll
 ```
 
 ---
@@ -59,7 +63,8 @@ licon('sun', 16)          // → SVG string listo para innerHTML
 licon('trash-2', 13)      // kebab-case, se convierte a PascalCase internamente
 ```
 
-**Aliases** (íconos renombrados en versiones más nuevas de Lucide):
+**Aliases** (íconos renombrados en versiones más nuevas de Lucide). Ojo: los nombres nuevos NO existen en
+v0.309, por eso `licon` prueba el alias y si no existe cae al nombre original:
 ```javascript
 'check-circle-2' → 'circle-check-big'
 'x-circle'       → 'circle-x'
@@ -90,7 +95,17 @@ users/{uid}/
   { email, displayName, lastLogin, createdAt,
     subscription: { status, planType, paidUntil, paidAt, paymentInitiated } }
 
+  config/ordering:  { enabled, approvalMode: 'manual'|'direct', tableSessions, wifiCheck,
+                     geo: {enabled, lat, lng, radius},
+                     tables: [{id, label}], printMode: 'browser'|'epson'|'star'|'none', paperWidth }
+  mesas/{tableId}:  { open, openedAt, lastActivityAt, openedBy }  ← "mesa abierta" (vence a las 6 h sin actividad)
+  private/ordering: { printerKey, webhookUrl, webhookSecret, counter, counterDay, rate, knownIps }  ← solo dueño
+  pedidos/{id}:     { number, mesaId, mesaLabel, items, total, note, customerName,
+                     status: pendiente|en_cocina|listo|entregado|rechazado,
+                     printStatus: none|queued|printing|printed }  ← los crea solo placeOrder
+
 appConfig/
+  coupons:  { list: [...] }  ← NO legible por clientes; se canjea con la function redeemCoupon
   plans:    { list: [{id, label, price, durationDays, mpLink, savingsLabel, recommended}] }
   payments: { mpLinkMonthly, mpLinkQuarterly }  ← legacy, migrar a plans
 ```
@@ -172,10 +187,26 @@ Los inputs hardcodeados con `background: #111` necesitan override `body.light` p
 
 ## Flujo de pago (Mercado Pago)
 
-1. Usuario elige plan en `checkout.html` → escribe `pending_payment` en Firestore
-2. MP redirige de vuelta con `?status=approved` → `checkout.html` activa suscripción automáticamente
-3. `?status=pending` → queda en `pending_payment` (superadmin confirma manualmente)
-4. Plans se leen de `appConfig/plans`, con fallback a `appConfig/payments` (legacy)
+**`users/{uid}.subscription` solo la escribe el servidor** (o el superadmin) — las reglas lo bloquean al cliente.
+
+1. `checkout.html` llama a la function `createPayment` → crea preferencia de Checkout Pro con
+   el precio de `appConfig/plans` y `external_reference = "uid|planId"` → redirige a `init_point`
+2. `mpWebhook` (firma HMAC obligatoria) consulta el pago a la API de MP y activa/extiende el plan
+3. Al volver, `checkout.html` llama a `checkPayment` (respaldo del webhook; nunca confía en `?status=`)
+4. Pagos que no se pueden asociar quedan en la colección `unmatchedPayments`
+5. `mpLink` en los planes es legacy: ya no se usa
+
+## Pedidos en mesa (beneficio `table_orders`, opt-in por plan)
+
+- URL de mesa: `menu.html?r={id}&mesa={tableId}` (mismo link en QR y sticker NFC)
+- `placeOrder` valida plan del dueño, mesa, precios desde Firestore y límite por mesa
+- Verificación de presencia, en orden: mesa abierta → mismo Wi-Fi que el tablero (IP registrada por
+  `registerDevice` cada 5 min, válida 30 min; IPv6 se compara por prefijo /64) → GPS (solo si lo anterior falla).
+  Va directo a cocina si la mesa está abierta, o si el modo es `direct` y se verificó por Wi-Fi/GPS.
+  Si no, queda `pendiente`; al aceptarlo el mozo, la mesa se abre.
+- La IP del cliente es la ÚLTIMA entrada de X-Forwarded-For (las anteriores las puede falsificar el cliente)
+- Comanderas: navegador (cualquier impresora, `--kiosk-printing`), Epson Server Direct Print y
+  Star CloudPRNT vía `printerPoll?r=&k=&t=epson|star`, y webhook firmado para POS (`onOrderWritten`)
 
 ---
 
