@@ -24,6 +24,17 @@ const SOCIAL_PLACEHOLDERS = {
     linkedin:  'https://linkedin.com/in/tuperfil',
 };
 
+// WhatsApp: el prefijo https://wa.me/ es fijo; el usuario solo escribe el número.
+// Se guarda la URL completa, así el menú público no cambia.
+const WA_PREFIX = 'https://wa.me/';
+
+// Número (solo dígitos) a partir de lo guardado o pegado: wa.me/…, api.whatsapp.com/send?phone=…, "+54 9 11…"
+function waNumber(value) {
+    const s = String(value || '');
+    const phone = s.match(/[?&]phone=\+?(\d+)/);
+    return (phone ? phone[1] : s.replace(/^\s*(https?:\/\/)?(www\.)?(wa\.me|api\.whatsapp\.com)\/?/i, '')).replace(/\D/g, '');
+}
+
 function socialSvg(network, color, size = 18) {
     const n = SOCIAL_NETS[network];
     if (!n) return '';
@@ -43,8 +54,14 @@ function renderSocialsEditor() {
             <div class="social-row" draggable="true" data-idx="${i}">
                 <span class="social-drag">${licon('grip-vertical', 14)}</span>
                 ${socialSvg(s.network, s.color, 16)}
+                ${s.network === 'whatsapp' ? `
+                <label class="social-url-prefixed" title="Código de país + área + número, sin espacios ni el +. Ej: 54 9 11 1234-5678 → 5491112345678">
+                    <span class="social-url-prefix">${WA_PREFIX}</span>
+                    <input class="social-wa-input" data-idx="${i}" value="${esc(waNumber(s.url))}"
+                           inputmode="tel" autocomplete="tel" placeholder="5491112345678">
+                </label>` : `
                 <input class="social-url-input" data-idx="${i}" value="${esc(s.url || '')}"
-                       placeholder="${SOCIAL_PLACEHOLDERS[s.network] || 'https://...'}">
+                       placeholder="${SOCIAL_PLACEHOLDERS[s.network] || 'https://...'}">`}
                 <input type="color" class="social-color-input" data-idx="${i}" value="${s.color || SOCIAL_NETS[s.network]?.color || '#c8b89a'}">
                 <button class="social-remove-btn" data-idx="${i}">${licon('x', 13)}</button>
             </div>`).join('');
@@ -52,6 +69,13 @@ function renderSocialsEditor() {
         // Eventos en la lista
         container.querySelectorAll('.social-url-input').forEach(inp => {
             inp.addEventListener('input', e => { footerSocials[+e.target.dataset.idx].url = e.target.value; });
+        });
+        container.querySelectorAll('.social-wa-input').forEach(inp => {
+            inp.addEventListener('input', e => {
+                const digits = waNumber(e.target.value); // también acepta pegar el link completo o "+54 9 11 …"
+                if (e.target.value !== digits) e.target.value = digits;
+                footerSocials[+e.target.dataset.idx].url = digits ? WA_PREFIX + digits : '';
+            });
         });
         container.querySelectorAll('.social-color-input').forEach(inp => {
             inp.addEventListener('change', e => {
