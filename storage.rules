@@ -1,9 +1,26 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isSuperAdmin() {
+      return request.auth != null &&
+             request.auth.token.email == 'frivasv2388@gmail.com';
+    }
+
+    // Dueño del restaurante según Firestore (reglas cross-service)
+    function isOwner(restaurantId) {
+      return request.auth != null &&
+             firestore.get(/databases/(default)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid;
+    }
+
+    // Logos, favicons e imágenes de sección: restaurants/{id}/{archivo}
     match /restaurants/{restaurantId}/{fileName} {
       allow read;
-      allow write, delete: if request.auth != null;
+      // Solo el dueño (o el superadmin), solo imágenes y como máximo 10 MB
+      allow create, update: if (isOwner(restaurantId) || isSuperAdmin())
+                            && request.resource.size < 10 * 1024 * 1024
+                            && request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(restaurantId) || isSuperAdmin();
     }
   }
 }
