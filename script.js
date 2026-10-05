@@ -689,13 +689,48 @@ function renderLayoutPicker(section) {
     picker.querySelector('.lp-lock').hidden = canUseSectionLayouts();
 }
 
-function setSectionSides(section, [l, r]) {
+async function setSectionSides(section, [l, r]) {
     const mode = l === r ? (l === 'text' ? 'text-text' : 'image-wide') : 'text-image';
     if (mode !== 'text-image' && !canUseSectionLayouts()) {
         const lock = section.querySelector('.lp-lock');
         lock.hidden = false;
         lock.classList.remove('pulse'); void lock.offsetWidth; lock.classList.add('pulse');
         return;
+    }
+    const prevMode = section.dataset.mode || 'text-image';
+
+    // "Solo imagen" no tiene productos: si la sección tiene, se confirman y se eliminan
+    if (mode === 'image-wide' && prevMode !== 'image-wide') {
+        const items = [...section.querySelectorAll('.admin-item')];
+        const names = items.map(i => i.querySelector('.input-product')?.value.trim()).filter(Boolean);
+        if (names.length) {
+            const lista = names.slice(0, 8).map(n => `<li>${esc(n)}</li>`).join('') + (names.length > 8 ? `<li>y ${names.length - 8} más…</li>` : '');
+            const ok = await confirmModal({
+                title: 'Convertir en sección solo imagen',
+                html: `<p>Esta sección tiene <b>${names.length} producto${names.length === 1 ? '' : 's'}</b>. Al convertirla en solo imagen se van a <b>eliminar</b>:</p>
+                       <ul class="cm-list">${lista}</ul>
+                       <p class="cm-hint">Esta acción no se puede deshacer.</p>`,
+                confirmText: 'Eliminar productos y continuar',
+            });
+            if (!ok) return;
+            try {
+                await deleteSectionProducts(section);
+            } catch (err) {
+                console.error('No se pudieron eliminar los productos:', err);
+                alert('No se pudieron eliminar los productos. Intentá de nuevo.');
+                return;
+            }
+        }
+        items.forEach(i => i.remove());
+    }
+    // Al volver a un diseño con texto, cada categoría vacía arranca con un renglón para cargar
+    if (prevMode === 'image-wide' && mode !== 'image-wide') {
+        section.querySelectorAll('.admin-category').forEach(cat => {
+            if (!cat.querySelector('.admin-item')) {
+                cat.insertAdjacentHTML('beforeend', buildItemHTML({}));
+                autosizeDescription(cat.lastElementChild.querySelector('.input-description'));
+            }
+        });
     }
     const reversed = mode === 'text-image' && l === 'image';
     section.classList.remove(...SECTION_MODES.map(m => `mode-${m}`));
@@ -749,6 +784,14 @@ function updateSectionMoveButtons() {
         s.querySelector('.sec-move[data-dir="up"]').disabled   = i === 0;
         s.querySelector('.sec-move[data-dir="down"]').disabled = i === sections.length - 1;
     });
+}
+
+// Borra de Firestore los productos de las categorías de la sección
+async function deleteSectionProducts(section) {
+    const cats = [...section.querySelectorAll('.admin-category')].map(c => c.dataset.categoria).filter(Boolean);
+    if (!cats.length) return;
+    const snap = await restRef().collection('productos').where('categoria', 'in', cats).get();
+    await Promise.all(snap.docs.map(d => d.ref.delete()));
 }
 
 // Cerrar el selector al hacer clic afuera

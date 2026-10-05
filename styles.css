@@ -1303,13 +1303,5 @@ body.preview-mode .section-toolbar { display: none !important; }
 .img-removebg-btn[hidden] { display: none; }
 .drop-zone.uploading .img-removebg-btn { opacity: .4; pointer-events: none; }
 
-/* Editor: en una sección "solo imagen" los productos siguen visibles (atenuados) para no
-   perderlos, con un aviso de que no se publican */
-.admin-page .menu-section.mode-image-wide .menu-content { display: block; width: 100%; }
-.admin-page .menu-section.mode-image-wide .menu-content > * { opacity: .45; }
-.admin-page .menu-section.mode-image-wide .menu-content::before {
-    content: 'Sección solo imagen: estos productos NO se muestran en el menú. Para mostrarlos, elegí "Texto" en algún lado desde Diseño.';
-    display: block; margin: 10px 0 6px; padding: 8px 12px; border-radius: 8px;
-    background: rgba(230,170,40,.15); border: 1px solid rgba(230,170,40,.45); color: #e6aa28;
-    font: 600 .78rem/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; opacity: 1;
-}
+/* Editor: una sección "solo imagen" no tiene productos (se eliminan al elegir el diseño) */
+.admin-page .menu-section.mode-image-wide .menu-content { display: none; }
