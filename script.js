@@ -395,6 +395,9 @@ async function renderAdminMenu() {
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
                             <span class="flip-label">Voltear</span>
+                            <label class="img-bg-toggle" title="Si está marcada, al subir una imagen se le quita el fondo automáticamente">
+                                <input type="checkbox" class="img-bgremove-check"> Quitar fondo al subir
+                            </label>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
                         </div>
                     </div>
@@ -833,8 +836,9 @@ async function uploadImage(file, imgKey, zone, overlaySpan) {
     zone.classList.add('uploading');
     let fileToProcess = file;
 
-    // 1. Intentar eliminar el fondo
-    try {
+    // 1. Quitar el fondo solo si el admin lo eligió (casilla "Quitar fondo al subir")
+    const removeBg = !!zone.querySelector('.img-bgremove-check')?.checked;
+    if (removeBg) try {
         overlaySpan.textContent = 'Eliminando fondo…';
         const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
         let blob      = await removeBackground(file, { debug: true });
