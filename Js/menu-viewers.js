@@ -17,6 +17,11 @@ function socialSvg(network, color, size = 22) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color || n.color}"><path d="${n.path}"/></svg>`;
 }
 
+// Alto de las imágenes de sección: img_height es el alto con 344 px de ancho (ancho de la
+// columna en escritorio). El recuadro conserva esa proporción en cualquier pantalla, así la
+// imagen se ve igual en un celular, solo más chica. Mismo valor que IMG_REF_WIDTH en script.js.
+const IMG_REF_WIDTH = 344;
+
 // Descripción de producto: respeta los saltos de línea y convierte las líneas que
 // empiezan con "-", "•" o "*" en una lista con viñetas. Escapa HTML.
 function formatDescription(text) {
@@ -360,9 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.className = `menu-section ${layoutClass}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image" style="min-height:${heightVal}px;">
+                <div class="menu-image" style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};min-height:0;">
                     <div class="menu-image-layer"
-                         style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
+                         style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
                 </div>`;
             menuContainer.appendChild(sectionEl);
         });

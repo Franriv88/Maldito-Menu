@@ -561,3 +561,8 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 @supports (overflow: clip) {
     .menu-image { overflow-x: clip; overflow-y: visible; z-index: 2; }
 }
+
+/* La capa de la imagen tiene la proporción del recuadro del editor (aspect-ratio inline)
+   y se alinea arriba: si el texto de al lado es más alto, el recuadro se estira pero la
+   imagen se ve igual que en el editor. Escala con el ancho en cualquier pantalla. */
+.menu-image-layer { inset: auto; top: 0; left: 0; width: 100%; height: auto; }

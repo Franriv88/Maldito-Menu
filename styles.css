@@ -1219,3 +1219,7 @@ body.preview-mode .admin-page .drop-zone, body.preview-mode .drop-zone { cursor:
     background: rgba(230,170,40,.92); color: #1a1205; font-size: .66rem; font-weight: 600; line-height: 1.25;
 }
 .img-res-warning[hidden] { display: none; }
+
+/* Editor: el recuadro de imagen se define por proporción (aspect-ratio inline),
+   también en pantallas angostas (antes 200px fijos) */
+.admin-page .menu-image.drop-zone { height: auto; }

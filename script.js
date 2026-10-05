@@ -362,7 +362,7 @@ async function renderAdminMenu() {
                 <button class="layout-toggle-btn" data-img-key="${sec.imgKey}" title="Intercambiar texto e imagen">↔ Intercambiar</button>
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}"
-                     style="height:${heightVal}px;min-height:0;">
+                     style="aspect-ratio:${IMG_REF_WIDTH} / ${heightVal};height:auto;min-height:0;">
                     <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:${frameTransform(shiftX, shiftY, flipH)};"></div>
                     <div class="drop-overlay"><span>Clic para cambiar la imagen · arrastrala para encuadrar</span></div>
                     <div class="img-res-warning" hidden>${licon('alert-triangle', 12)} Con este zoom puede verse pixelada: subí una imagen más grande</div>
@@ -532,9 +532,8 @@ function initDropZones() {
         if (heightSlider) {
             heightSlider.addEventListener('input', e => {
                 e.stopPropagation();
-                const h = `${heightSlider.value}px`;
-                zone.style.minHeight = '0';
-                zone.style.height = h;
+                // El alto se guarda "a 344 px de ancho": el recuadro mantiene la proporción
+                zone.style.aspectRatio = `${IMG_REF_WIDTH} / ${heightSlider.value}`;
                 const bg = zone.querySelector('.image-bg');
                 if (bg) { bg.style.top = '0'; bg.style.bottom = '0'; }
                 updateResolutionWarning(zone); // el alto del recuadro también cambia el tamaño mostrado
@@ -575,6 +574,10 @@ function initDropZones() {
 // - shiftX / shiftY: desplazamiento directo en % del ancho/alto del recuadro.
 //   Funcionan con cualquier zoom y con PNG con bordes transparentes.
 // - zoom: alto de la imagen en % del alto del recuadro (20 = achica, 300 = agranda).
+// - img_height: alto del recuadro cuando mide IMG_REF_WIDTH px de ancho (el ancho de la
+//   columna de imagen en el menú de escritorio). El recuadro mantiene esa PROPORCIÓN en
+//   cualquier pantalla, así la imagen se ve igual en celular, solo más chica.
+const IMG_REF_WIDTH = 344;
 const clamp01 = v => Math.max(0, Math.min(100, v));
 
 function imageFrame(imageConfig, key) {
