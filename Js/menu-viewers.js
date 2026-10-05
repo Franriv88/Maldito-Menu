@@ -328,7 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const posVal    = typeof imageConfig[`${sec.imgKey}_pos`]    === 'number' ? imageConfig[`${sec.imgKey}_pos`]    : 50;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
-            const vAlign = imageConfig[`${sec.imgKey}_vAlign`] || 'center';
+            // Encuadre: posición vertical (o la equivalente del vAlign viejo) y zoom
+            const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${sec.imgKey}_vAlign`]] ?? 50;
+            const posY = typeof imageConfig[`${sec.imgKey}_posY`] === 'number' ? imageConfig[`${sec.imgKey}_posY`] : legacyY;
+            const zoom = typeof imageConfig[`${sec.imgKey}_zoom`] === 'number' ? imageConfig[`${sec.imgKey}_zoom`] : 100;
 
             let contentHTML = '';
             sec.categorias.forEach(cat => {
@@ -354,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image${flipH ? ' img-flipped' : ''}"
-                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${vAlign};min-height:${heightVal}px;"></div>`;
+                     style="background-image:url('${imgSrc}');background-position:${posVal}% ${posY}%;background-size:auto ${zoom}%;min-height:${heightVal}px;"></div>`;
             menuContainer.appendChild(sectionEl);
         });
 
