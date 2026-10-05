@@ -4,7 +4,7 @@
 
 const firebaseConfig = {
   apiKey: "AIzaSyCAWoAt7ImKtgnQepF9jTyGV0mPusWMTzA",
-  authDomain: "maldito-cafe.firebaseapp.com",
+  authDomain: "cubierto.menu", // dominio que muestra la ventana de login de Google
   projectId: "maldito-cafe",
   storageBucket: "maldito-cafe.firebasestorage.app",
   messagingSenderId: "471022150149",
