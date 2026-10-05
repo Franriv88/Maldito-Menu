@@ -554,3 +554,10 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
     background-size: auto 100%;
     background-position: 50% center;
 }
+
+/* Las imágenes de sección pueden sobresalir hacia arriba o hacia abajo (por encima de
+   los títulos o del encabezado), pero se recortan a los costados para no tapar la
+   columna de texto. Navegadores sin overflow:clip mantienen el recorte completo. */
+@supports (overflow: clip) {
+    .menu-image { overflow-x: clip; overflow-y: visible; z-index: 2; }
+}
