@@ -579,7 +579,7 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
     .menu-section.mode-text-text .menu-content { column-count: 1; }
 }
 
-/* Imagen a lo ancho: la imagen ocupa todo el ancho y los productos van debajo */
+/* Imagen a lo ancho: la sección es SOLO la imagen; sus productos no se muestran */
 .menu-section.mode-image-wide { flex-direction: column; }
 .menu-section.mode-image-wide .menu-image { flex: 0 0 auto; width: 100%; order: -1; }
-.menu-section.mode-image-wide .menu-content { flex: 1 1 auto; width: 100%; }
+.menu-section.mode-image-wide .menu-content { display: none; }

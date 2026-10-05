@@ -665,7 +665,7 @@ function layoutPickerHTML() {
                 <button type="button" class="lp-swap" title="Intercambiar lados">${licon('arrow-left-right', 16)}</button>
                 ${side('right', 'Derecha')}
             </div>
-            <p class="lp-hint">Texto + Texto: los productos en dos columnas · Imagen + Imagen: la imagen a lo ancho, con los productos debajo.</p>
+            <p class="lp-hint">Texto + Texto: los productos en dos columnas · Imagen + Imagen: solo la imagen a lo ancho, sin productos.</p>
             <p class="lp-lock" hidden>${licon('lock', 12)} Texto + Texto e Imagen a lo ancho no están incluidos en tu plan.</p>
         </div>`;
 }

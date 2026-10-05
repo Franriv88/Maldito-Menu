@@ -337,13 +337,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const order = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
         const pos = k => { const i = order.indexOf(k); return i === -1 ? 100 + SECCIONES_CONFIG.findIndex(x => x.imgKey === k) : i; };
         [...SECCIONES_CONFIG].sort((a, b) => pos(a.imgKey) - pos(b.imgKey)).forEach(sec => {
+            // Diseño de la sección: text-image (por defecto), text-text (2 columnas) o
+            // image-wide (SOLO la imagen a lo ancho: los productos de la sección no se muestran)
+            const mode = ['text-image', 'text-text', 'image-wide'].includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
             const hasProducts = sec.categorias.some(cat => (byCategory[cat] || []).length > 0);
-            if (!hasProducts) return;
+            if (!hasProducts && mode !== 'image-wide') return; // "solo imagen" se muestra aunque no tenga productos
 
             const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
-            // Diseño de la sección: text-image (por defecto), text-text (2 columnas) o image-wide
-            const mode = ['text-image', 'text-text', 'image-wide'].includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
             const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
             const imgSrc  = imageData[sec.imgKey] || imageConfig[sec.imgKey] || sec.imgDefault;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
