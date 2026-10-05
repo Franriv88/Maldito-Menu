@@ -325,7 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         menuContainer.innerHTML = '';
 
-        SECCIONES_CONFIG.forEach(sec => {
+        // Orden elegido por el restaurante (config/images.sectionOrder); las que no figuran van al final
+        const order = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
+        const pos = k => { const i = order.indexOf(k); return i === -1 ? 100 + SECCIONES_CONFIG.findIndex(x => x.imgKey === k) : i; };
+        [...SECCIONES_CONFIG].sort((a, b) => pos(a.imgKey) - pos(b.imgKey)).forEach(sec => {
             const hasProducts = sec.categorias.some(cat => (byCategory[cat] || []).length > 0);
             if (!hasProducts) return;
 

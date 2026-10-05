@@ -187,6 +187,13 @@ const SECCIONES_CONFIG = [
     { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: IMG_PLACEHOLDER, premium: true },
 ];
 
+// Orden de las secciones elegido por el restaurante (config/images.sectionOrder: ['img3','img1',…]).
+// Las que no figuran (ej. nuevas) van al final en su orden original. Igual en menu-viewers.js.
+function orderedSections(list, order) {
+    const pos = k => { const i = (order || []).indexOf(k); return i === -1 ? 100 + list.findIndex(s => s.imgKey === k) : i; };
+    return [...list].sort((a, b) => pos(a.imgKey) - pos(b.imgKey));
+}
+
 const ORDEN_CATEGORIAS = {
     'CAFÉ DE ESPECIALIDAD': 1, 'CAFÉ FRÍO': 2,
     'BEBIDAS': 3, 'EXTRAS': 4,
@@ -333,7 +340,8 @@ async function renderAdminMenu() {
             byCategory[d.categoria].push({ id: doc.id, ...d });
         });
 
-        const sectionsHTML = SECCIONES_CONFIG
+        window.savedSectionOrder = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
+        const sectionsHTML = orderedSections(SECCIONES_CONFIG, window.savedSectionOrder)
             .filter(sec => !sec.premium || hasBenefit(window.userBenefits, 'extra_sections'))
             .map(sec => {
             const savedLayout = imageConfig[`${sec.imgKey}_layout`];
@@ -361,7 +369,11 @@ async function renderAdminMenu() {
 
             return `
             <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${sec.imgKey}" data-mode="${mode}" style="position:relative">
-                <button class="layout-picker-btn" type="button" title="Elegir qué va en cada lado de esta sección">${licon('layout-panel-top', 13)} Diseño</button>
+                <div class="section-toolbar">
+                    <button class="sec-move" type="button" data-dir="up" title="Subir la sección completa">${licon('chevron-up', 15)}</button>
+                    <button class="sec-move" type="button" data-dir="down" title="Bajar la sección completa">${licon('chevron-down', 15)}</button>
+                    <button class="layout-picker-btn" type="button" title="Elegir qué va en cada lado de esta sección">${licon('layout-panel-top', 13)} Diseño</button>
+                </div>
                 ${layoutPickerHTML()}
                 <div class="menu-content">${contentHTML}</div>
                 <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}" data-ref-w="${refW}"
@@ -397,6 +409,7 @@ async function renderAdminMenu() {
         requestAnimationFrame(() => container.querySelectorAll('.input-description').forEach(autosizeDescription));
         initDropZones();
         initCategoryTitleEditors();
+        updateSectionMoveButtons();
 
     } catch (err) {
         console.error('Error cargando menú:', err);
@@ -447,6 +460,13 @@ function handleDescriptionKeydown(e) {
 function handleContainerClick(e) {
     const deleteBtn = e.target.closest('.delete-item-btn');
     if (deleteBtn) { deleteBtn.closest('.admin-item').remove(); return; }
+
+    // ── Mover la sección completa arriba / abajo ──
+    const moveBtn = e.target.closest('.sec-move');
+    if (moveBtn) {
+        moveSection(moveBtn.closest('.menu-section'), moveBtn.dataset.dir);
+        return;
+    }
 
     // ── Selector de diseño de la sección ──
     const pickerBtn = e.target.closest('.layout-picker-btn');
@@ -664,6 +684,40 @@ function setSectionSides(section, [l, r]) {
         [`${section.dataset.imgKey}_mode`]: mode,
         [`${section.dataset.imgKey}_layout`]: reversed ? 'reversed' : 'normal',
     }, { merge: true }).catch(err => console.error('Error guardando diseño de sección:', err));
+}
+
+// ── Orden de las secciones ────────────────────────────────────
+// Intercambia la sección completa (texto, imagen, diseño y encuadre) con la de arriba o abajo.
+function moveSection(section, dir) {
+    const sibling = dir === 'up' ? section.previousElementSibling : section.nextElementSibling;
+    if (!sibling?.matches('.menu-section[data-img-key]')) return;
+    if (dir === 'up') sibling.before(section); else sibling.after(section);
+    updateSectionMoveButtons();
+    section.classList.remove('just-moved'); void section.offsetWidth; section.classList.add('just-moved');
+    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    saveSectionOrder();
+}
+
+function currentSectionOrder() {
+    const visible = [...document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]')].map(s => s.dataset.imgKey);
+    // Las secciones que no se muestran en el editor (plan sin secciones extra) conservan su lugar al final
+    const hidden = orderedSections(SECCIONES_CONFIG, window.savedSectionOrder).map(s => s.imgKey).filter(k => !visible.includes(k));
+    return [...visible, ...hidden];
+}
+
+function saveSectionOrder() {
+    window.savedSectionOrder = currentSectionOrder();
+    restRef().collection('config').doc('images').set({ sectionOrder: window.savedSectionOrder }, { merge: true })
+        .catch(err => console.error('Error guardando el orden de secciones:', err));
+}
+
+// La primera no puede subir y la última no puede bajar
+function updateSectionMoveButtons() {
+    const sections = [...document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]')];
+    sections.forEach((s, i) => {
+        s.querySelector('.sec-move[data-dir="up"]').disabled   = i === 0;
+        s.querySelector('.sec-move[data-dir="down"]').disabled = i === sections.length - 1;
+    });
 }
 
 // Cerrar el selector al hacer clic afuera
@@ -951,6 +1005,7 @@ async function guardarMenu() {
         imageConfigActual[`${key}_layout`] = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
         imageConfigActual[`${key}_mode`]   = section.dataset.mode || 'text-image';
     });
+    if (document.querySelector('#admin-menu-container .menu-section[data-img-key]')) imageConfigActual.sectionOrder = currentSectionOrder();
 
     try {
         const ref = restRef();

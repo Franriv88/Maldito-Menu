@@ -1273,3 +1273,20 @@ body.light .lp-opt.active { background: #6b5135; border-color: #6b5135; color: #
 body.light .lp-swap { background: #fff; border-color: rgba(100,80,50,.3); color: #3a2e22; }
 /* Imagen a lo ancho en el editor: el recuadro ocupa todo el ancho */
 .admin-page .menu-section.mode-image-wide .menu-image.drop-zone { width: 100%; align-self: stretch; }
+
+/* ── Barra de cada sección: mover ▲ ▼ + Diseño ── */
+.section-toolbar {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20;
+    display: flex; align-items: center; gap: 4px;
+}
+.section-toolbar .layout-picker-btn { position: static; transform: none; }
+.sec-move {
+    width: 28px; height: 28px; border-radius: 50%; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.65); color: #c8b89a; border: 1px solid rgba(200,184,154,.35);
+}
+.sec-move:hover:not(:disabled) { background: rgba(124,108,92,.8); border-color: #c8b89a; }
+.sec-move:disabled { opacity: .3; cursor: default; }
+.menu-section.just-moved { animation: sec-moved .9s ease; }
+@keyframes sec-moved { 0% { box-shadow: inset 0 0 0 3px #c8b89a; } 100% { box-shadow: inset 0 0 0 3px transparent; } }
+body.preview-mode .section-toolbar { display: none !important; }

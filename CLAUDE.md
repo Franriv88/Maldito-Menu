@@ -93,6 +93,7 @@ restaurants/{restaurantId}/
                    img1_zoom (20–300, % del alto del recuadro),
                    img1_mode: text-image | text-text (2 columnas) | image-wide (imagen a lo ancho + productos debajo) }
                  ← text-text / image-wide requieren el beneficio opt-in "section_layouts" del plan
+    images.sectionOrder: ['img3','img1',…] ← orden de las secciones (▲▼ en el editor); las que faltan van al final
                  ← imágenes de sección en Storage: restaurants/{id}/section-imgN-{ts}.webp (≤1600 px)
     footer:      { notice, address, socials: [{network, url, color}] }
     categoryTitles: { 'CAFÉ DE ESPECIALIDAD': 'Título custom', ... }
