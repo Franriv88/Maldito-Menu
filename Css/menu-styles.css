@@ -538,3 +538,10 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 .email-pop-btn:hover, .email-pop-btn:focus-visible {
     background: var(--title-color); color: var(--primary-color); border-color: var(--title-color); outline: none;
 }
+
+/* Descripción de producto: líneas y listas con el menor interlineado posible */
+.item-details.visible { max-height: 600px; } /* listas largas no se cortan */
+.item-desc { line-height: 1.25; }
+.item-desc .desc-line { display: block; }
+.item-desc .desc-list { margin: 0; padding-left: 1.1em; }
+.item-desc .desc-list li { margin: 0; padding: 0; }

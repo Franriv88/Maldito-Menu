@@ -208,7 +208,7 @@
             <div class="to-lines">
                 ${lines.map(([id, l]) => `
                     <div class="to-line" data-id="${esc(id)}">
-                        <div class="to-line-name">${esc(l.name)}${hidePrices ? '' : `<small>${money(l.price * l.qty)}</small>`}</div>
+                        <div class="to-line-name">${esc(l.name)}${hidePrices || !l.price ? '' : `<small>${money(l.price * l.qty)}</small>`}</div>
                         <div class="to-stepper">
                             <button type="button" data-d="-1" aria-label="Quitar uno">−</button>
                             <span>${l.qty}</span>
@@ -339,7 +339,7 @@
         return `
         <div class="to-order${mine ? ' mine' : ''}">
             <div class="to-order-head"><b>${title}</b><span class="to-status ${st.cls}">${st.label}</span></div>
-            ${o.items ? `<ul>${o.items.map(i => `<li><span>${i.qty} × ${esc(i.nombre)}</span>${hidePrices ? '' : `<span>${money(i.precio * i.qty)}</span>`}</li>`).join('')}</ul>` : ''}
+            ${o.items ? `<ul>${o.items.map(i => `<li><span>${i.qty} × ${esc(i.nombre)}</span>${hidePrices || !i.precio ? '' : `<span>${money(i.precio * i.qty)}</span>`}</li>`).join('')}</ul>` : ''}
             ${o.restrictions?.length ? `<div class="to-order-restr">${o.restrictions.map(x => `<span>${restrictionIcon(x.id, 13)} ${esc(x.label)}</span>`).join('')}</div>` : ''}
             ${!hidePrices && o.items ? `<div class="to-order-total"><span>${o.status === 'rechazado' ? 'No se cobra' : 'Subtotal'}</span><b>${money(o.total)}</b></div>` : ''}
         </div>`;

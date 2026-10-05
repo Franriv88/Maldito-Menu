@@ -388,6 +388,9 @@ async function renderAdminMenu() {
 
         container.innerHTML = sectionsHTML.join('');
         container.addEventListener('click', handleContainerClick);
+        container.addEventListener('input', e => { if (e.target.matches('.input-description')) autosizeDescription(e.target); });
+        container.addEventListener('keydown', handleDescriptionKeydown);
+        requestAnimationFrame(() => container.querySelectorAll('.input-description').forEach(autosizeDescription));
         initDropZones();
         initCategoryTitleEditors();
 
@@ -401,13 +404,40 @@ function buildItemHTML(p) {
     return `<div class="menu-item admin-item">
         <div class="item-header">
             <span class="producto"><input class="input-product" value="${esc(p.nombre || '')}" placeholder="Nombre del producto"></span>
-            <span class="precio">$<input class="input-price" type="number" value="${esc(p.precio || '')}" placeholder="0" min="0"></span>
+            <span class="precio">$<input class="input-price" type="number" value="${esc(p.precio ?? '')}" placeholder="—" min="0" title="Dejalo vacío para publicar el producto sin precio"></span>
         </div>
         <div class="item-details visible">
-            <input class="input-description" value="${esc(p.descripcion || '')}" placeholder="Descripción (opcional)">
+            <textarea class="input-description" rows="1" placeholder="Descripción (opcional) · empezá una línea con «- » para hacer una lista">${esc(p.descripcion || '')}</textarea>
         </div>
         <button class="delete-item-btn" type="button" title="Eliminar">${licon('x', 13)}</button>
     </div>`;
+}
+
+// ── Descripción de productos (texto multilínea y listas) ─────
+// Enter en una línea "- …" continúa la lista; Enter en una viñeta vacía la cierra.
+// Shift+Enter siempre inserta un salto de línea simple.
+function autosizeDescription(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+}
+
+function handleDescriptionKeydown(e) {
+    const ta = e.target;
+    if (!ta.matches?.('.input-description') || e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    const { selectionStart: pos, selectionEnd: end, value } = ta;
+    const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
+    const line      = value.slice(lineStart, pos);
+    const bullet    = line.match(/^(\s*)([-•*]\s+)/);
+    if (!bullet) return; // texto normal: Enter hace un salto de línea común
+
+    e.preventDefault();
+    if (line.trim() === bullet[2].trim()) {
+        // viñeta vacía → salir de la lista
+        ta.setRangeText('', lineStart, end, 'end');
+    } else {
+        ta.setRangeText('\n' + bullet[1] + bullet[2], pos, end, 'end');
+    }
+    autosizeDescription(ta);
 }
 
 function handleContainerClick(e) {
@@ -429,6 +459,7 @@ function handleContainerClick(e) {
     if (e.target.classList.contains('add-item-btn')) {
         const catDiv = e.target.previousElementSibling;
         catDiv.insertAdjacentHTML('beforeend', buildItemHTML({}));
+        autosizeDescription(catDiv.lastElementChild.querySelector('.input-description'));
         catDiv.lastElementChild.querySelector('.input-product').focus();
     }
 }
@@ -607,9 +638,11 @@ async function guardarMenu() {
         const categoria = catDiv.dataset.categoria;
         catDiv.querySelectorAll('.admin-item').forEach((item, index) => {
             const nombre      = item.querySelector('.input-product').value.trim();
-            const precio      = parseFloat(item.querySelector('.input-price').value);
+            const precioNum   = parseFloat(item.querySelector('.input-price').value);
+            // Precio vacío (o inválido) = producto sin precio. Antes estos productos se descartaban.
+            const precio      = !isNaN(precioNum) && precioNum >= 0 ? precioNum : null;
             const descripcion = item.querySelector('.input-description')?.value.trim() ?? '';
-            if (nombre && !isNaN(precio) && precio >= 0) {
+            if (nombre) {
                 productosParaGuardar.push({
                     nombre, precio, categoria, descripcion,
                     orden: ORDEN_CATEGORIAS[categoria] || 99,
@@ -618,6 +651,22 @@ async function guardarMenu() {
             }
         });
     });
+
+    // Productos sin precio: confirmar antes de publicarlos así
+    // (si el menú entero se publica sin precios, no hace falta preguntar)
+    const sinPrecio = productosParaGuardar.filter(p => p.precio === null);
+    if (sinPrecio.length && !document.getElementById('cfg-hidePrices')?.checked) {
+        const lista = sinPrecio.slice(0, 8).map(p => `<li>${esc(p.nombre)}</li>`).join('')
+            + (sinPrecio.length > 8 ? `<li>y ${sinPrecio.length - 8} más…</li>` : '');
+        const ok = await confirmModal({
+            title: sinPrecio.length === 1 ? '1 producto sin precio' : `${sinPrecio.length} productos sin precio`,
+            html: `<p>Estos productos se van a publicar <b>sin precio</b> en el menú:</p>
+                   <ul class="cm-list">${lista}</ul>
+                   <p class="cm-hint">Si fue un olvido, cancelá y completá el precio.</p>`,
+            confirmText: 'Publicar sin precio',
+        });
+        if (!ok) { setSaveBtnState('idle'); return; }
+    }
 
     const imageConfigActual = {};
     document.querySelectorAll('.drop-zone[data-img-key]').forEach(zone => {
@@ -809,6 +858,9 @@ function populateStyleControls(cfg) {
     setVal('cfg-bgMenu',          cfg.bgMenu);
     setVal('cfg-logoSize',        cfg.logoSize    || 200);
     setVal('cfg-logoOpacity',     cfg.logoOpacity != null ? cfg.logoOpacity : 100);
+    const hidePricesBox = document.getElementById('cfg-hidePrices');
+    if (hidePricesBox) hidePricesBox.checked = !!cfg.hidePrices;
+    document.body.classList.toggle('prices-hidden', !!cfg.hidePrices);
 
     const sv = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     sv('cfg-fontSizeVal',       (cfg.fontSize       || 14) + 'px');
@@ -878,8 +930,44 @@ function initCategoryTitleEditors() {
     });
 }
 
+// Ventana de confirmación con la estética del proyecto (claro/oscuro)
+async function confirmModal({ title, html, confirmText = 'Confirmar', cancelText = 'Cancelar' }) {
+    const light = document.body.classList.contains('light');
+    const r = await Swal.fire({
+        title, html,
+        showCancelButton: true,
+        confirmButtonText: confirmText,
+        cancelButtonText: cancelText,
+        reverseButtons: true,
+        focusCancel: true,
+        background: light ? '#fffdf9' : '#1a1a1a',
+        color: light ? '#3a2e22' : '#ddd0bb',
+        confirmButtonColor: light ? '#6b5135' : '#c8b89a',
+        cancelButtonColor: light ? 'rgba(100,80,50,.25)' : 'rgba(124,108,92,.3)',
+        customClass: { popup: 'cm-popup', confirmButton: 'cm-confirm' },
+    });
+    return r.isConfirmed;
+}
+
 function initStyleControls() {
     const root = document.documentElement;
+
+    // ── Publicar el menú sin precios (pide confirmación al activarlo) ──
+    const hidePricesBox = document.getElementById('cfg-hidePrices');
+    if (hidePricesBox) hidePricesBox.addEventListener('change', async () => {
+        const enable = hidePricesBox.checked;
+        if (enable) {
+            const ok = await confirmModal({
+                title: 'Publicar el menú sin precios',
+                html: `<p>Los precios <b>no se van a mostrar</b> en el menú público ni en los pedidos desde la mesa.</p>
+                       <p class="cm-hint">Los precios que cargaste se conservan: podés volver a mostrarlos cuando quieras desmarcando esta opción.</p>`,
+                confirmText: 'Publicar sin precios',
+            });
+            if (!ok) { hidePricesBox.checked = false; return; }
+        }
+        document.body.classList.toggle('prices-hidden', enable);
+        await saveStyleField('hidePrices', enable);
+    });
 
     // ── Fuente de cuerpo ──────────────────────────────────────
     const fontSel = document.getElementById('cfg-fontFamily');

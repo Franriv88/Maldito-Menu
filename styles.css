@@ -172,7 +172,18 @@
     opacity: 0.75;
     padding: 0;
     margin: 0;
+    /* multilínea: crece con el contenido, interlineado compacto como en el menú */
+    resize: none;
+    overflow: hidden;
+    line-height: 1.25;
+    min-height: 1.25em;
+    white-space: pre-wrap;
+    box-sizing: border-box;
 }
+
+/* Menú publicado sin precios: los precios del editor quedan atenuados */
+body.prices-hidden .input-price { opacity: .35; }
+body.prices-hidden .admin-item .precio { opacity: .5; }
 
 .input-product:focus,
 .input-price:focus,
@@ -1157,3 +1168,11 @@ body:not(.light) .ctrl-label-inline { color: rgba(200,184,154,.62); }
 body:not(.light) .seg-btn:not(.active) { color: rgba(200,184,154,.6); }
 body:not(.light) .mini-drop { color: rgba(200,184,154,.55); }
 body:not(.light) .bg-remove-toggle { color: rgba(200,184,154,.62); }
+
+/* Ventanas de confirmación del editor (confirmModal) */
+.cm-popup { border-radius: 16px !important; font-size: .95rem; }
+.cm-popup p { margin: .4rem 0; line-height: 1.5; }
+.cm-confirm { color: #161412 !important; font-weight: 600 !important; }
+body.light .cm-confirm { color: #fff !important; }
+.cm-list { text-align: left; margin: .6rem auto; padding-left: 1.2rem; max-width: 300px; line-height: 1.5; }
+.cm-hint { font-size: .82rem; opacity: .75; }

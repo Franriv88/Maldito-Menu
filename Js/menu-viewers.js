@@ -17,6 +17,26 @@ function socialSvg(network, color, size = 22) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color || n.color}"><path d="${n.path}"/></svg>`;
 }
 
+// Descripción de producto: respeta los saltos de línea y convierte las líneas que
+// empiezan con "-", "•" o "*" en una lista con viñetas. Escapa HTML.
+function formatDescription(text) {
+    const escHtml = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    let html = '', inList = false;
+    for (const raw of String(text || '').split(/\r?\n/)) {
+        const line = raw.trim();
+        const item = line.match(/^(?:[-*]\s+|•\s*)(.+)$/);
+        if (item) {
+            if (!inList) { html += '<ul class="desc-list">'; inList = true; }
+            html += `<li>${escHtml(item[1])}</li>`;
+            continue;
+        }
+        if (inList) { html += '</ul>'; inList = false; }
+        if (line) html += `<span class="desc-line">${escHtml(line)}</span>`;
+    }
+    if (inList) html += '</ul>';
+    return html;
+}
+
 function safeUrl(url) {
     if (/^mailto:[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/i.test(url)) return url;
     try {
@@ -317,13 +337,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentHTML += `<h2>${catTitles[cat] || cat}</h2>`;
                 productos.forEach(item => {
                     const desc = item.descripcion || 'El clásico de la casa.';
+                    const hasPrice = !stylesConfig.hidePrices && item.precio !== null && item.precio !== undefined && item.precio !== '';
                     contentHTML += `
                         <div class="menu-item" data-id="${item.id}" data-price="${String(item.precio ?? '').replace(/"/g, '')}">
                             <div class="item-header">
                                 <span class="producto">${item.nombre}</span>
-                                ${stylesConfig.hidePrices ? '' : `<span class="precio">$${item.precio}</span>`}
+                                ${hasPrice ? `<span class="precio">$${item.precio}</span>` : ''}
                             </div>
-                            <div class="item-details"><p>${desc}</p></div>
+                            <div class="item-details"><div class="item-desc">${formatDescription(desc)}</div></div>
                         </div>`;
                 });
             });

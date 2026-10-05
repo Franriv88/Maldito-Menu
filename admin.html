@@ -19,7 +19,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Lobster&family=Dancing+Script:wght@400;700&family=UnifrakturMaguntia&family=Abril+Fatface&family=Oswald:wght@400;600&family=Merriweather:ital,wght@0,300;0,400;1,300&family=Pacifico&family=Great+Vibes&family=Raleway:wght@300;400;600&family=Bebas+Neue&family=Satisfy&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./Css/menu-styles.css">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=4">
     <style>
         /* topbar heredado de styles.css */
     </style>
@@ -178,6 +179,15 @@
             </div>
 
             <!-- Imagen fondo página (feature-gated) -->
+            <!-- Precios -->
+            <div class="sidebar-section">
+                <label class="ctrl-label">Precios</label>
+                <label class="bg-remove-toggle">
+                    <input type="checkbox" id="cfg-hidePrices">
+                    <span>Publicar el menú sin precios</span>
+                </label>
+            </div>
+
             <div class="sidebar-section feature-gated-section" id="pageBgSection">
                 <label class="ctrl-label">Fondo de página <span class="plan-lock-badge" id="pageBgBadge"></span></label>
                 <div class="bg-img-row">
@@ -270,10 +280,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js"></script>
-    <script src="script.js?v=10"></script>
+    <script src="script.js?v=11"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>
