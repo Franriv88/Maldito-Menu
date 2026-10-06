@@ -66,6 +66,9 @@ header img { max-width: 300px; }
 }
 
 /* --- LA MAGIA PARA INVERTIR EL ORDEN --- */
+/* Sección sin imagen cargada: los productos ocupan todo el ancho */
+.menu-section.no-image .menu-content { flex: 1 1 100%; }
+
 .menu-section.layout-reversed {
     flex-direction: row-reverse; /* Invierte el orden de las columnas */
 }

@@ -374,10 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Render menú ────────────────────────────────────────────
     const SECCIONES_CONFIG = [
-        { categorias: ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO'],  layout: 'normal',   imgKey: 'img1', imgDefault: './img/img/coffee.png'    },
-        { categorias: ['BEBIDAS', 'EXTRAS'],                  layout: 'reversed', imgKey: 'img2', imgDefault: './img/img/tea.png'       },
-        { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: './img/img/croissant.png' },
-        { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: './img/img/cookie.png'    },
+        { categorias: ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO'],  layout: 'normal',   imgKey: 'img1' },
+        { categorias: ['BEBIDAS', 'EXTRAS'],                  layout: 'reversed', imgKey: 'img2' },
+        { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3' },
+        { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4' },
     ];
     const LEGACY_CATS = SECCIONES_CONFIG.flatMap(s => s.categorias);
 
@@ -396,10 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // existe, las 4 iniciales en el orden de config/images.sectionOrder. Igual que en script.js.
         let sections;
         if (Array.isArray(imageConfig.sections) && imageConfig.sections.length) {
-            sections = imageConfig.sections.filter(s => s?.key).map((s, i) => {
+            sections = imageConfig.sections.filter(s => s?.key).map(s => {
                 const legacy = SECCIONES_CONFIG.find(x => x.imgKey === s.key);
-                return { imgKey: s.key, categorias: (s.cats || []).filter(Boolean), layout: legacy?.layout || 'normal',
-                         imgDefault: legacy?.imgDefault || SECCIONES_CONFIG[i % SECCIONES_CONFIG.length].imgDefault };
+                return { imgKey: s.key, categorias: (s.cats || []).filter(Boolean), layout: legacy?.layout || 'normal' };
             });
         } else {
             const order = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
@@ -416,7 +415,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const effectiveLayout = imageConfig[`${sec.imgKey}_layout`] || sec.layout;
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
             const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
-            const imgSrc  = imageData[sec.imgKey] || imageConfig[sec.imgKey] || sec.imgDefault;
+            // Sin imagen cargada no se muestra ninguna (nada de imágenes de relleno): los productos
+            // ocupan todo el ancho, y una sección "solo imagen" sin imagen no se muestra
+            const imgSrc  = imageData[sec.imgKey] || imageConfig[sec.imgKey] || null;
+            if (!imgSrc && mode === 'image-wide') return;
             const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
             const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
             // Encuadre (mismo modelo que el editor, ver imageFrame en script.js):
@@ -436,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const title = typeof catTitles[cat] === 'string' ? catTitles[cat] : (LEGACY_CATS.includes(cat) ? cat : '');
                 if (title) contentHTML += `<h2>${title}</h2>`;
                 productos.forEach(item => {
-                    const desc = item.descripcion || 'El clásico de la casa.';
+                    const desc = String(item.descripcion || '').trim();   // sin descripción: no se despliega
                     const hasPrice = !stylesConfig.hidePrices && item.precio !== null && item.precio !== undefined && item.precio !== '';
                     contentHTML += `
                         <div class="menu-item" data-id="${item.id}" data-price="${String(item.precio ?? '').replace(/"/g, '')}">
@@ -444,19 +446,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="producto">${item.nombre}</span>
                                 ${hasPrice ? `<span class="precio">$${item.precio}</span>` : ''}
                             </div>
-                            <div class="item-details"><div class="item-desc">${formatDescription(desc)}</div></div>
+                            ${desc ? `<div class="item-details"><div class="item-desc">${formatDescription(desc)}</div></div>` : ''}
                         </div>`;
                 });
             });
 
             const sectionEl = document.createElement('div');
-            sectionEl.className = `menu-section ${mode === 'text-image' ? layoutClass : ''} mode-${mode}`;
+            sectionEl.className = `menu-section ${mode === 'text-image' ? layoutClass : ''} mode-${mode}${imgSrc ? '' : ' no-image'}`;
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image" style="aspect-ratio:${refW} / ${heightVal};min-height:0;">
+                ${imgSrc ? `<div class="menu-image" style="aspect-ratio:${refW} / ${heightVal};min-height:0;">
                     <div class="menu-image-layer"
                          style="aspect-ratio:${refW} / ${heightVal};background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:translate(${shiftX}%, ${shiftY}%)${flipH ? ' scaleX(-1)' : ''};"></div>
-                </div>`;
+                </div>` : ''}`;
             menuContainer.appendChild(sectionEl);
         });
 
