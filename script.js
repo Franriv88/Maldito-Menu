@@ -353,6 +353,12 @@ async function renderAdminMenu() {
         footerSocials = footerConfig.socials || [];
         renderSocialsEditor();
 
+        // Selectores de tipografía desde el catálogo (Js/fonts.js) y todas las fuentes para previsualizarlas
+        if (typeof fontOptionsHTML === 'function') {
+            document.getElementById('cfg-titleFontFamily').innerHTML = fontOptionsHTML({ sameAsBody: true });
+            document.getElementById('cfg-fontFamily').innerHTML      = fontOptionsHTML();
+            loadAllFonts();
+        }
         applyStyles(styleConfig);
         populateStyleControls(styleConfig);
         initStyleControls();
@@ -1471,6 +1477,32 @@ function contrastColor(hex) {
     return L > 0.179 ? '#3a2e22' : '#c8b89a';
 }
 
+// ── Vista previa del fondo del menú en el editor ──────────────
+// Misma estructura que applyMenuBackground() de menu-viewers.js: así se ve igual antes de publicar.
+const editorMenuBg = { image: '', blur: 0, color: '#000000', opacity: 0 };
+function applyEditorMenuBg() {
+    const host = document.querySelector('.admin-menu-editor');
+    if (!host) return;
+    let wrap = host.querySelector(':scope > .menu-bg-wrap');
+    if (!editorMenuBg.image) {
+        wrap?.remove();
+        document.documentElement.classList.remove('has-menu-bg');
+        return;
+    }
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'menu-bg-wrap';
+        wrap.innerHTML = '<div class="menu-bg-img"></div><div class="menu-bg-overlay"></div>';
+        host.prepend(wrap);
+    }
+    const img = wrap.querySelector('.menu-bg-img'), ovl = wrap.querySelector('.menu-bg-overlay');
+    img.style.backgroundImage = `url('${editorMenuBg.image}')`;
+    img.style.filter          = `blur(${editorMenuBg.blur}px)`;
+    ovl.style.backgroundColor = editorMenuBg.color || 'transparent';
+    ovl.style.opacity         = editorMenuBg.opacity / 100;
+    document.documentElement.classList.add('has-menu-bg');
+}
+
 function applyStyles(cfg) {
     const r = document.documentElement;
     if (cfg.fontFamily)      r.style.setProperty('--main-font-family',  cfg.fontFamily);
@@ -1483,6 +1515,14 @@ function applyStyles(cfg) {
     if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
     if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
     if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
+    r.style.setProperty('--title-font-weight', cfg.titleBold === false ? '400' : '700');
+    r.style.setProperty('--title-font-style',  cfg.titleItalic ? 'italic' : 'normal');
+    // Vista previa del fondo del menú (imagen + desenfoque + capa de color), igual que el menú público
+    Object.assign(editorMenuBg, {
+        image: cfg.menuBgImage || '', blur: cfg.menuBgBlur || 0,
+        color: cfg.menuBgOverlayColor || '#000000', opacity: cfg.menuBgOverlayOpacity || 0,
+    });
+    applyEditorMenuBg();
     const logoPreview    = document.getElementById('logoPreview');
     const logoRemove     = document.getElementById('logoRemoveBtn');
     const logoRemoveBgNow = document.getElementById('logoRemoveBgNowBtn');
@@ -1523,6 +1563,8 @@ function applyStyles(cfg) {
 
 function populateStyleControls(cfg) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+    document.getElementById('cfg-titleBold')?.setAttribute('aria-pressed', String(cfg.titleBold !== false));
+    document.getElementById('cfg-titleItalic')?.setAttribute('aria-pressed', String(!!cfg.titleItalic));
     setVal('cfg-fontFamily',      cfg.fontFamily);
     setVal('cfg-titleFontFamily', cfg.titleFontFamily || '');
     setVal('cfg-fontSize',        cfg.fontSize);
@@ -1663,6 +1705,18 @@ function initStyleControls() {
         document.querySelectorAll('.input-product, .input-price, .input-description')
             .forEach(el => el.style.fontFamily = fontSel.value);
         await saveStyleField('fontFamily', fontSel.value);
+    });
+
+    // ── Títulos en negrita / cursiva ──────────────────────────
+    [['cfg-titleBold', 'titleBold', '--title-font-weight', on => on ? '700' : '400'],
+     ['cfg-titleItalic', 'titleItalic', '--title-font-style', on => on ? 'italic' : 'normal']].forEach(([id, field, cssVar, val]) => {
+        const btn = document.getElementById(id);
+        btn?.addEventListener('click', () => {
+            const on = btn.getAttribute('aria-pressed') !== 'true';
+            btn.setAttribute('aria-pressed', String(on));
+            root.style.setProperty(cssVar, val(on));
+            saveStyleField(field, on);
+        });
     });
 
     // ── Fuente de títulos ─────────────────────────────────────
@@ -2024,6 +2078,7 @@ function initBgImageControls() {
                 const field  = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
                 await restRef().collection('config').doc('styles').set({ [field]: base64 }, { merge: true });
                 if (thumb)  thumb.style.backgroundImage = `url('${base64}')`;
+                if (key === 'menuBg') { editorMenuBg.image = base64; applyEditorMenuBg(); }
                 if (remove) remove.style.display = '';
                 showExtras(true);
             } catch (err) { console.error('Error subiendo fondo:', err); }
@@ -2038,6 +2093,7 @@ function initBgImageControls() {
             if (thumb)  thumb.style.backgroundImage = '';
             if (remove) remove.style.display = 'none';
             showExtras(false);
+            if (key === 'menuBg') { Object.assign(editorMenuBg, { image: '', blur: 0, opacity: 0 }); applyEditorMenuBg(); }
         });
     });
 
@@ -2047,6 +2103,7 @@ function initBgImageControls() {
     if (blurSlider) {
         blurSlider.addEventListener('input', () => {
             if (blurVal) blurVal.textContent = `${blurSlider.value}px`;
+            editorMenuBg.blur = parseInt(blurSlider.value) || 0; applyEditorMenuBg();   // se ve en vivo
         });
         blurSlider.addEventListener('change', async () => {
             await restRef().collection('config').doc('styles').set(
@@ -2066,8 +2123,10 @@ function initBgImageControls() {
         }, { merge: true });
     };
     ovlColor?.addEventListener('change', saveOverlay);
+    ovlColor?.addEventListener('input', () => { editorMenuBg.color = ovlColor.value; applyEditorMenuBg(); });
     ovlOpacity?.addEventListener('input', () => {
         if (ovlVal) ovlVal.textContent = `${ovlOpacity.value}%`;
+        editorMenuBg.opacity = parseInt(ovlOpacity.value) || 0; applyEditorMenuBg();
     });
     ovlOpacity?.addEventListener('change', saveOverlay);
 }

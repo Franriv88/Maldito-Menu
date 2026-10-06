@@ -207,6 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
         applyMenuBackground(cfg);
         if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
         if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
+        r.style.setProperty('--title-font-weight', cfg.titleBold === false ? '400' : '700');
+        r.style.setProperty('--title-font-style',  cfg.titleItalic ? 'italic' : 'normal');
+        // Solo se descargan las tipografías que usa este menú (catálogo en Js/fonts.js)
+        if (typeof loadMenuFonts === 'function') loadMenuFonts(cfg.fontFamily, cfg.titleFontFamily);
         if (cfg.logoSize)        r.style.setProperty('--logo-size',         cfg.logoSize + 'px');
         if (cfg.logoOpacity != null) r.style.setProperty('--logo-opacity',  (cfg.logoOpacity / 100).toString());
         // El favicon es siempre el de Cubierto (no se reemplaza por el del restaurante)

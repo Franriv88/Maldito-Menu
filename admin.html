@@ -17,10 +17,9 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Lobster&family=Dancing+Script:wght@400;700&family=UnifrakturMaguntia&family=Abril+Fatface&family=Oswald:wght@400;600&family=Merriweather:ital,wght@0,300;0,400;1,300&family=Pacifico&family=Great+Vibes&family=Raleway:wght@300;400;600&family=Bebas+Neue&family=Satisfy&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./Css/menu-styles.css?v=14">
+    <link rel="stylesheet" href="./Css/menu-styles.css?v=15">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="stylesheet" href="styles.css?v=18">
     <style>
         /* topbar heredado de styles.css */
     </style>
@@ -71,72 +70,20 @@
                 </div>
             </div>
 
-            <!-- Fuente de cuerpo -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Fuente de cuerpo</label>
-                <select id="cfg-fontFamily" class="ctrl-select">
-                    <optgroup label="Sans-serif">
-                        <option value="sans-serif">Sans-serif (sistema)</option>
-                        <option value="'Arial', sans-serif">Arial</option>
-                        <option value="Verdana, sans-serif">Verdana</option>
-                        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-                        <option value="'Oswald', sans-serif">Oswald</option>
-                        <option value="'Raleway', sans-serif">Raleway</option>
-                        <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-                    </optgroup>
-                    <optgroup label="Serif">
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="'Times New Roman', serif">Times New Roman</option>
-                        <option value="'Merriweather', serif">Merriweather</option>
-                        <option value="'Playfair Display', serif">Playfair Display</option>
-                        <option value="'Cinzel', serif">Cinzel</option>
-                        <option value="'Cormorant Garant', serif">Cormorant Garant</option>
-                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
-                    </optgroup>
-                    <optgroup label="Caligráfica / Decorativa ✦" data-premium="extra_fonts">
-                        <option value="'Lobster', cursive">Lobster ✦</option>
-                        <option value="'Dancing Script', cursive">Dancing Script ✦</option>
-                        <option value="'Pacifico', cursive">Pacifico ✦</option>
-                        <option value="'Great Vibes', cursive">Great Vibes ✦</option>
-                        <option value="'Satisfy', cursive">Satisfy ✦</option>
-                        <option value="'Abril Fatface', cursive">Abril Fatface ✦</option>
-                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia ✦</option>
-                    </optgroup>
-                    <optgroup label="Monoespaciada">
-                        <option value="'Courier New', monospace">Courier New</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <!-- Fuente de títulos (categorías) -->
+            <!-- Fuente de títulos (primero) y de cuerpo — opciones desde Js/fonts.js -->
             <div class="sidebar-section">
                 <label class="ctrl-label">Fuente de títulos</label>
-                <select id="cfg-titleFontFamily" class="ctrl-select">
-                    <option value="">Igual que cuerpo</option>
-                    <optgroup label="Sans-serif">
-                        <option value="sans-serif">Sans-serif (sistema)</option>
-                        <option value="'Arial', sans-serif">Arial</option>
-                        <option value="'Oswald', sans-serif">Oswald</option>
-                        <option value="'Raleway', sans-serif">Raleway</option>
-                        <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-                    </optgroup>
-                    <optgroup label="Serif">
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="'Merriweather', serif">Merriweather</option>
-                        <option value="'Playfair Display', serif">Playfair Display</option>
-                        <option value="'Cinzel', serif">Cinzel</option>
-                        <option value="'Cormorant Garant', serif">Cormorant Garant</option>
-                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
-                    </optgroup>
-                    <optgroup label="Caligráfica / Decorativa ✦" data-premium="extra_fonts">
-                        <option value="'Lobster', cursive">Lobster ✦</option>
-                        <option value="'Dancing Script', cursive">Dancing Script ✦</option>
-                        <option value="'Great Vibes', cursive">Great Vibes ✦</option>
-                        <option value="'Satisfy', cursive">Satisfy ✦</option>
-                        <option value="'Abril Fatface', cursive">Abril Fatface ✦</option>
-                        <option value="'UnifrakturMaguntia', cursive">UnifrakturMaguntia ✦</option>
-                    </optgroup>
-                </select>
+                <select id="cfg-titleFontFamily" class="ctrl-select"></select>
+                <div class="title-style-row">
+                    <button type="button" class="style-toggle" id="cfg-titleBold" aria-pressed="true" title="Títulos en negrita"><b>N</b> Negrita</button>
+                    <button type="button" class="style-toggle" id="cfg-titleItalic" aria-pressed="false" title="Títulos en cursiva"><i>C</i> Cursiva</button>
+                </div>
+                <p class="ctrl-help">Los títulos pueden tener una tipografía distinta a la de los productos.</p>
+            </div>
+
+            <div class="sidebar-section">
+                <label class="ctrl-label">Fuente de cuerpo <span class="ctrl-help-inline">(productos y descripciones)</span></label>
+                <select id="cfg-fontFamily" class="ctrl-select"></select>
             </div>
 
             <!-- Tamaños de fuente — horizontal -->
@@ -166,7 +113,7 @@
                     <input type="text" id="cfg-textColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
                     <input type="color" id="cfg-textColor" class="ctrl-color" value="#7C6C5C">
                 </div>
-                <div class="color-ctrl-row">
+                <div class="color-ctrl-row" title="Se ve a los costados del menú cuando se abre en una computadora o tablet">
                     <span class="ctrl-label-inline">Fondo página</span>
                     <input type="text" id="cfg-bgPageHex" class="color-hex-input" value="#0e0e0e" maxlength="7">
                     <input type="color" id="cfg-bgPage" class="ctrl-color" value="#0e0e0e">
@@ -176,6 +123,7 @@
                     <input type="text" id="cfg-bgMenuHex" class="color-hex-input" value="#1A1A1A" maxlength="7">
                     <input type="color" id="cfg-bgMenu" class="ctrl-color" value="#1A1A1A">
                 </div>
+                <p class="ctrl-help"><b>Fondo página</b>: lo que se ve a los costados del menú cuando se abre en una computadora o una tablet (en el celular el menú ocupa toda la pantalla). <b>Fondo menú</b>: el fondo detrás de los productos.</p>
             </div>
 
             <!-- Imagen fondo página (feature-gated) -->
@@ -196,6 +144,7 @@
                     <button id="pageBgRemove" class="btn-bg-remove" style="display:none">×</button>
                 </div>
                 <input type="file" id="pageBgFile" accept="image/*" style="display:none">
+                <p class="ctrl-help">Una imagen para los costados del menú, que se ve en computadoras y tablets.</p>
             </div>
 
             <!-- Imagen fondo menú (feature-gated) -->
@@ -209,16 +158,18 @@
                 <input type="file" id="menuBgFile" accept="image/*" style="display:none">
                 <div id="menuBgExtras" style="display:none;margin-top:8px">
                     <div class="ctrl-row" style="gap:6px;align-items:center">
-                        <span class="ctrl-label-inline" style="flex-shrink:0">Blur</span>
+                        <span class="ctrl-label-inline" style="flex-shrink:0" title="Desenfoque">Desenfoque</span>
                         <input type="range" id="menuBgBlur" min="0" max="20" value="0" class="ctrl-slider">
                         <span id="menuBgBlurVal" style="font-size:.65rem;color:#c8b89a;width:22px;text-align:right;flex-shrink:0">0px</span>
                     </div>
                     <div class="ctrl-row" style="gap:6px;align-items:center;margin-top:5px">
-                        <span class="ctrl-label-inline" style="flex-shrink:0">Overlay</span>
+                        <span class="ctrl-label-inline" style="flex-shrink:0" title="Capa de color (overlay)">Capa de color</span>
                         <input type="color" id="menuBgOverlayColor" class="ctrl-color" value="#000000">
                         <input type="range" id="menuBgOverlayOpacity" min="0" max="100" value="0" class="ctrl-slider">
                         <span id="menuBgOverlayVal" style="font-size:.65rem;color:#c8b89a;width:28px;text-align:right;flex-shrink:0">0%</span>
                     </div>
+                    <p class="ctrl-help"><b>Desenfoque (blur)</b>: difumina la foto de fondo para que no compita con el texto.
+                        <b>Capa de color (overlay)</b>: un velo de color encima de la foto; subí su intensidad para oscurecerla (o aclararla) y que los productos se lean mejor. Lo ves en vivo a la izquierda.</p>
                 </div>
             </div>
 
@@ -288,7 +239,8 @@
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=4"></script>
-    <script src="script.js?v=29"></script>
+    <script src="./Js/fonts.js?v=1"></script>
+    <script src="script.js?v=30"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

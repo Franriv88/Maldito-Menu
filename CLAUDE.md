@@ -15,7 +15,7 @@ Guía de referencia rápida para Claude Code. Leer esto antes de explorar archiv
 | Hosting | Firebase Hosting → **`cubierto.menu`** (los dominios `maldito-cafe.*` redirigen por JS; no mostrar "Maldito" en nada visible) |
 | Pagos | Mercado Pago (redirect + webhook client-side) |
 | Íconos | **Lucide Icons v0.309.0** via jsDelivr CDN |
-| Fuentes | Google Fonts (Playfair Display, Cinzel, Lobster, etc.) |
+| Fuentes | Google Fonts, catálogo en `Js/fonts.js` (modernas, clásicas, caligráficas, pizarra, estilo asiático) |
 
 ---
 
@@ -168,7 +168,9 @@ y para los restaurantes que todavía no tienen `config/images.sections`:
 --primary-color      /* fondo del menú */
 --bg-page            /* fondo de página */
 --base-font-size     /* tamaño fuente cuerpo */
---title-font-size    /* tamaño fuente títulos */
+--title-font-size    /* tamaño fuente títulos (en celular/tablet se escala, ver media queries) */
+--title-font-weight  /* 700 o 400 (styles.titleBold) */
+--title-font-style   /* normal o italic (styles.titleItalic) */
 --logo-size          /* ancho máximo del logo */
 --logo-opacity       /* opacidad del logo */
 ```
@@ -268,6 +270,7 @@ Los inputs hardcodeados con `background: #111` necesitan override `body.light` p
 - `licon()` puede devolver `''` si el ícono no existe — fallar silenciosamente está intencional
 - `textContent` borra íconos SVG — usar `innerHTML` para restaurar contenido con íconos
 - `lucide.createIcons()` solo procesa `<i data-lucide>` existentes al momento del call
-- Google Fonts cargadas en `admin.html` y `menu.html` — agregarlas en ambos si se suman fuentes
+- Tipografías: catálogo único en `Js/fonts.js` (FONT_GROUPS). El editor arma los selectores y carga todas; el menú
+  público descarga solo las elegidas (`loadMenuFonts`). Para sumar una fuente, agregarla ahí (no en los HTML)
 - `SECCIONES_CONFIG` también existe en `Js/menu-viewers.js` (copia local para el menú público)
 - El helper `licon` es global vía `theme.js`, pero `checkout.html` tiene su propia copia (no carga theme.js)

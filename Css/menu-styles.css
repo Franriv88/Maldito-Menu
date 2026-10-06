@@ -77,6 +77,8 @@ header img { max-width: 300px; }
 .menu-content h2 {
     font-family: var(--title-font-family), var(--main-font-family), sans-serif;
     font-size: var(--title-font-size, 20px);
+    font-weight: var(--title-font-weight, 700);
+    font-style: var(--title-font-style, normal);
     border-bottom: 2px solid #333;
     padding-bottom: 0.5rem;
     margin-top: 20px;
@@ -247,7 +249,7 @@ footer p{
 /* Tablet grande / landscape */
 @media (orientation: landscape) and (max-width: 1100px) {
     .menu-item {
-        font-size: clamp(1rem, 2.5vw, 1.4rem);
+        font-size: calc(var(--base-font-size, 14px) * 1.6);   /* = 22,4 px con el tamaño por defecto, como antes */
     }
 }
 
@@ -265,12 +267,13 @@ footer p{
         padding: 0.5rem 0.6rem;
     }
 
+    /* Proporcional al tamaño elegido en el editor (con los valores por defecto queda igual que antes) */
     .menu-content h2 {
-        font-size: 0.9rem;
+        font-size: calc(var(--title-font-size, 20px) * 0.72);
         margin-top: 10px;
     }
 
-    .menu-item { font-size: 0.78rem; }
+    .menu-item { font-size: calc(var(--base-font-size, 14px) * 0.89); }
 
     .disclaimer p {
         font-size: 11px;
@@ -292,7 +295,7 @@ footer p{
 /* Mobile pequeño */
 @media (max-width: 480px) {
     header img { max-width: 160px; }
-    .menu-item { font-size: 0.8rem; }
+    .menu-item { font-size: calc(var(--base-font-size, 14px) * 0.915); }
 }
 
 /* ── PIE DEL MENÚ ───────────────────────────────────────────── */
