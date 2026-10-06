@@ -94,16 +94,19 @@ restaurants/{restaurantId}/
                    img1_zoom (20–300, % del alto del recuadro),
                    img1_mode: text-image | text-text (2 columnas) | image-wide (SOLO imagen a lo ancho; sus productos no se muestran) }
                  ← text-text / image-wide requieren el beneficio opt-in "section_layouts" del plan
-    images.sectionOrder: ['img3','img1',…] ← orden de las secciones (▲▼ en el editor); las que faltan van al final
+    images.sections: [{ key: 'img1', cats: ['CAFÉ DE ESPECIALIDAD'] }, { key: 'img5', cats: ['c_lx2k9a', …] }, …]
+                 ← secciones dinámicas EN ORDEN (botón "+" agrega imgN nuevas, nunca reutiliza una clave);
+                   cada sección tiene 1+ títulos (cats) con sus productos. Sin este campo (restaurantes
+                   anteriores) se arma desde SECCIONES_CONFIG + images.sectionOrder (que se sigue escribiendo)
                  ← imágenes de sección en Storage: restaurants/{id}/section-imgN-{ts}.webp (≤1600 px)
     footer:      { notice, address, socials: [{network, url, color}] }
-    categoryTitles: { 'CAFÉ DE ESPECIALIDAD': 'Título custom', ... }
+    categoryTitles: { 'CAFÉ DE ESPECIALIDAD': 'Entradas', c_lx2k9a: 'Pastas', c_x: '' }  ← '' = sin encabezado
 
 users/{uid}/
   { email, displayName, lastLogin, createdAt,
     subscription: { status, planType, paidUntil, paidAt, paymentInitiated } }
 
-  imageData/{img1..img4}: { src }  ← cada imagen de sección en SU PROPIO documento (límite 1 MB c/u;
+  imageData/{imgN}: { src }       ← cada imagen de sección en SU PROPIO documento (límite 1 MB c/u;
                                      antes iban todas juntas en config/images y MALIK llegó a 1022 KB)
   config/ordering:  { enabled, approvalMode: 'manual'|'direct', tableSessions, wifiCheck,
                      geo: {enabled, lat, lng, radius},
@@ -124,18 +127,24 @@ appConfig/
 
 ---
 
-## Categorías internas (hardcodeadas)
+## Secciones y categorías
+
+Las 4 secciones iniciales (y sus categorías viejas) siguen en `SECCIONES_CONFIG`, solo como punto de partida
+y para los restaurantes que todavía no tienen `config/images.sections`:
 
 ```javascript
-// En script.js — SECCIONES_CONFIG
+// En script.js — SECCIONES_CONFIG (copia en Js/menu-viewers.js)
 ['CAFÉ DE ESPECIALIDAD', 'CAFÉ FRÍO']   → img1
 ['BEBIDAS', 'EXTRAS']                   → img2
 ['SALADOS', 'LAMINADOS']                → img3
 ['DULCES']                              → img4
 ```
 
-Los **títulos visibles** se pueden personalizar y se guardan en `config/categoryTitles`.
-Los nombres internos nunca cambian (son las claves en productos de Firestore).
+- Las categorías nuevas usan claves `c_xxxx` (`newCatKey()`); la clave es `productos.categoria` y nunca cambia.
+- El texto visible está en `config/categoryTitles`. Sin título guardado: las categorías viejas muestran su
+  nombre (como siempre) y el editor propone uno genérico (`DEFAULT_TITLES`) si están vacías.
+  "Guardar Menú" guarda todos los títulos tal cual se ven en el editor.
+- Sin el beneficio `extra_sections` el editor solo muestra img1 e img2; el resto se conserva intacto.
 
 ---
 

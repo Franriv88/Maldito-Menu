@@ -1308,3 +1308,55 @@ body.preview-mode .section-toolbar { display: none !important; }
 
 /* Editor: las descripciones siempre visibles (no se anima el desplegable del menú) */
 .admin-page .item-details { grid-template-rows: 1fr !important; transition: none !important; }
+
+/* ── Títulos y secciones dinámicas (editor) ─────────────────── */
+.cat-title-row { display: flex; align-items: flex-end; gap: 6px; break-after: avoid; }
+.cat-title-row .input-category-title { flex: 1; min-width: 0; }
+.input-category-title::placeholder { color: rgba(124,108,92,.4); font-weight: normal; }
+.remove-cat-btn {
+    flex-shrink: 0; width: 26px; height: 26px; margin-bottom: .45rem; padding: 0; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    background: none; border: 1px solid transparent; color: rgba(124,108,92,.45); transition: all .15s;
+}
+.remove-cat-btn:hover { color: var(--delete-color, #c0392b); border-color: rgba(192,57,43,.35); }
+/* la sección siempre conserva al menos un título */
+.menu-content .cat-block:only-of-type .remove-cat-btn { display: none; }
+
+.add-cat-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+    margin: .6rem 0 .4rem; padding: .55rem .8rem; border-radius: 8px; cursor: pointer;
+    background: rgba(124,108,92,.06); border: 1px dashed rgba(124,108,92,.45);
+    color: rgba(200,184,154,.75); font: .8rem inherit; transition: all .15s; break-inside: avoid;
+}
+.add-cat-btn:hover { background: rgba(124,108,92,.14); border-color: #c8b89a; color: #ddd0bb; }
+
+.sec-delete {
+    width: 28px; height: 28px; border-radius: 50%; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.65); color: #c8b89a; border: 1px solid rgba(200,184,154,.35);
+}
+.sec-delete:hover { background: rgba(192,57,43,.85); border-color: #e07a6e; color: #fff; }
+
+.add-section-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 2.2rem 1rem 1.6rem; }
+.add-section-btn {
+    width: 56px; height: 56px; border-radius: 50%; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 2px solid rgba(200,184,154,.45); color: #c8b89a;
+    transition: background .15s, border-color .15s, transform .15s;
+}
+.add-section-btn:hover { background: rgba(200,184,154,.12); border-color: #c8b89a; transform: scale(1.06); }
+.add-section-btn:active { transform: scale(.96); }
+.add-section-label { font-size: .75rem; letter-spacing: 1px; text-transform: uppercase; color: rgba(200,184,154,.5); }
+.add-section-lock { margin: 0; font-size: .74rem; color: #e6aa28; display: flex; align-items: center; gap: 5px; }
+.add-section-lock[hidden] { display: none; }
+.add-section-lock.pulse { animation: lp-pulse .6s ease 2; }
+
+body.preview-mode .add-cat-btn,
+body.preview-mode .remove-cat-btn,
+body.preview-mode .add-section-wrap { display: none !important; }
+
+body.light .add-cat-btn { background: rgba(100,80,50,.05); border-color: rgba(100,80,50,.35); color: #7a6248; }
+body.light .add-cat-btn:hover { background: rgba(100,80,50,.1); border-color: #7a6248; color: #6b5135; }
+body.light .add-section-btn { border-color: rgba(100,80,50,.4); color: #7a6248; }
+body.light .add-section-btn:hover { background: rgba(100,80,50,.08); border-color: #6b5135; color: #6b5135; }
+body.light .add-section-label { color: rgba(60,42,20,.5); }

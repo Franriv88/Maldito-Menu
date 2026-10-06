@@ -194,12 +194,36 @@ function orderedSections(list, order) {
     return [...list].sort((a, b) => pos(a.imgKey) - pos(b.imgKey));
 }
 
-const ORDEN_CATEGORIAS = {
-    'CAFÉ DE ESPECIALIDAD': 1, 'CAFÉ FRÍO': 2,
-    'BEBIDAS': 3, 'EXTRAS': 4,
-    'SALADOS': 5, 'LAMINADOS': 6,
-    'DULCES': 7
-};
+// ── Secciones y títulos dinámicos ─────────────────────────────
+// config/images.sections = [{ key: 'img1', cats: ['CAFÉ DE ESPECIALIDAD'] }, { key: 'img5', cats: ['c_lx2k9a'] }, …]
+// El orden de la lista es el orden del menú. Cada sección tiene uno o más títulos (cats),
+// cada uno con sus productos; el texto visible de cada título está en config/categoryTitles.
+// Si todavía no existe (restaurantes anteriores) se arma desde SECCIONES_CONFIG, mostrando
+// solo las categorías con productos (la primera siempre). Igual en menu-viewers.js.
+const LEGACY_CATS = SECCIONES_CONFIG.flatMap(s => s.categorias);
+// Títulos genéricos para las secciones iniciales que todavía no tienen título ni productos
+const DEFAULT_TITLES = { 'CAFÉ DE ESPECIALIDAD': 'Entradas', 'BEBIDAS': 'Platos principales', 'SALADOS': 'Bebidas', 'DULCES': 'Postres' };
+// Sin el beneficio "Secciones adicionales" solo se editan las 2 secciones iniciales
+const FREE_SECTIONS = ['img1', 'img2'];
+const canAddSections = () => !!hasBenefit(window.userBenefits, 'extra_sections');
+
+function resolveSections(imageConfig, byCategory) {
+    if (Array.isArray(imageConfig.sections) && imageConfig.sections.length) {
+        return imageConfig.sections.filter(s => s?.key).map(s => ({ key: s.key, cats: (s.cats || []).filter(Boolean) }));
+    }
+    return orderedSections(SECCIONES_CONFIG, imageConfig.sectionOrder)
+        .map(sec => ({ key: sec.imgKey, cats: sec.categorias.filter((c, i) => i === 0 || (byCategory[c] || []).length) }));
+}
+
+// Título del editor: el guardado; si no hay, el nombre viejo (es lo que ya ve el público)
+// o uno genérico si la categoría todavía está vacía
+function categoryTitle(cat, catTitles, byCategory) {
+    if (typeof catTitles[cat] === 'string') return catTitles[cat];
+    if (!LEGACY_CATS.includes(cat)) return '';
+    return (byCategory[cat] || []).length ? cat : (DEFAULT_TITLES[cat] || '');
+}
+
+const newCatKey = () => 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 const restaurantId    = new URLSearchParams(location.search).get('r');
 const isReadonly      = new URLSearchParams(location.search).get('readonly') === '1';
@@ -346,43 +370,58 @@ async function renderAdminMenu() {
             byCategory[d.categoria].push({ id: doc.id, ...d });
         });
 
-        window.savedSectionOrder = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
-        const sectionsHTML = orderedSections(SECCIONES_CONFIG, window.savedSectionOrder)
-            .filter(sec => !sec.premium || hasBenefit(window.userBenefits, 'extra_sections'))
-            .map(sec => {
-            const savedLayout = imageConfig[`${sec.imgKey}_layout`];
-            const effectiveLayout = savedLayout || sec.layout;
+        window.imageConfigLoaded = imageConfig;
+        window.menuSections = resolveSections(imageConfig, byCategory);
+        window.menuSections.forEach(s => { if (!s.cats.length) s.cats.push(newCatKey()); });
+        const ctx = { imageConfig, sectionImage, catTitles, byCategory };
+        const sectionsHTML = window.menuSections
+            .filter(s => canAddSections() || FREE_SECTIONS.includes(s.key))
+            .map(s => buildSectionHTML(s, ctx));
+
+        container.innerHTML = sectionsHTML.join('') + addSectionHTML();
+        container.addEventListener('click', handleContainerClick);
+        container.addEventListener('input', e => { if (e.target.matches('.input-description')) autosizeDescription(e.target); });
+        container.addEventListener('keydown', handleDescriptionKeydown);
+        requestAnimationFrame(() => container.querySelectorAll('.input-description').forEach(autosizeDescription));
+        initDropZones();
+        initCategoryTitleEditors();
+        updateSectionMoveButtons();
+        if (!isReadonly) migrateLegacyImages(imageConfig, imageData); // en segundo plano
+
+    } catch (err) {
+        console.error('Error cargando menú:', err);
+        container.innerHTML = '<p style="color:red;padding:1rem">Error al cargar el menú.</p>';
+    }
+}
+
+// Una sección del editor: títulos con sus productos + imagen con sus controles
+function buildSectionHTML(sec, { imageConfig, sectionImage, catTitles, byCategory }) {
+            const key = sec.key;
+            const effectiveLayout = imageConfig[`${key}_layout`] || SECCIONES_CONFIG.find(s => s.imgKey === key)?.layout || 'normal';
             const layoutClass = effectiveLayout === 'reversed' ? 'layout-reversed' : '';
-            const imgSrc  = sectionImage(sec.imgKey) || sec.imgDefault;
-            const heightVal = typeof imageConfig[`${sec.imgKey}_height`] === 'number' ? imageConfig[`${sec.imgKey}_height`] : 300;
-            const flipH  = imageConfig[`${sec.imgKey}_flipH`]  === true;
-            const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, sec.imgKey);
-            const mode = SECTION_MODES.includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
+            const imgSrc  = sectionImage(key) || IMG_PLACEHOLDER;
+            const heightVal = typeof imageConfig[`${key}_height`] === 'number' ? imageConfig[`${key}_height`] : 300;
+            const flipH  = imageConfig[`${key}_flipH`]  === true;
+            const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, key);
+            const mode = SECTION_MODES.includes(imageConfig[`${key}_mode`]) ? imageConfig[`${key}_mode`] : 'text-image';
             const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
 
-            const contentHTML = sec.categorias.map(cat => {
-                const productos  = byCategory[cat] || [];
-                const itemsHTML  = productos.length > 0
-                    ? productos.map(p => buildItemHTML(p)).join('')
-                    : buildItemHTML({});
-                const displayTitle = catTitles[cat] || cat;
-                return `
-                    <input class="input-category-title" value="${esc(displayTitle)}"
-                           data-cat-key="${esc(cat)}" placeholder="${esc(cat)}">
-                    <div class="admin-category" data-categoria="${esc(cat)}">${itemsHTML}</div>
-                    <button class="add-item-btn" data-categoria="${esc(cat)}">+ Agregar</button>`;
-            }).join('');
+            const contentHTML = sec.cats.map(cat =>
+                catBlockHTML(cat, categoryTitle(cat, catTitles, byCategory), byCategory[cat] || [])).join('');
 
             return `
-            <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${sec.imgKey}" data-mode="${mode}" style="position:relative">
+            <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${key}" data-mode="${mode}" style="position:relative">
                 <div class="section-toolbar">
                     <button class="sec-move" type="button" data-dir="up" title="Subir la sección completa">${licon('chevron-up', 15)}</button>
                     <button class="sec-move" type="button" data-dir="down" title="Bajar la sección completa">${licon('chevron-down', 15)}</button>
                     <button class="layout-picker-btn" type="button" title="Elegir qué va en cada lado de esta sección">${licon('layout-panel-top', 13)} Diseño</button>
+                    <button class="sec-delete" type="button" title="Eliminar la sección completa">${licon('trash-2', 14)}</button>
                 </div>
                 ${layoutPickerHTML()}
-                <div class="menu-content">${contentHTML}</div>
-                <div class="menu-image drop-zone" data-img-key="${sec.imgKey}" data-pos-x="${posX}" data-pos-y="${posY}" data-ref-w="${refW}"
+                <div class="menu-content">${contentHTML}
+                    <button class="add-cat-btn" type="button">${licon('plus', 14)} Agregar nuevo título y sus productos</button>
+                </div>
+                <div class="menu-image drop-zone" data-img-key="${key}" data-pos-x="${posX}" data-pos-y="${posY}" data-ref-w="${refW}"
                      style="aspect-ratio:${refW} / ${heightVal};height:auto;min-height:0;">
                     <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:${frameTransform(shiftX, shiftY, flipH)};"></div>
                     <div class="drop-overlay"><span>Clic para cambiar la imagen · arrastrala para encuadrar</span></div>
@@ -401,29 +440,37 @@ async function renderAdminMenu() {
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
                             <span class="flip-label">Voltear</span>
-                            <button class="img-removebg-btn" type="button" ${sectionImage(sec.imgKey) ? '' : 'hidden'}
+                            <button class="img-removebg-btn" type="button" ${sectionImage(key) ? '' : 'hidden'}
                                     title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
                         </div>
                     </div>
                 </div>
             </div>`;
-        });
+}
 
-        container.innerHTML = sectionsHTML.join('');
-        container.addEventListener('click', handleContainerClick);
-        container.addEventListener('input', e => { if (e.target.matches('.input-description')) autosizeDescription(e.target); });
-        container.addEventListener('keydown', handleDescriptionKeydown);
-        requestAnimationFrame(() => container.querySelectorAll('.input-description').forEach(autosizeDescription));
-        initDropZones();
-        initCategoryTitleEditors();
-        updateSectionMoveButtons();
-        if (!isReadonly) migrateLegacyImages(imageConfig, imageData); // en segundo plano
+// Un título con sus productos dentro de una sección
+function catBlockHTML(cat, title, productos) {
+    const itemsHTML = productos.length ? productos.map(p => buildItemHTML(p)).join('') : buildItemHTML({});
+    return `
+        <div class="cat-block" data-cat-key="${esc(cat)}">
+            <div class="cat-title-row">
+                <input class="input-category-title" value="${esc(title)}" data-cat-key="${esc(cat)}" placeholder="Título">
+                <button class="remove-cat-btn" type="button" title="Quitar este título y sus productos">${licon('trash-2', 14)}</button>
+            </div>
+            <div class="admin-category" data-categoria="${esc(cat)}">${itemsHTML}</div>
+            <button class="add-item-btn" data-categoria="${esc(cat)}">+ Agregar</button>
+        </div>`;
+}
 
-    } catch (err) {
-        console.error('Error cargando menú:', err);
-        container.innerHTML = '<p style="color:red;padding:1rem">Error al cargar el menú.</p>';
-    }
+// Botón circular al final del menú para sumar una sección nueva
+function addSectionHTML() {
+    return `
+        <div class="add-section-wrap">
+            <button class="add-section-btn" type="button" title="Agregar una sección nueva">${licon('plus', 24)}</button>
+            <span class="add-section-label">Agregar sección</span>
+            <p class="add-section-lock" hidden>${licon('lock', 12)} Las secciones adicionales no están incluidas en tu plan.</p>
+        </div>`;
 }
 
 function buildItemHTML(p) {
@@ -504,6 +551,15 @@ function handleContainerClick(e) {
         e.target.closest('.layout-picker').hidden = true;
         return;
     }
+
+    // ── Títulos y secciones nuevas ──
+    const addCatBtn = e.target.closest('.add-cat-btn');
+    if (addCatBtn) { addCategoryBlock(addCatBtn); return; }
+    const removeCatBtn = e.target.closest('.remove-cat-btn');
+    if (removeCatBtn) { removeCategoryBlock(removeCatBtn.closest('.cat-block')); return; }
+    if (e.target.closest('.add-section-btn')) { addSection(); return; }
+    const secDelete = e.target.closest('.sec-delete');
+    if (secDelete) { deleteSection(secDelete.closest('.menu-section')); return; }
 
     if (e.target.classList.contains('add-item-btn')) {
         const catDiv = e.target.previousElementSibling;
@@ -761,20 +817,126 @@ function moveSection(section, dir) {
     updateSectionMoveButtons();
     section.classList.remove('just-moved'); void section.offsetWidth; section.classList.add('just-moved');
     section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    saveSectionOrder();
+    saveSections();
 }
 
-function currentSectionOrder() {
-    const visible = [...document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]')].map(s => s.dataset.imgKey);
-    // Las secciones que no se muestran en el editor (plan sin secciones extra) conservan su lugar al final
-    const hidden = orderedSections(SECCIONES_CONFIG, window.savedSectionOrder).map(s => s.imgKey).filter(k => !visible.includes(k));
-    return [...visible, ...hidden];
+// Secciones tal como están en el editor (orden y títulos de cada una)
+function currentSections() {
+    const shown = [...document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]')].map(s => ({
+        key:  s.dataset.imgKey,
+        cats: [...s.querySelectorAll('.cat-block')].map(b => b.dataset.catKey),
+    }));
+    // Las que no se muestran en el editor (plan sin secciones adicionales) conservan su lugar al final
+    const hidden = (window.menuSections || []).filter(s => !shown.some(x => x.key === s.key));
+    return [...shown, ...hidden];
 }
 
-function saveSectionOrder() {
-    window.savedSectionOrder = currentSectionOrder();
-    restRef().collection('config').doc('images').set({ sectionOrder: window.savedSectionOrder }, { merge: true })
-        .catch(err => console.error('Error guardando el orden de secciones:', err));
+// Guarda la estructura (secciones, orden y títulos). sectionOrder se mantiene por compatibilidad.
+function saveSections(extra = {}) {
+    if (isReadonly) return Promise.resolve();
+    window.menuSections = currentSections();
+    return restRef().collection('config').doc('images')
+        .set({ sections: window.menuSections, sectionOrder: window.menuSections.map(s => s.key), ...extra }, { merge: true })
+        .catch(err => console.error('Error guardando las secciones:', err));
+}
+
+// "+ Agregar nuevo título y sus productos" dentro de la misma sección
+function addCategoryBlock(btn) {
+    btn.insertAdjacentHTML('beforebegin', catBlockHTML(newCatKey(), '', []));
+    const block = btn.previousElementSibling;
+    autosizeDescription(block.querySelector('.input-description'));
+    block.querySelector('.input-category-title').focus();
+    saveSections();
+}
+
+// Quita un título con sus productos (la sección siempre conserva al menos uno)
+async function removeCategoryBlock(block) {
+    if (block.parentElement.querySelectorAll('.cat-block').length <= 1) return;
+    const names = [...block.querySelectorAll('.input-product')].map(i => i.value.trim()).filter(Boolean);
+    const title = block.querySelector('.input-category-title').value.trim();
+    if (names.length) {
+        const lista = names.slice(0, 8).map(n => `<li>${esc(n)}</li>`).join('') + (names.length > 8 ? `<li>y ${names.length - 8} más…</li>` : '');
+        const ok = await confirmModal({
+            title: title ? `Quitar «${esc(title)}»` : 'Quitar este título',
+            html: `<p>Se van a <b>eliminar</b> el título y sus ${names.length} producto${names.length === 1 ? '' : 's'}:</p>
+                   <ul class="cm-list">${lista}</ul>
+                   <p class="cm-hint">Esta acción no se puede deshacer.</p>`,
+            confirmText: 'Quitar título y productos',
+        });
+        if (!ok) return;
+        try {
+            const snap = await restRef().collection('productos').where('categoria', '==', block.dataset.catKey).get();
+            await Promise.all(snap.docs.map(d => d.ref.delete()));
+        } catch (err) {
+            console.error('No se pudieron eliminar los productos:', err);
+            alert('No se pudieron eliminar los productos. Intentá de nuevo.');
+            return;
+        }
+    }
+    block.remove();
+    saveSections();
+}
+
+// Botón "+" del final: agrega una sección nueva con un título y un producto vacíos
+async function addSection() {
+    if (isReadonly) return;
+    const wrap = document.querySelector('#admin-menu-container .add-section-wrap');
+    if (!canAddSections()) {
+        const lock = wrap.querySelector('.add-section-lock');
+        lock.hidden = false;
+        lock.classList.remove('pulse'); void lock.offsetWidth; lock.classList.add('pulse');
+        return;
+    }
+    // Clave nueva que nunca se haya usado (tampoco por una sección eliminada)
+    const used = [...(window.menuSections || []).map(s => s.key),
+                  ...Object.keys(window.imageConfigLoaded || {}).map(k => (k.match(/^(img\d+)_/) || [])[1]).filter(Boolean)];
+    const key = `img${Math.max(4, ...used.map(k => parseInt(k.slice(3)) || 0)) + 1}`;
+    const layout = document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]').length % 2 ? 'reversed' : 'normal';
+    (window.imageConfigLoaded ||= {})[`${key}_layout`] = layout;
+
+    wrap.insertAdjacentHTML('beforebegin', buildSectionHTML({ key, cats: [newCatKey()] },
+        { imageConfig: { [`${key}_layout`]: layout }, sectionImage: () => null, catTitles: {}, byCategory: {} }));
+    const section = wrap.previousElementSibling;
+    autosizeDescription(section.querySelector('.input-description'));
+    initDropZones();
+    updateSectionMoveButtons();
+    section.classList.add('just-moved');
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    section.querySelector('.input-category-title').focus({ preventScroll: true });
+    saveSections({ [`${key}_layout`]: layout, [`${key}_mode`]: 'text-image' });
+}
+
+// Elimina la sección completa: productos, imagen y configuración
+async function deleteSection(section) {
+    const all = document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]');
+    if (all.length <= 1) { alert('El menú necesita al menos una sección.'); return; }
+    const names = [...section.querySelectorAll('.input-product')].map(i => i.value.trim()).filter(Boolean);
+    const lista = names.slice(0, 8).map(n => `<li>${esc(n)}</li>`).join('') + (names.length > 8 ? `<li>y ${names.length - 8} más…</li>` : '');
+    const ok = await confirmModal({
+        title: 'Eliminar la sección',
+        html: `<p>Se va a <b>eliminar</b> la sección completa, con su imagen${names.length ? ` y ${names.length === 1 ? 'este producto' : `estos ${names.length} productos`}:` : '.'}</p>
+               ${names.length ? `<ul class="cm-list">${lista}</ul>` : ''}
+               <p class="cm-hint">Esta acción no se puede deshacer.</p>`,
+        confirmText: 'Eliminar sección',
+    });
+    if (!ok) return;
+    const key = section.dataset.imgKey;
+    try {
+        await deleteSectionProducts(section);
+        await restRef().collection('imageData').doc(key).delete().catch(() => {});
+    } catch (err) {
+        console.error('No se pudo eliminar la sección:', err);
+        alert('No se pudo eliminar la sección. Intentá de nuevo.');
+        return;
+    }
+    section.remove();
+    window.menuSections = (window.menuSections || []).filter(s => s.key !== key);
+    updateSectionMoveButtons();
+    // Borra también su encuadre/diseño guardado y la imagen vieja (si quedaba en config/images)
+    const del = firebase.firestore.FieldValue.delete();
+    const fields = { [key]: del };
+    ['layout', 'height', 'flipH', 'pos', 'posY', 'shiftX', 'shiftY', 'zoom', 'mode', 'vAlign'].forEach(f => { fields[`${key}_${f}`] = del; });
+    saveSections(fields);
 }
 
 // La primera no puede subir y la última no puede bajar
@@ -1094,8 +1256,22 @@ async function guardarMenu() {
     if (isReadonly) return;
     setSaveBtnState('saving');
 
+    // Títulos agregados que quedaron vacíos (sin texto ni productos) se descartan,
+    // salvo que sean el único de su sección
+    document.querySelectorAll('#admin-menu-container .cat-block').forEach(block => {
+        const empty = !block.querySelector('.input-category-title').value.trim()
+            && ![...block.querySelectorAll('.input-product')].some(i => i.value.trim());
+        if (empty && block.parentElement.querySelectorAll('.cat-block').length > 1) block.remove();
+    });
+
+    // Texto de cada título (así el menú público muestra exactamente lo que se ve en el editor)
+    const titulos = {};
+    document.querySelectorAll('#admin-menu-container .input-category-title').forEach(inp => {
+        titulos[inp.dataset.catKey] = inp.value.trim();
+    });
+
     const productosParaGuardar = [];
-    document.querySelectorAll('.admin-category').forEach(catDiv => {
+    document.querySelectorAll('.admin-category').forEach((catDiv, catIndex) => {
         const categoria = catDiv.dataset.categoria;
         catDiv.querySelectorAll('.admin-item').forEach((item, index) => {
             const nombre      = item.querySelector('.input-product').value.trim();
@@ -1106,7 +1282,7 @@ async function guardarMenu() {
             if (nombre) {
                 productosParaGuardar.push({
                     nombre, precio, categoria, descripcion,
-                    orden: ORDEN_CATEGORIAS[categoria] || 99,
+                    orden: catIndex + 1,
                     ordenProducto: index
                 });
             }
@@ -1151,15 +1327,25 @@ async function guardarMenu() {
         imageConfigActual[`${key}_layout`] = section.classList.contains('layout-reversed') ? 'reversed' : 'normal';
         imageConfigActual[`${key}_mode`]   = section.dataset.mode || 'text-image';
     });
-    if (document.querySelector('#admin-menu-container .menu-section[data-img-key]')) imageConfigActual.sectionOrder = currentSectionOrder();
+    if (document.querySelector('#admin-menu-container .menu-section[data-img-key]')) {
+        window.menuSections = currentSections();
+        imageConfigActual.sections     = window.menuSections;
+        imageConfigActual.sectionOrder = window.menuSections.map(s => s.key);
+    }
+    // Productos de secciones que este plan no muestra en el editor: se conservan tal cual
+    const shownKeys  = [...document.querySelectorAll('#admin-menu-container .menu-section[data-img-key]')].map(s => s.dataset.imgKey);
+    const hiddenCats = (window.menuSections || []).filter(s => !shownKeys.includes(s.key)).flatMap(s => s.cats);
 
     try {
         const ref = restRef();
         const snap = await ref.collection('productos').get();
-        await Promise.all(snap.docs.map(doc => doc.ref.delete()));
+        await Promise.all(snap.docs.filter(doc => !hiddenCats.includes(doc.data().categoria)).map(doc => doc.ref.delete()));
         await Promise.all(productosParaGuardar.map(p => ref.collection('productos').add(p)));
         if (Object.keys(imageConfigActual).length > 0) {
             await ref.collection('config').doc('images').set(imageConfigActual, { merge: true });
+        }
+        if (Object.keys(titulos).length) {
+            await ref.collection('config').doc('categoryTitles').set(titulos, { merge: true });
         }
         // Guardar pie del menú
         await ref.collection('config').doc('footer').set({
@@ -1381,18 +1567,23 @@ async function saveCategoryTitle(key, title) {
     } catch(e) { console.error('Error guardando título:', e); }
 }
 
+// Delegado en el contenedor: también funciona con los títulos y secciones que se agregan después.
+// Un título vacío es válido (los productos se muestran sin encabezado).
 function initCategoryTitleEditors() {
-    document.querySelectorAll('.input-category-title').forEach(inp => {
-        inp.addEventListener('blur', () => {
-            const key   = inp.dataset.catKey;
-            const title = inp.value.trim() || key;
-            inp.value   = title;
-            saveCategoryTitle(key, title);
-        });
-        inp.addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
-            if (e.key === 'Escape') { inp.value = inp.dataset.catKey; inp.blur(); }
-        });
+    const container = document.getElementById('admin-menu-container');
+    const isTitle = el => el?.matches?.('.input-category-title');
+    container.addEventListener('focusin', e => { if (isTitle(e.target)) e.target.dataset.prev = e.target.value; });
+    container.addEventListener('focusout', e => {
+        const inp = e.target;
+        if (!isTitle(inp) || isReadonly) return;
+        inp.value = inp.value.trim();
+        if (inp.value !== inp.dataset.prev) saveCategoryTitle(inp.dataset.catKey, inp.value);
+    });
+    container.addEventListener('keydown', e => {
+        const inp = e.target;
+        if (!isTitle(inp)) return;
+        if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+        if (e.key === 'Escape') { inp.value = inp.dataset.prev ?? inp.value; inp.blur(); }
     });
 }
 

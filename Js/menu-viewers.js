@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { categorias: ['SALADOS', 'LAMINADOS'],               layout: 'normal',   imgKey: 'img3', imgDefault: './img/img/croissant.png' },
         { categorias: ['DULCES'],                             layout: 'reversed', imgKey: 'img4', imgDefault: './img/img/cookie.png'    },
     ];
+    const LEGACY_CATS = SECCIONES_CONFIG.flatMap(s => s.categorias);
 
     function renderMenu() {
         const snapshot = lastSnapshot;
@@ -333,10 +334,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         menuContainer.innerHTML = '';
 
-        // Orden elegido por el restaurante (config/images.sectionOrder); las que no figuran van al final
-        const order = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
-        const pos = k => { const i = order.indexOf(k); return i === -1 ? 100 + SECCIONES_CONFIG.findIndex(x => x.imgKey === k) : i; };
-        [...SECCIONES_CONFIG].sort((a, b) => pos(a.imgKey) - pos(b.imgKey)).forEach(sec => {
+        // Secciones del restaurante (config/images.sections: [{ key, cats }], en orden). Si todavía no
+        // existe, las 4 iniciales en el orden de config/images.sectionOrder. Igual que en script.js.
+        let sections;
+        if (Array.isArray(imageConfig.sections) && imageConfig.sections.length) {
+            sections = imageConfig.sections.filter(s => s?.key).map((s, i) => {
+                const legacy = SECCIONES_CONFIG.find(x => x.imgKey === s.key);
+                return { imgKey: s.key, categorias: (s.cats || []).filter(Boolean), layout: legacy?.layout || 'normal',
+                         imgDefault: legacy?.imgDefault || SECCIONES_CONFIG[i % SECCIONES_CONFIG.length].imgDefault };
+            });
+        } else {
+            const order = Array.isArray(imageConfig.sectionOrder) ? imageConfig.sectionOrder : [];
+            const pos = k => { const i = order.indexOf(k); return i === -1 ? 100 + SECCIONES_CONFIG.findIndex(x => x.imgKey === k) : i; };
+            sections = [...SECCIONES_CONFIG].sort((a, b) => pos(a.imgKey) - pos(b.imgKey));
+        }
+        sections.forEach(sec => {
             // Diseño de la sección: text-image (por defecto), text-text (2 columnas) o
             // image-wide (SOLO la imagen a lo ancho: los productos de la sección no se muestran)
             const mode = ['text-image', 'text-text', 'image-wide'].includes(imageConfig[`${sec.imgKey}_mode`]) ? imageConfig[`${sec.imgKey}_mode`] : 'text-image';
@@ -362,7 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sec.categorias.forEach(cat => {
                 const productos = byCategory[cat] || [];
                 if (!productos.length) return;
-                contentHTML += `<h2>${catTitles[cat] || cat}</h2>`;
+                // Título guardado (puede estar vacío a propósito); los viejos sin guardar muestran su nombre
+                const title = typeof catTitles[cat] === 'string' ? catTitles[cat] : (LEGACY_CATS.includes(cat) ? cat : '');
+                if (title) contentHTML += `<h2>${title}</h2>`;
                 productos.forEach(item => {
                     const desc = item.descripcion || 'El clásico de la casa.';
                     const hasPrice = !stylesConfig.hidePrices && item.precio !== null && item.precio !== undefined && item.precio !== '';

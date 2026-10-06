@@ -385,7 +385,9 @@ auth.onAuthStateChanged(async user => {
     }
 
     // ── Ya tiene suscripción activa ────────────────────────────
-    if (subStatus === 'active') { window.location.href = './dashboard.html'; return; }
+    // Con ?renovar=1 (desde el panel) puede renovar o cambiar de plan: el servidor suma los días al final del período
+    const renovando = new URLSearchParams(location.search).has('renovar');
+    if (subStatus === 'active' && !renovando) { window.location.href = './dashboard.html'; return; }
 
     // ── Pago pendiente de confirmación ─────────────────────────
     if (subStatus === 'pending_payment') {
@@ -411,6 +413,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('skipBtn').addEventListener('click', () => {
         window.location.href = './dashboard.html';
     });
+    if (renovando) document.getElementById('skipBtn').textContent = '← Volver al panel';
 
     function renderPlans(plans) {
         const container = document.getElementById('dynamicPlans');

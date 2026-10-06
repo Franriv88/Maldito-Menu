@@ -42,13 +42,56 @@ auth.onAuthStateChanged(async user => {
 });
 
 function watchSubscriptionStatus(uid) {
-    db.collection('users').doc(uid).onSnapshot(snap => {
+    const plansPromise = db.collection('appConfig').doc('plans').get()
+        .then(s => s.exists ? (s.data().list || []) : []).catch(() => []);
+    db.collection('users').doc(uid).onSnapshot(async snap => {
         if (snap.exists && snap.data().subscription?.status === 'blocked') {
             auth.signOut().then(() => {
                 window.location.href = './login.html?reason=blocked';
             });
+            return;
         }
+        renderPlanBanner(snap.exists ? snap.data().subscription : null, await plansPromise);
     }, err => console.warn('Error watching subscription:', err));
+}
+
+// ── Plan actual (siempre visible arriba de los restaurantes) ──
+function renderPlanBanner(sub, plans) {
+    const el = document.getElementById('planBanner');
+    if (!el) return;
+    const isSuper = auth.currentUser?.email === 'frivasv2388@gmail.com';
+    const plan    = plans.find(p => p.id === sub?.planType);
+    const until   = sub?.paidUntil?.toDate ? sub.paidUntil.toDate() : null;
+    const expired = until && until < new Date();
+    const active  = sub?.status === 'active' && !expired;
+    const days    = until ? Math.ceil((until - new Date()) / 86400000) : null;
+    const fecha   = until ? until.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+    let state, title, detail, action;
+    if (active) {
+        state  = days <= 5 ? 'warn' : 'ok';
+        title  = `Plan ${esc(plan?.label || sub.planType || 'activo')}`;
+        detail = until ? `Activo hasta el ${fecha} · ${days === 1 ? 'queda 1 día' : `quedan ${days} días`}` : 'Activo';
+        if (sub.coupon) detail += ' · activado con cupón';
+        action = `<a class="plan-banner-btn" href="./checkout.html?renovar=1">Renovar o cambiar de plan</a>`;
+    } else if (isSuper && !sub?.status) {
+        state = 'ok'; title = 'SuperAdmin'; detail = 'Acceso total a todas las funciones'; action = '';
+    } else {
+        state  = 'off';
+        title  = expired ? `Plan ${esc(plan?.label || sub?.planType || '')} vencido` : 'Sin plan activo';
+        detail = expired ? `Venció el ${fecha}. Renová para seguir editando tu menú.` : 'Elegí un plan para publicar y editar tu menú.';
+        action = `<a class="plan-banner-btn primary" href="./checkout.html?renovar=1">Elegir un plan</a>`;
+    }
+    el.className = `plan-banner ${state}`;
+    el.innerHTML = `
+        <div class="plan-banner-icon">${licon(state === 'off' ? 'alert-circle' : 'badge-check', 20)}</div>
+        <div class="plan-banner-text">
+            <span class="plan-banner-label">Tu plan</span>
+            <strong>${title}</strong>
+            <span class="plan-banner-detail">${detail}</span>
+        </div>
+        ${action}`;
+    el.hidden = false;
 }
 
 function showBlockedScreen() {
