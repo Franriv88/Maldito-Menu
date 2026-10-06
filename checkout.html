@@ -95,21 +95,18 @@
         .co-feat-item.disabled .co-feat-check{color:rgba(200,184,154,.25)}
 
         /* ── BUTTONS ── */
+        /* Botón amarillo de Mercado Pago con su logo oficial (igual que en Antológico) */
         .btn-pay{
-            width:100%;padding:1rem;border:none;border-radius:12px;
-            background:#009ee3;color:#fff;
-            font-size:1rem;font-weight:600;font-family:'Inter',sans-serif;
+            width:100%;height:48px;padding:7px 12px;border:none;border-radius:12px;
+            background:#fee600;color:#1B1464;
+            font-size:.9rem;font-weight:600;font-family:'Inter',sans-serif;
             cursor:pointer;display:flex;align-items:center;justify-content:center;
-            gap:.7rem;transition:background .2s,transform .1s;
-            margin-bottom:.8rem;
+            transition:filter .2s,transform .1s;overflow:hidden;
         }
-        .btn-pay:hover{background:#0090d0}
+        .btn-pay:hover{filter:brightness(.95)}
         .btn-pay:active{transform:scale(.98)}
         .btn-pay:disabled{opacity:.5;cursor:default}
-        .mp-logo{
-            background:#fff;border-radius:4px;padding:2px 5px;
-            font-size:.7rem;font-weight:700;color:#009ee3;letter-spacing:-.3px;
-        }
+        .mp-logo-img{height:100%;width:100%;object-fit:contain;display:block}
 
         .btn-skip{
             width:100%;background:none;border:none;
@@ -179,14 +176,31 @@
         .co-plan-save{
             font-size:.65rem;color:#5cbf7a;
             background:rgba(40,167,69,.1);border:1px solid rgba(40,167,69,.2);
-            border-radius:8px;padding:.2rem .5rem;display:inline-block;
+            border-radius:8px;padding:.2rem .5rem;display:inline-block;align-self:flex-start;
         }
-        @media(max-width:400px){.co-plans{grid-template-columns:1fr}}
+        .co-plans.single{grid-template-columns:minmax(0,1fr)}
+        @media(max-width:400px){.co-plans{grid-template-columns:1fr;row-gap:1.6rem}}
+
+        /* ── COMPUTADORA: más ancho mientras se eligen los planes ── */
+        .co-wrap{width:100%;max-width:480px}
+        @media(min-width:900px){
+            body.co-wide .co-wrap{max-width:1040px}
+            body.co-wide .co-card{max-width:none;padding:3rem 3rem 2.4rem}
+            body.co-wide .co-badge{display:flex;width:max-content;margin-left:auto;margin-right:auto}
+            body.co-wide .co-benefits{display:grid;grid-template-columns:1fr 1fr;column-gap:2.5rem;margin-bottom:2.4rem !important}
+            body.co-wide .co-benefit:last-child{border-bottom:1px solid rgba(200,184,154,.05)}
+            body.co-wide .co-plans{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem}
+            body.co-wide .co-plans.single{grid-template-columns:minmax(0,380px);justify-content:center}
+            body.co-wide .co-plan{padding:1.8rem 1.6rem;gap:.8rem}
+            body.co-wide .co-plan-price{font-size:2.6rem}
+            body.co-wide .co-plan-sub{font-size:.78rem}
+            body.co-wide .co-feat-item{font-size:.8rem;padding:.3rem 0}
+        }
     </style>
 </head>
 <body>
 
-<div style="width:100%;max-width:480px">
+<div class="co-wrap">
     <div class="co-logo">Cubierto</div>
 
     <div class="co-card" id="mainCard">
@@ -385,6 +399,7 @@ auth.onAuthStateChanged(async user => {
 
     // ── Mostrar selector de planes ─────────────────────────────
     document.getElementById('planState').style.display = 'block';
+    document.body.classList.add('co-wide');
 
     if (!plans.length) {
         document.getElementById('noConfigMsg').style.display = 'block';
@@ -399,7 +414,7 @@ auth.onAuthStateChanged(async user => {
 
     function renderPlans(plans) {
         const container = document.getElementById('dynamicPlans');
-        container.style.gridTemplateColumns = plans.length === 1 ? '1fr' : '';
+        container.classList.toggle('single', plans.length === 1);
         container.innerHTML = plans.map(p => {
             const price = Number(p.price).toLocaleString('es-AR');
             return `
@@ -417,7 +432,7 @@ auth.onAuthStateChanged(async user => {
                         return `<li class="co-feat-item${on?'':' disabled'}"><span class="co-feat-check">${on?'✓':'–'}</span><span>${lbl}</span></li>`;
                     }).join('')}</ul>` : ''}
                     <button class="btn-pay co-pay-btn" data-id="${p.id}" style="margin-top:auto">
-                        <span class="mp-logo">mp</span> Pagar
+                        <img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago">
                     </button>
                 </div>`;
         }).join('');
