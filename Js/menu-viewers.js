@@ -195,6 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Estilos dinámicos ──────────────────────────────────────
     function applyStyles(cfg) {
         const r = document.documentElement;
+        // Fuentes con nombre viejo (ej. Cormorant Garant) → nombre actual en Google Fonts
+        if (typeof normalizeFontCss === 'function') { cfg = { ...cfg, fontFamily: cfg.fontFamily && normalizeFontCss(cfg.fontFamily), titleFontFamily: cfg.titleFontFamily && normalizeFontCss(cfg.titleFontFamily) }; }
         if (cfg.fontFamily)      r.style.setProperty('--main-font-family',  cfg.fontFamily);
         if (cfg.titleFontFamily) r.style.setProperty('--title-font-family', cfg.titleFontFamily);
         if (cfg.titleColor)      r.style.setProperty('--title-color',       cfg.titleColor);

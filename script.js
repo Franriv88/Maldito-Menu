@@ -1505,6 +1505,8 @@ function applyEditorMenuBg() {
 
 function applyStyles(cfg) {
     const r = document.documentElement;
+    // Fuentes con nombre viejo (ej. Cormorant Garant) → nombre actual en Google Fonts
+    if (typeof normalizeFontCss === 'function') { cfg = { ...cfg, fontFamily: cfg.fontFamily && normalizeFontCss(cfg.fontFamily), titleFontFamily: cfg.titleFontFamily && normalizeFontCss(cfg.titleFontFamily) }; }
     if (cfg.fontFamily)      r.style.setProperty('--main-font-family',  cfg.fontFamily);
     if (cfg.titleFontFamily) r.style.setProperty('--title-font-family', cfg.titleFontFamily);
     if (cfg.titleColor)      r.style.setProperty('--title-color',       cfg.titleColor);
@@ -1565,8 +1567,9 @@ function populateStyleControls(cfg) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     document.getElementById('cfg-titleBold')?.setAttribute('aria-pressed', String(cfg.titleBold !== false));
     document.getElementById('cfg-titleItalic')?.setAttribute('aria-pressed', String(!!cfg.titleItalic));
-    setVal('cfg-fontFamily',      cfg.fontFamily);
-    setVal('cfg-titleFontFamily', cfg.titleFontFamily || '');
+    const norm = v => (v && typeof normalizeFontCss === 'function') ? normalizeFontCss(v) : v;
+    setVal('cfg-fontFamily',      norm(cfg.fontFamily));
+    setVal('cfg-titleFontFamily', norm(cfg.titleFontFamily) || '');
     setVal('cfg-fontSize',        cfg.fontSize);
     setVal('cfg-titleFontSize',   cfg.titleFontSize || 20);
     setVal('cfg-titleColor',      cfg.titleColor);

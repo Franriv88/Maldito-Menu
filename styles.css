@@ -1401,3 +1401,6 @@ body.light .ctrl-help { color: rgba(60,42,20,.55); }
 body.light .ctrl-help b { color: rgba(60,42,20,.8); }
 body.light .ctrl-help-inline { color: rgba(60,42,20,.5); }
 body.preview-mode .style-toggle { pointer-events: none; }
+
+/* Editor, Texto + Texto: el primer título sin margen arriba, alineado con el de la 2.ª columna */
+.admin-page .menu-section.mode-text-text .menu-content > .cat-block:first-child .input-category-title { margin-top: 0; }

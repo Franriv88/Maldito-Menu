@@ -23,7 +23,7 @@ const FONT_GROUPS = [
     ] },
     { label: 'Clásicas', fonts: [
         { name: 'Playfair Display',  css: "'Playfair Display', serif",       google: 'Playfair+Display:ital,wght@0,400;0,700;1,400' },
-        { name: 'Cormorant Garant',  css: "'Cormorant Garant', serif",       google: 'Cormorant+Garant:ital,wght@0,300;0,400;0,700;1,300' },
+        { name: 'Cormorant Garamond', css: "'Cormorant Garamond', serif",    google: 'Cormorant+Garamond:ital,wght@0,300;0,400;0,700;1,300;1,400' },
         { name: 'Cinzel',            css: "'Cinzel', serif",                 google: 'Cinzel:wght@400;700' },
         { name: 'Lora',              css: "'Lora', serif",                   google: 'Lora:ital,wght@0,400;0,700;1,400' },
         { name: 'Merriweather',      css: "'Merriweather', serif",           google: 'Merriweather:ital,wght@0,300;0,400;0,700;1,300' },
@@ -71,29 +71,34 @@ const FONT_GROUPS = [
 ];
 
 const ALL_FONTS = FONT_GROUPS.flatMap(g => g.fonts);
-const fontByCss = css => ALL_FONTS.find(f => f.css === css) || null;
-const googleFontsHref = fonts => {
-    const fam = [...new Set(fonts.filter(f => f && f.google).map(f => f.google))];
-    return fam.length ? `https://fonts.googleapis.com/css2?${fam.map(f => `family=${f}`).join('&')}&display=swap` : '';
-};
 
-// Agrega (una sola vez) la hoja de Google Fonts para estas fuentes
-function injectFontLink(href, id) {
+// Valores viejos guardados en config/styles → su nombre actual en Google Fonts
+// ("Cormorant Garant" ya no existe en Google Fonts: es "Cormorant Garamond")
+const FONT_ALIASES = { "'Cormorant Garant', serif": "'Cormorant Garamond', serif" };
+const normalizeFontCss = css => FONT_ALIASES[css] || css;
+const fontByCss = css => ALL_FONTS.find(f => f.css === normalizeFontCss(css)) || null;
+const googleFontHref = f => f?.google ? `https://fonts.googleapis.com/css2?family=${f.google}&display=swap` : '';
+
+// Una hoja de Google Fonts por fuente: si una falla, las demás se siguen viendo
+function injectFontLink(font) {
+    const href = googleFontHref(font);
     if (!href) return;
-    let link = document.getElementById(id);
-    if (link?.href === href) return;
-    if (!link) { link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; document.head.appendChild(link); }
-    link.href = href;
+    const id = 'gf-' + font.google.split(':')[0];
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id; link.rel = 'stylesheet'; link.href = href;
+    link.dataset.menuFont = '1';
+    document.head.appendChild(link);
 }
 
 // Menú público: solo las fuentes elegidas por el restaurante
 function loadMenuFonts(...cssValues) {
-    injectFontLink(googleFontsHref(cssValues.map(fontByCss)), 'menuFontsLink');
+    cssValues.map(fontByCss).forEach(injectFontLink);
 }
 
 // Editor: todas las fuentes (para previsualizar en los selectores)
 function loadAllFonts() {
-    injectFontLink(googleFontsHref(ALL_FONTS), 'allFontsLink');
+    ALL_FONTS.forEach(injectFontLink);
 }
 
 // <option>s agrupados; cada opción se ve con su propia tipografía

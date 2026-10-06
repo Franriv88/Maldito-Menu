@@ -590,6 +590,9 @@ body.ordering-closed .to-banner { text-align: center; line-height: 1.45; padding
 .menu-section.mode-text-text .menu-image { display: none; }
 .menu-section.mode-text-text .menu-content { flex: 1 1 100%; column-count: 2; column-gap: 2rem; }
 .menu-section.mode-text-text .menu-content h2 { break-after: avoid; }
+/* El navegador recorta el margen superior del título que empieza la 2.ª columna; sin margen
+   en el primero, los títulos de ambas columnas quedan a la misma altura */
+.menu-section.mode-text-text .menu-content > h2:first-child { margin-top: 0; }
 .menu-section.mode-text-text .menu-item { break-inside: avoid; }
 @media (max-width: 300px) {
     .menu-section.mode-text-text .menu-content { column-count: 1; }
