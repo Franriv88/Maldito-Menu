@@ -1360,3 +1360,15 @@ body.light .add-cat-btn:hover { background: rgba(100,80,50,.1); border-color: #7
 body.light .add-section-btn { border-color: rgba(100,80,50,.4); color: #7a6248; }
 body.light .add-section-btn:hover { background: rgba(100,80,50,.08); border-color: #6b5135; color: #6b5135; }
 body.light .add-section-label { color: rgba(60,42,20,.5); }
+
+/* Botón "Eliminar" sobre una imagen de sección ya cargada */
+.img-delete-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 8px; border-radius: 6px; cursor: pointer;
+    background: rgba(192,57,43,.18); border: 1px solid rgba(224,105,122,.45);
+    color: #f3c9c4; font: 10px/1 inherit; white-space: nowrap;
+}
+.img-delete-btn:hover { background: rgba(192,57,43,.55); color: #fff; }
+.img-delete-btn[hidden] { display: none; }
+.drop-zone.uploading .img-delete-btn { opacity: .4; pointer-events: none; }
+body.preview-mode .img-delete-btn { display: none !important; }

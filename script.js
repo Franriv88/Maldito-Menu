@@ -438,6 +438,8 @@ function buildSectionHTML(sec, { imageConfig, sectionImage, catTitles, byCategor
                             <button class="img-removebg-btn" type="button" ${sectionImage(key) ? '' : 'hidden'}
                                     title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
                             <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
+                            <button class="img-delete-btn" type="button" ${sectionImage(key) ? '' : 'hidden'}
+                                    title="Eliminar la imagen de esta sección">${licon('trash-2', 12)} Eliminar</button>
                         </div>
                     </div>
                 </div>
@@ -631,6 +633,34 @@ function initDropZones() {
                 console.error('No se pudo leer la imagen actual:', err);
                 alert('No se pudo leer la imagen actual. Probá volviendo a subirla y después usá "Quitar fondo".');
             }
+        });
+
+        // Eliminar la imagen cargada: el menú público deja de mostrarla (la sección queda sin imagen)
+        zone.querySelector('.img-delete-btn')?.addEventListener('click', async e => {
+            e.stopPropagation();
+            if (zone.classList.contains('uploading')) return;
+            const ok = await confirmModal({
+                title: 'Eliminar la imagen',
+                html: `<p>Se va a eliminar la imagen de esta sección.</p>
+                       <p class="cm-hint">En el menú, los productos pasan a ocupar todo el ancho. Podés subir otra cuando quieras.</p>`,
+                confirmText: 'Eliminar imagen',
+            });
+            if (!ok) return;
+            const key = zone.dataset.imgKey;
+            try {
+                const prev = (await restRef().collection('imageData').doc(key).get()).data()?.src;
+                await restRef().collection('imageData').doc(key).delete();
+                await restRef().collection('config').doc('images').set({ [key]: firebase.firestore.FieldValue.delete() }, { merge: true });
+                deleteOldSectionImage(prev, null);
+            } catch (err) {
+                console.error('No se pudo eliminar la imagen:', err);
+                alert('No se pudo eliminar la imagen. Intentá de nuevo.');
+                return;
+            }
+            const bg = zone.querySelector('.image-bg');
+            if (bg) bg.style.backgroundImage = `url('${IMG_PLACEHOLDER}')`;
+            zone.querySelectorAll('.img-removebg-btn, .img-delete-btn').forEach(b => { b.hidden = true; });
+            applyImageFrame(zone);
         });
 
         zone.querySelector('.img-reset-btn')?.addEventListener('click', e => {
@@ -1107,8 +1137,8 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
         if (imageBg) imageBg.style.backgroundImage = `url('${url}')`;
         applyImageFrame(zone); // recalcula el aviso de resolución
         deleteOldSectionImage(prev, url);
-        const rmBtn = zone.querySelector('.img-removebg-btn');
-        if (rmBtn) rmBtn.hidden = false; // ya hay una imagen propia: se le puede quitar el fondo
+        // ya hay una imagen propia: se le puede quitar el fondo o eliminarla
+        zone.querySelectorAll('.img-removebg-btn, .img-delete-btn').forEach(b => { b.hidden = false; });
 
     } catch (error) {
         console.error('Error al procesar imagen:', error);
