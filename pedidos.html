@@ -122,6 +122,15 @@
         .pd-section { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
         .pd-section h3 { margin: 0 0 4px; font-size: .95rem; color: var(--pd-accent); }
         body.is-catering .pd-only-restaurant { display: none; }
+        /* Grabar NFC desde el celular (QR hacia nfc.html) */
+        .pd-nfc-phone { display: flex; gap: 18px; align-items: center; }
+        .pd-nfc-qr { width: 132px; height: 132px; flex-shrink: 0; background: #fff; border-radius: 10px; padding: 6px; }
+        .pd-nfc-qr svg { width: 100%; height: 100%; display: block; }
+        .pd-nfc-text h3 { display: flex; align-items: center; gap: 6px; }
+        .pd-nfc-text p { margin: 4px 0 10px; font-size: .82rem; color: var(--pd-muted); line-height: 1.5; }
+        .pd-nfc-text a.pd-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        body.is-mobile .pd-nfc-qr { display: none; }
+        @media (max-width: 560px) { .pd-nfc-phone { flex-direction: column; align-items: flex-start; } }
         #limitFields, #pauseFields { transition: opacity .15s; }
         .pd-status-line.warn { color: #e6aa28; }
         .pd-section > p { margin: 0 0 12px; font-size: .8rem; color: var(--pd-muted); line-height: 1.5; }
@@ -251,6 +260,14 @@
                 <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> <span id="addTableLabel">Agregar mesa</span></button>
                 <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
                 <button class="pd-btn" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos los stickers</button>
+            </div>
+        </div>
+        <div class="pd-section pd-nfc-phone" id="nfcPhoneCard">
+            <div class="pd-nfc-qr" id="nfcPhoneQr"></div>
+            <div class="pd-nfc-text">
+                <h3><i data-lucide="smartphone-nfc" style="width:16px;height:16px"></i> Grabá los stickers NFC con tu celular</h3>
+                <p>Escaneá este código con el celular (Android o iPhone): se abre una página simple para grabar cada link en su sticker y bloquearlo, sin tener que entrar al panel desde el teléfono.</p>
+                <a class="pd-btn primary" id="nfcPhoneLink" target="_blank" rel="noopener"><i data-lucide="external-link" style="width:14px;height:14px"></i> <span>Abrir en este dispositivo</span></a>
             </div>
         </div>
         <div class="pd-tables" id="tablesGrid"></div>
@@ -399,7 +416,7 @@
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=3"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=6"></script>
+    <script src="./Js/pedidos.js?v=7"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

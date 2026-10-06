@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <script>/* Dominio oficial: los dominios técnicos de Firebase redirigen a cubierto.menu */if(/\.(web\.app|firebaseapp\.com)$/.test(location.hostname))location.replace('https://cubierto.menu'+location.pathname+location.search+location.hash);</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Grabar stickers NFC · Cubierto</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f0f; --surface: #181818; --raised: #1f1f1f; --border: rgba(200,184,154,.16);
+            --text: #ddd0bb; --muted: rgba(200,184,154,.55); --accent: #c8b89a; --ok: #5cbf7a; --warn: #e6aa28;
+        }
+        body.light {
+            --bg: #f6f1e8; --surface: #fffdf9; --raised: #fff; --border: rgba(100,80,50,.18);
+            --text: #3a2e22; --muted: rgba(60,42,20,.55); --accent: #6b5135; --ok: #23843f; --warn: #b07a0a;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+        .wrap { max-width: 560px; margin: 0 auto; padding: 18px 16px 40px; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .brand { font-family: 'Cormorant Garant', Georgia, serif; font-style: italic; font-size: 1.4rem; color: var(--accent); }
+        .theme-btn { background: none; border: 1px solid var(--border); color: var(--accent); border-radius: 10px; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+        h1 { font-size: 1.35rem; margin: 0 0 4px; }
+        .sub { color: var(--muted); margin: 0 0 16px; font-size: .95rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+        .card h2 { font-size: 1rem; margin: 0 0 8px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+        .steps { margin: 0; padding-left: 20px; }
+        .steps li { margin: 6px 0; }
+        .switch { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+        .switch input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+        .switch small { display: block; color: var(--muted); font-size: .82rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; cursor: pointer;
+               min-height: 48px; padding: 0 18px; font: 600 1rem system-ui, sans-serif; border: 1px solid var(--accent);
+               background: transparent; color: var(--accent); text-decoration: none; }
+        .btn.primary { background: var(--accent); color: var(--bg); }
+        .btn.block { width: 100%; }
+        .btn:disabled { opacity: .5; }
+        .list { display: flex; flex-direction: column; gap: 10px; }
+        .row { display: flex; align-items: center; gap: 12px; background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+        .row-name { flex: 1; min-width: 0; }
+        .row-name b { display: block; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .row-state { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+        .row-state.ok { color: var(--ok); }
+        .row .btn { min-height: 44px; padding: 0 14px; font-size: .92rem; }
+        .notice { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); font-size: .9rem; }
+        .notice svg { flex-shrink: 0; margin-top: 2px; color: var(--warn); }
+        .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <span class="brand">Cubierto</span>
+        <button class="theme-btn" id="themeBtn" aria-label="Modo claro / oscuro"><i data-lucide="sun" style="width:17px;height:17px"></i></button>
+    </header>
+
+    <h1 id="title">Grabar stickers NFC</h1>
+    <p class="sub" id="subtitle">Cargando…</p>
+
+    <!-- Android con Chrome: graba y bloquea desde acá -->
+    <div id="androidMode" hidden>
+        <div class="card">
+            <label class="switch">
+                <input type="checkbox" id="lockAfter" checked>
+                <span><b>Bloquear cada sticker al grabarlo</b>
+                    <small>Recomendado: así nadie puede cambiarle el link. Es permanente (después no se puede volver a grabar).</small></span>
+            </label>
+        </div>
+        <button class="btn primary block" id="writeAllBtn" style="margin-bottom:14px"><i data-lucide="nfc" style="width:20px;height:20px"></i> <span id="writeAllLabel">Grabar todas, una por una</span></button>
+    </div>
+
+    <!-- iPhone (o Android sin Web NFC): con la app NFC Tools -->
+    <div id="appMode" hidden>
+        <div class="card">
+            <h2><i data-lucide="smartphone" style="width:18px;height:18px"></i> Cómo grabarlos desde este celular</h2>
+            <ol class="steps">
+                <li>Instalá la app gratuita <b>NFC Tools</b>:
+                    <a id="storeLink" target="_blank" rel="noopener" style="color:var(--accent)">descargar</a>.</li>
+                <li>Acá abajo tocá <b>Copiar link</b> en <span id="itemWord">la mesa</span>.</li>
+                <li>En NFC Tools: <b>Escribir → Agregar un registro → URL / URI</b>, pegá el link y tocá <b>Escribir</b>.</li>
+                <li>Acercá el sticker a la parte de arriba del celular hasta que confirme.</li>
+                <li>Para bloquearlo (recomendado, es permanente): <b>Otros → Bloquear etiqueta</b> y acercalo de nuevo.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Computadora: hay que abrirla desde el celular -->
+    <div id="desktopMode" hidden>
+        <div class="card notice"><i data-lucide="smartphone" style="width:18px;height:18px"></i>
+            <span>Esta página es para abrirla desde el celular con el que vas a grabar los stickers. Escaneá el QR que aparece en Pedidos → Mesas.</span></div>
+    </div>
+
+    <div class="list" id="tableList"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="./Js/theme.js"></script>
+<script src="./Js/firebase-config.js?v=4"></script>
+<script src="./Js/nfc.js?v=1"></script>
+</body>
+</html>

@@ -508,9 +508,17 @@ function initTablesTab() {
         if (e.key === 'Enter' && e.target.matches('.pd-table input')) { e.preventDefault(); e.target.blur(); }
     });
 
+    // Grabar los stickers desde el celular: QR hacia nfc.html (no requiere iniciar sesión en el teléfono)
+    const nfcPageUrl = `${location.origin}/nfc.html?r=${restaurantId}`;
+    const onPhone = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+    document.body.classList.toggle('is-mobile', onPhone);
+    document.getElementById('nfcPhoneQr').innerHTML = qrSvg(nfcPageUrl);
+    document.getElementById('nfcPhoneLink').href = nfcPageUrl;
+    document.querySelector('#nfcPhoneLink span').textContent = onPhone ? 'Abrir la página para grabar' : 'Abrir en este dispositivo';
+
     document.getElementById('nfcHelp').innerHTML = 'NDEFReader' in window
         ? `${licon('nfc', 13)} Este dispositivo puede grabar stickers NFC: tocá "Grabar NFC" y apoyá el sticker en la parte de atrás del celular. Al terminar te ofrece bloquearlo para que nadie pueda cambiarle el link.`
-        : `${licon('info', 13)} Para grabar los stickers NFC abrí esta página en Chrome desde un celular Android, o usá la app gratuita "NFC Tools" (Android/iPhone) → Escribir → Agregar registro → URL, pegando el link de cada mesa. Después bloquealo desde la misma app (Otros → Bloquear etiqueta) para que nadie pueda cambiarle el link; es permanente. Los iPhone y Android leen el sticker sin instalar nada.`;
+        : `${licon('info', 13)} Para grabar los stickers usá el código QR de arriba con tu celular. Los iPhone y Android leen el sticker sin instalar nada.`;
 }
 
 async function saveTables(tables) {
