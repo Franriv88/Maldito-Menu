@@ -13,6 +13,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
+    <script>
+    // Ícono de Lucide como SVG en texto (para el HTML de los avisos). Igual que licon() de Js/theme.js.
+    function licon(name, size = 16) {
+        const def = window.lucide?.[name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')];
+        if (!def) return '';
+        const el = lucide.createElement(def);
+        el.setAttribute('width', size); el.setAttribute('height', size); el.setAttribute('stroke-width', '1.75');
+        el.style.verticalAlign = '-3px';
+        return el.outerHTML;
+    }
+    </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -124,6 +136,31 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 .pain-icon{font-size:1.6rem;margin-bottom:.6rem}
 .pain h4{font-size:.92rem;font-weight:600;color:rgba(255,140,140,1);margin-bottom:.35rem}
 .pain p{font-size:.82rem;color:rgba(230,215,195,.75);line-height:1.6}
+
+/* ── ÍCONOS DE LÍNEA (Lucide) ───────────────── */
+.feat-icon svg{width:16px;height:16px;stroke-width:1.75}
+.pain-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:46px;height:46px;border-radius:50%;margin-bottom:.7rem;
+    color:rgba(255,140,140,.95);background:rgba(220,80,80,.12);border:1px solid rgba(220,80,80,.3);
+}
+.pain-icon svg{width:21px;height:21px;stroke-width:1.6}
+.mini-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:42px;height:42px;border-radius:50%;margin-bottom:.6rem;
+    color:var(--gold);background:var(--gold-faint);border:1px solid rgba(200,184,154,.2);
+}
+.mini-icon svg{width:19px;height:19px;stroke-width:1.6}
+.mock-pub-img svg{width:26px;height:26px;stroke-width:1.3;color:rgba(200,184,154,.5)}
+.mock-qr-btn{display:inline-flex;align-items:center;gap:.35rem}
+.mock-qr-btn svg{width:12px;height:12px;stroke-width:2.2}
+.theme-toggle .t-icon{display:inline-flex;color:var(--gold)}
+.theme-toggle .t-icon svg{width:17px;height:17px;stroke-width:1.75}
+.rot-icon svg{width:56px;height:56px;stroke-width:1.3;color:var(--gold)}
+.rot-arrow svg{width:28px;height:28px;stroke-width:1.75}
+body.light .pain-icon{color:#b02a2a;background:rgba(180,30,40,.08);border-color:rgba(180,30,40,.25)}
+body.light .mini-icon{border-color:rgba(80,55,25,.18)}
+body.light .mock-pub-img svg{color:rgba(80,55,25,.45)}
 
 /* ── PILL / BADGE ───────────────────────────── */
 .pill{
@@ -496,22 +533,22 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
         <div class="h2" style="text-align:center">El menú tradicional<br>ya no alcanza.</div>
         <div class="pain-grid">
             <div class="pain">
-                <div class="pain-icon">🖨</div>
+                <div class="pain-icon"><i data-lucide="printer"></i></div>
                 <h4>Imprimir es caro y lento</h4>
                 <p>Cada cambio de precio requiere reimprimir. El costo se acumula y la carta queda desactualizada.</p>
             </div>
             <div class="pain">
-                <div class="pain-icon">📄</div>
+                <div class="pain-icon"><i data-lucide="file-text"></i></div>
                 <h4>El PDF no tiene tu marca</h4>
                 <p>El QR que lleva a un PDF estático no tiene identidad visual, no se actualiza y no genera confianza.</p>
             </div>
             <div class="pain">
-                <div class="pain-icon">📱</div>
+                <div class="pain-icon"><i data-lucide="message-circle"></i></div>
                 <h4>WhatsApp no es un menú</h4>
                 <p>Enviar la foto del menú por WhatsApp es provisional, no escalable y difícil de mantener.</p>
             </div>
             <div class="pain">
-                <div class="pain-icon">💸</div>
+                <div class="pain-icon"><i data-lucide="percent"></i></div>
                 <h4>Las apps de delivery cobran comisión</h4>
                 <p>Te dan visibilidad, pero se quedan con una parte de cada venta y ponen las reglas de tu propio negocio.</p>
             </div>
@@ -556,21 +593,21 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             <div class="h2">Tu menú,<br><span style="font-style:italic">en un panel.</span></div>
             <div class="feat-list">
                 <div class="feat">
-                    <div class="feat-icon">✏</div>
+                    <div class="feat-icon"><i data-lucide="pencil"></i></div>
                     <div class="feat-text">
                         <h4>Editás sobre tu propio menú</h4>
                         <p>Tocás un producto, un precio o una descripción y lo cambiás ahí mismo, viendo cómo queda. Sin formularios.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">＋</div>
+                    <div class="feat-icon"><i data-lucide="plus"></i></div>
                     <div class="feat-text">
                         <h4>Agregar, quitar y ordenar</h4>
                         <p>Sumás productos con un clic, los quitás con la ×, y subís o bajás secciones enteras para ordenar tu carta.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">☁</div>
+                    <div class="feat-icon"><i data-lucide="cloud"></i></div>
                     <div class="feat-text">
                         <h4>Todo queda guardado</h4>
                         <p>Con un botón, tus cambios llegan al instante al celular de tus clientes. Podés editar desde la computadora o el celular.</p>
@@ -652,7 +689,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-item"><span>Iced Latte</span><span>$5000</span></div>
                         <div class="mock-pub-item"><span>Irlandés Volador</span><span>$7500</span></div>
                     </div>
-                    <div class="mock-pub-img">☕</div>
+                    <div class="mock-pub-img"><i data-lucide="coffee"></i></div>
                 </div>
                 <div class="mock-pub-section" style="flex-direction:row-reverse">
                     <div class="mock-pub-content">
@@ -662,7 +699,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-cat" style="margin-top:.4rem">Salados</div>
                         <div class="mock-pub-item"><span>Croissant</span><span>$3000</span></div>
                     </div>
-                    <div class="mock-pub-img">🌿</div>
+                    <div class="mock-pub-img"><i data-lucide="leaf"></i></div>
                 </div>
             </div>
         </div>
@@ -671,7 +708,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             <div class="h2">Tu marca,<br><span style="font-style:italic">no una plantilla.</span></div>
             <div class="feat-list">
                 <div class="feat">
-                    <div class="feat-icon" style="font-size:.7rem">🎨</div>
+                    <div class="feat-icon"><i data-lucide="palette"></i></div>
                     <div class="feat-text">
                         <h4>Todos los colores, a tu gusto</h4>
                         <p>Elegís cualquier color para los títulos, los productos, el fondo de la página y el del menú, y cada ícono de tus redes sociales.</p>
@@ -685,7 +722,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon" style="font-size:.7rem">🖼</div>
+                    <div class="feat-icon"><i data-lucide="image"></i></div>
                     <div class="feat-text">
                         <h4>Logo, fondos e imágenes</h4>
                         <p>Tu logo con el tamaño y la transparencia que quieras. Tu fondo de un solo color o con imagen, con desenfoque y una capa translúcida por delante para mejorar la lectura del menú. Y la inteligencia artificial quita el fondo de tus fotos con un clic.</p>
@@ -713,17 +750,17 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
         <div class="rule" style="width:60px"></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:700px;width:100%">
             <div class="glass" style="text-align:center;padding:1.4rem 1rem">
-                <div style="font-size:1.5rem;margin-bottom:.5rem">💰</div>
+                <div class="mini-icon"><i data-lucide="tag"></i></div>
                 <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Subió el precio del café</div>
                 <div style="font-size:.68rem;color:var(--muted)">Editás el número → Guardar → Listo.</div>
             </div>
             <div class="glass" style="text-align:center;padding:1.4rem 1rem">
-                <div style="font-size:1.5rem;margin-bottom:.5rem">🚫</div>
+                <div class="mini-icon"><i data-lucide="package-x"></i></div>
                 <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Se agotó el croissant</div>
                 <div style="font-size:.68rem;color:var(--muted)">Lo eliminás del panel → Guardado.</div>
             </div>
             <div class="glass" style="text-align:center;padding:1.4rem 1rem">
-                <div style="font-size:1.5rem;margin-bottom:.5rem">✨</div>
+                <div class="mini-icon"><i data-lucide="sparkles"></i></div>
                 <div style="font-size:.8rem;font-weight:500;color:var(--gold);margin-bottom:.3rem">Nuevo plato del día</div>
                 <div style="font-size:.68rem;color:var(--muted)">+ Agregar → nombre + precio → Guardar.</div>
             </div>
@@ -742,28 +779,28 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
             <div class="h2">El menú que<br><span style="font-style:italic">representa tu local.</span></div>
             <div class="feat-list">
                 <div class="feat">
-                    <div class="feat-icon">📱</div>
+                    <div class="feat-icon"><i data-lucide="smartphone"></i></div>
                     <div class="feat-text">
                         <h4>100% mobile-first</h4>
                         <p>Diseñado para verse perfecto en el celular del cliente. Sin instalar ninguna app.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">🖼</div>
+                    <div class="feat-icon"><i data-lucide="layout-panel-top"></i></div>
                     <div class="feat-text">
                         <h4>Cada sección, a tu manera</h4>
                         <p>Texto con imagen, dos columnas de productos o una gran imagen a lo ancho. Movés, agrandás o achicás cada foto hasta que quede perfecta, y se ve igual en cualquier celular.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">👆</div>
+                    <div class="feat-icon"><i data-lucide="pointer"></i></div>
                     <div class="feat-text">
                         <h4>Descripciones que se despliegan</h4>
                         <p>Cada producto muestra su descripción al tocarlo, con listas para detallar lo que incluye. Limpio y ordenado.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">⬆</div>
+                    <div class="feat-icon"><i data-lucide="share-2"></i></div>
                     <div class="feat-text">
                         <h4>Compartir y contactarte</h4>
                         <p>Tus clientes comparten el menú desde su celular y te escriben por WhatsApp, Instagram o email con un toque.</p>
@@ -782,7 +819,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-item"><span>Macchiato</span><span>$6.500</span></div>
                         <div class="mock-pub-item"><span>Mocaccino</span><span>$4.570</span></div>
                     </div>
-                    <div class="mock-pub-img">☕</div>
+                    <div class="mock-pub-img"><i data-lucide="coffee"></i></div>
                 </div>
                 <div class="mock-pub-section" style="flex-direction:row-reverse">
                     <div class="mock-pub-content">
@@ -791,7 +828,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-item"><span>Limonada</span><span>$2.750</span></div>
                         <div class="mock-pub-item"><span>Té Chai</span><span>$3.550</span></div>
                     </div>
-                    <div class="mock-pub-img">🌿</div>
+                    <div class="mock-pub-img"><i data-lucide="leaf"></i></div>
                 </div>
                 <div class="mock-pub-section">
                     <div class="mock-pub-content">
@@ -799,7 +836,7 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                         <div class="mock-pub-item"><span>Croissant</span><span>$3.000</span></div>
                         <div class="mock-pub-item"><span>Pizza e quesos</span><span>$32.500</span></div>
                     </div>
-                    <div class="mock-pub-img">🥐</div>
+                    <div class="mock-pub-img"><i data-lucide="croissant"></i></div>
                 </div>
             </div>
         </div>
@@ -866,28 +903,28 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
                 </svg>
             </div>
             <div class="mock-qr-url">cubierto.menu/menu.html?r=tu-local</div>
-            <button class="mock-qr-btn">⬇ Descargar QR</button>
+            <button class="mock-qr-btn"><i data-lucide="download"></i> Descargar QR</button>
         </div>
         <div style="display:flex;flex-direction:column;gap:1.6rem;max-width:400px">
             <p class="label">QR · NFC · Link</p>
             <div class="h2">Tu menú, a un<br><span style="font-style:italic">escaneo de distancia.</span></div>
             <div class="feat-list">
                 <div class="feat">
-                    <div class="feat-icon">🍽</div>
+                    <div class="feat-icon"><i data-lucide="utensils"></i></div>
                     <div class="feat-text">
                         <h4>En tu local: cada mesa con su QR</h4>
                         <p>Cada mesa tiene su propio QR (y si querés, un sticker NFC para apoyar el celular). El cliente pide desde la mesa y el pedido llega directo a tu cocina.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">🔗</div>
+                    <div class="feat-icon"><i data-lucide="link"></i></div>
                     <div class="feat-text">
                         <h4>Delivery, catering y take away</h4>
                         <p>Un QR con tu logo en el centro y un link para tu bio de Instagram, WhatsApp o Google Maps. Ideal si solo querés mostrar tu menú.</p>
                     </div>
                 </div>
                 <div class="feat">
-                    <div class="feat-icon">⬇</div>
+                    <div class="feat-icon"><i data-lucide="download"></i></div>
                     <div class="feat-text">
                         <h4>Listo para imprimir</h4>
                         <p>Descargás los QR en alta calidad, o una hoja con los stickers de todas tus mesas, numerados y listos para pegar.</p>
@@ -983,8 +1020,8 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
 
 <!-- ── ROTATE OVERLAY ── -->
 <div id="rotateOverlay">
-    <span class="rot-icon">📱</span>
-    <span class="rot-arrow">↻</span>
+    <span class="rot-icon"><i data-lucide="smartphone"></i></span>
+    <span class="rot-arrow"><i data-lucide="rotate-cw"></i></span>
     <p class="rot-title">Rotá tu dispositivo</p>
     <p class="rot-sub">Esta presentación está diseñada para verse en pantalla horizontal</p>
     <button class="rot-btn" id="rotFullscreenBtn">Ver en pantalla completa</button>
@@ -993,9 +1030,9 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
 <!-- ── THEME PANEL ── -->
 <div id="themePanel">
     <div class="theme-toggle" id="themeToggle">
-        <span class="t-icon">🌙</span>
+        <span class="t-icon"><i data-lucide="moon"></i></span>
         <div class="t-track"><div class="t-thumb"></div></div>
-        <span class="t-icon">☀️</span>
+        <span class="t-icon"><i data-lucide="sun"></i></span>
     </div>
     <div id="themePanelTab" title="Modo claro / oscuro"><span id="tabIcon">›</span></div>
 </div>
@@ -1113,7 +1150,7 @@ setTimeout(()=>{
     themeToggle.addEventListener('animationend', ()=> themeToggle.classList.remove('pulsing'), { once: true });
     setTimeout(()=>{
         themeToast.fire({
-            html:'<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.6">🌙 &nbsp;Usá el panel lateral para<br><b style="color:#ddd0bb">cambiar modo oscuro / claro</b></span>'
+            html:'<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.6">'+licon('moon',14)+' &nbsp;Usá el panel lateral para<br><b style="color:#ddd0bb">cambiar modo oscuro / claro</b></span>'
         });
     }, 500);
 }, 800);
@@ -1292,7 +1329,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
                 Continuar con Google
             </button>
             <button id="opt-email" style="background:rgba(200,184,154,.1);border:1px solid rgba(200,184,154,.25);color:#c8b89a;border-radius:10px;padding:.7rem 1rem;font-size:.88rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;justify-content:center">
-                ✉️ Registrarme con email
+                ${licon('mail',17)} Registrarme con email
             </button>
         </div>`,
         background: '#1a1a1a', color: '#c8b89a',
@@ -1398,5 +1435,6 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
     window.location.href = './checkout.html';
 });
 </script>
+<script>lucide.createIcons();</script>
 </body>
 </html>
