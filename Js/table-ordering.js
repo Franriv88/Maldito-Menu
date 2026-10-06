@@ -28,7 +28,7 @@
     const isFresh = o => Date.now() - (o.at || 0) < MY_ORDERS_TTL;
     let myOrders = load(localStorage, ORDERS_KEY, []).filter(isFresh);   // [{ id, number, at }]
     save(localStorage, ORDERS_KEY, myOrders);
-    const NAME_KEY = `diner_name_${restaurantId}`;         // nombre recordado para dividir la cuenta
+    const NAME_KEY = `diner_name_${restaurantId}`;         // nombre del comensal (obligatorio), recordado para el próximo pedido
     let ordersTab = 'mine', tableData = null, tablePoll = null;
     const orderUnsubs = {};
     const orderState  = {};
@@ -59,7 +59,20 @@
                     addToCart(item.dataset.id, item.querySelector('.producto')?.textContent || '', parsePrice(item.dataset.price));
                     btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
                 });
-                item.querySelector('.item-header')?.appendChild(btn);
+                // "−" con el mismo borde circular: aparece recién cuando el producto ya está en el pedido
+                const sub = document.createElement('button');
+                sub.className = 'to-add to-sub';
+                sub.type = 'button';
+                sub.hidden = true;
+                sub.setAttribute('aria-label', 'Quitar uno del pedido');
+                sub.textContent = '−';
+                sub.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const id = item.dataset.id;
+                    if (cart[id]) setQty(id, cart[id].qty - 1);
+                    sub.classList.remove('pop'); void sub.offsetWidth; sub.classList.add('pop');
+                });
+                item.querySelector('.item-header')?.append(sub, btn);
                 updateItemBadge(item);
             });
         },
@@ -77,6 +90,7 @@
             if (active && !wasActive) mountUI();
             if (!active && wasActive) unmountUI();
             if (active) renderBar();
+            window.MenuGuide?.show(active ? 'order' : 'view'); // guía de primera visita
         }, err => console.warn('ordering config:', err));
 
         // Estado de la mesa (abierta por el mozo → el pedido va directo a cocina)
@@ -90,13 +104,71 @@
         restRef.collection('config').doc('styles').onSnapshot(doc => {
             hidePrices = !!doc.data()?.hidePrices;
             if (active) renderBar();
+            setTimeout(applyContrast, 0); // después de que menu-viewers.js aplique los colores
         }, () => {});
 
         myOrders.forEach(o => watchOrder(o.id));
     });
 
+    // ── Contraste de los botones de pedido ────────────────────
+    // Los botones usan el color de los títulos sobre el fondo del menú. Si esos dos colores casi
+    // no se distinguen (o el fondo es transparente porque el menú tiene imagen de fondo), el
+    // fondo de los botones pasa a blanco o negro, el que mejor contraste con el color de títulos.
+    function cssColor(value) {
+        const probe = document.createElement('span');
+        probe.style.color = value;
+        probe.style.display = 'none';
+        document.body.appendChild(probe);
+        const parts = (getComputedStyle(probe).color.match(/[\d.]+/g) || [0, 0, 0]).map(Number);
+        probe.remove();
+        return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+    }
+    function luminance({ r, g, b }) {
+        const ch = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+    }
+    function contrast(a, b) {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+    let contrastKey = '';
+    function applyContrast() {
+        const root   = document.documentElement;
+        const accent = cssColor('var(--title-color)');
+        let surface  = cssColor('var(--primary-color)');
+        const hasBgImage = root.classList.contains('has-menu-bg');
+        // Solo recalcular si cambiaron los colores del menú (evita el ciclo con el observador)
+        const key = JSON.stringify([accent, surface, cssColor('var(--text-color)'), hasBgImage]);
+        if (key === contrastKey) return;
+        contrastKey = key;
+        const white = { r: 255, g: 255, b: 255 }, black = { r: 20, g: 20, b: 20 };
+        const bestOn = bg => contrast(white, bg) >= contrast(black, bg) ? white : black;
+        let acc = accent;
+        if (!hasBgImage && surface.a >= 0.9) {
+            // Fondo liso: el acento ("+", "−", bordes) tiene que leerse sobre ese mismo fondo
+            if (contrast(acc, surface) < 3) acc = bestOn(surface);
+        } else {
+            // Imagen de fondo o fondo transparente: los botones llevan su propio fondo liso
+            surface = bestOn(accent);
+            if (contrast(acc, surface) < 3) acc = bestOn(surface);
+        }
+        // Texto común sobre ese fondo (guía de bienvenida): el color de productos si se lee, si no el de acento
+        const text = cssColor('var(--text-color)');
+        const txt  = contrast(text, surface) >= 4.5 ? text : acc;
+        root.style.setProperty('--to-accent',  `rgb(${acc.r}, ${acc.g}, ${acc.b})`);
+        root.style.setProperty('--to-surface', `rgb(${surface.r}, ${surface.g}, ${surface.b})`);
+        root.style.setProperty('--to-text',    `rgb(${txt.r}, ${txt.g}, ${txt.b})`);
+    }
+
     // ── UI ────────────────────────────────────────────────────
     function mountUI() {
+        applyContrast();
+        // menu-viewers.js aplica los colores del restaurante cuando llegan (en cualquier orden):
+        // cada cambio de estilo o de imagen de fondo en <html> vuelve a calcular el contraste
+        if (!window._toContrastObs) {
+            window._toContrastObs = new MutationObserver(() => applyContrast());
+            window._toContrastObs.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+        }
         document.body.classList.add('ordering-on');
         document.getElementById('shareBtn')?.style.setProperty('display', 'none', 'important');
 
@@ -129,7 +201,7 @@
     function unmountUI() {
         document.body.classList.remove('ordering-on');
         ['toBanner', 'toBar', 'toSheet', 'toToast'].forEach(id => document.getElementById(id)?.remove());
-        document.querySelectorAll('.to-add, .to-qty-badge').forEach(el => el.remove());
+        document.querySelectorAll('.to-add, .to-sub, .to-qty-badge').forEach(el => el.remove());
     }
 
     function cartCount() { return Object.values(cart).reduce((s, l) => s + l.qty, 0); }
@@ -160,12 +232,14 @@
 
     function updateItemBadge(item) {
         const qty = cart[item.dataset.id]?.qty || 0;
+        const sub = item.querySelector('.to-sub');
+        if (sub) sub.hidden = !qty;
         let badge = item.querySelector('.to-qty-badge');
         if (!qty) { badge?.remove(); return; }
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'to-qty-badge';
-            item.querySelector('.to-add')?.before(badge);
+            item.querySelector('.to-add:not(.to-sub)')?.before(badge);
         }
         badge.textContent = `×${qty}`;
     }
@@ -228,8 +302,8 @@
             <label class="to-field">Otras aclaraciones (opcional)
                 <textarea id="toNote" maxlength="300" rows="2" placeholder="Ej: leche de almendras, la carne bien cocida…"></textarea>
             </label>
-            <label class="to-field">Tu nombre (opcional)
-                <input id="toName" maxlength="60" placeholder="Para el mozo y para dividir la cuenta" value="${esc(load(localStorage, NAME_KEY, ''))}">
+            <label class="to-field">Tu nombre
+                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="¿A nombre de quién?" value="${esc(load(localStorage, NAME_KEY, ''))}">
             </label>
             ${hidePrices ? '' : `<div class="to-total"><span>Total</span><b>${money(cartTotal())}</b></div>`}
             <p class="to-hint">Pagás al final, en el local.</p>
@@ -271,6 +345,14 @@
         const btn = el.querySelector('#toSend');
         const errEl = el.querySelector('#toError');
         errEl.textContent = '';
+        const nameInput = el.querySelector('#toName');
+        if (!nameInput.value.trim()) {
+            errEl.textContent = 'Escribí tu nombre para enviar el pedido.';
+            nameInput.classList.add('to-invalid');
+            nameInput.focus();
+            nameInput.addEventListener('input', () => nameInput.classList.remove('to-invalid'), { once: true });
+            return;
+        }
         btn.disabled = true;
 
         const payload = {
@@ -360,8 +442,7 @@
         if (!tableData.orders.length) return '<p class="to-empty">Todavía no hay pedidos en esta mesa.</p>';
         const mineIds = new Set(myOrders.map(o => o.id));
         const total = tableData.orders.filter(countsForBill).reduce((s, o) => s + o.total, 0);
-        return `<p class="to-hint" style="margin:0 0 4px">Cada pedido muestra el nombre de quien lo hizo, para dividir la cuenta.</p>`
-            + tableData.orders.slice().reverse().map(o => orderBlock(o, {
+        return tableData.orders.slice().reverse().map(o => orderBlock(o, {
                 title: `#${o.number} · ${esc(o.customerName || 'Sin nombre')}${mineIds.has(o.id) ? ' (vos)' : ''}`,
                 mine: mineIds.has(o.id),
             })).join('')

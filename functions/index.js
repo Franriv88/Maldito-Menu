@@ -501,6 +501,8 @@ exports.placeOrder = onRequest(
             res.status(400).json({ error: "Pedido inválido" }); return;
         }
         if (items.length > 40) { res.status(400).json({ error: "Demasiados productos en un pedido" }); return; }
+        // Cada pedido sale con el nombre de quien lo hizo (obligatorio)
+        if (!String(name || "").trim()) { res.status(400).json({ error: "Escribí tu nombre para enviar el pedido." }); return; }
 
         const restRef = db.collection("restaurants").doc(r);
         const privRef = restRef.collection("private").doc("ordering");
@@ -606,7 +608,7 @@ exports.placeOrder = onRequest(
                     note:       String(note || "").slice(0, 300),
                     restrictions: [...new Set(Array.isArray(restrictions) ? restrictions : [])]
                         .filter(id => RESTRICTIONS[id]).map(id => ({ id, label: RESTRICTIONS[id] })),
-                    customerName: String(name || "").slice(0, 60),
+                    customerName: String(name || "").trim().slice(0, 60),
                     status:     direct ? "en_cocina" : "pendiente",
                     printStatus: direct ? "queued" : "none",
                     distance,

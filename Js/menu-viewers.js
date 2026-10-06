@@ -51,6 +51,64 @@ function safeUrl(url) {
     } catch { return '#'; }
 }
 
+// ── Guía de bienvenida (primera visita) ───────────────────────
+// Ventana con los colores y tipografías del menú que explica cómo usarlo. Se muestra una sola
+// vez por restaurante y por tipo: 'view' (solo mirar) u 'order' (pedir desde la mesa / catering).
+// table-ordering.js decide cuál corresponde cuando la URL trae ?mesa=.
+window.MenuGuide = (() => {
+    const STEPS = {
+        view: [
+            ['Tocá un producto', 'para ver su descripción. Volvé a tocarlo para cerrarla.'],
+            ['Recorré las secciones', 'deslizando hacia abajo.'],
+            ['Compartí el menú', 'con el botón Compartir.'],
+        ],
+        order: [
+            ['Tocá un producto', 'para ver su descripción.'],
+            ['Agregalo con +', 'y quitalo con −. Podés sumar varios.'],
+            ['Revisá tu pedido', 'en la barra de abajo, escribí tu nombre y tocá Enviar pedido.'],
+            ['Seguí el estado', 'en Pedidos: ahí ves tus pedidos y los de toda la mesa.'],
+        ],
+    };
+    let open = false, waiters = [];
+    const seenKey = kind => `menu_guide_${kind}_${new URLSearchParams(location.search).get('r')}`;
+    const seen = kind => { try { return localStorage.getItem(seenKey(kind)) === '1'; } catch { return true; } };
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function show(kind, { title, steps } = {}) {
+        if (open || document.querySelector('.mg-backdrop') || seen(kind)) return;
+        open = true;
+        // Esperar a que el menú esté dibujado (con sus colores) antes de mostrarla
+        for (let i = 0; i < 40 && !document.querySelector('#menu-container .menu-section'); i++) await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 500));
+        const list = steps || STEPS[kind] || STEPS.view;
+        const el = document.createElement('div');
+        el.className = 'mg-backdrop';
+        el.innerHTML = `
+            <div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mgTitle">
+                <h2 id="mgTitle">${esc(title || (kind === 'order' ? '¿Cómo pedir?' : 'Bienvenido a nuestro menú'))}</h2>
+                <ol class="mg-steps">${list.map(([b, t], i) => `
+                    <li><span class="mg-num">${i + 1}</span><span><b>${esc(b)}</b> ${esc(t)}</span></li>`).join('')}
+                </ol>
+                <button type="button" class="mg-ok">Entendido</button>
+            </div>`;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('show'));
+        const close = () => {
+            try { localStorage.setItem(seenKey(kind), '1'); } catch { /* modo privado */ }
+            el.classList.remove('show');
+            setTimeout(() => el.remove(), 250);
+            open = false;
+            waiters.splice(0).forEach(fn => fn());
+        };
+        el.querySelector('.mg-ok').addEventListener('click', close);
+        el.addEventListener('click', e => { if (e.target === el) close(); });
+        el.querySelector('.mg-ok').focus({ preventScroll: true });
+    }
+    // Para no tapar la demostración del acordeón: espera a que se cierre la guía
+    const whenClosed = () => open ? new Promise(r => waiters.push(r)) : Promise.resolve();
+    return { show, whenClosed, isOpen: () => open };
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     const restaurantId  = new URLSearchParams(location.search).get('r');
     const menuContainer = document.getElementById('menu-container');
@@ -402,6 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
             menuContainer.appendChild(sectionEl);
         });
 
+        // Guía de primera visita (con ?mesa= la decide table-ordering.js según si se puede pedir)
+        if (!new URLSearchParams(location.search).has('mesa')) window.MenuGuide.show('view');
         iniciarDemostracionAcordeon();
         window.TableOrdering?.decorate(menuContainer); // botones "+" si se pide desde la mesa
     }
@@ -427,6 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         demoHecha = true;
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
         await sleep(1200);
+        if (window.MenuGuide?.isOpen()) { await window.MenuGuide.whenClosed(); await sleep(600); }
         const det = document.querySelector('.menu-item .item-details'); // ya renderizado y estable
         if (!det || usuarioInteractuo || det.classList.contains('visible')) return;
         det.classList.add('visible');

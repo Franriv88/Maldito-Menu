@@ -354,6 +354,15 @@
         <div id="couponsList" style="font-size:.78rem;color:rgba(200,184,154,.3)">Cargando cupones...</div>
     </div>
 
+    <!-- Soporte (lo ven los clientes en su dashboard) -->
+    <div class="sa-section" style="padding:1.2rem 1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.6rem">
+            <div class="sa-section-title">Soporte para clientes</div>
+            <button onclick="editSupport()" style="background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.25);color:#c8b89a;border-radius:8px;padding:.38rem 1rem;font-size:.72rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i data-lucide="pencil" class="icon" style="width:13px;height:13px;stroke-width:2"></i> Editar</button>
+        </div>
+        <div id="supportInfo" style="font-size:.78rem;color:rgba(200,184,154,.6)">Cargando...</div>
+    </div>
+
     <!-- Stats -->
     <div class="sa-stats" id="statsRow"></div>
 
@@ -436,6 +445,7 @@ auth.onAuthStateChanged(async user => {
     await loadData();
     await loadPlansConfig();
     await loadCoupons();
+    await loadSupport();
 });
 
 // ── Plan management ───────────────────────────────────────────
@@ -695,6 +705,63 @@ function renderCoupons() {
             </tr>`;
         }).join('')}</tbody>
     </table>`;
+}
+
+// ── Soporte (appConfig/support: lo ven los clientes en "Soporte" del dashboard) ──
+let supportCfg = {};
+const SUPPORT_DEFAULT_EMAIL = 'frivasv2388@gmail.com';
+
+async function loadSupport() {
+    try {
+        const snap = await db.collection('appConfig').doc('support').get();
+        supportCfg = snap.exists ? snap.data() : {};
+    } catch (e) { supportCfg = {}; }
+    renderSupport();
+}
+
+function renderSupport() {
+    const el = document.getElementById('supportInfo');
+    if (!el) return;
+    const row = (label, value) => `<div style="display:flex;gap:.6rem;padding:.25rem 0"><span style="min-width:90px;color:rgba(200,184,154,.4)">${label}</span><span style="color:#c8b89a">${value}</span></div>`;
+    el.innerHTML = row('Email', esc(supportCfg.email || SUPPORT_DEFAULT_EMAIL) + (supportCfg.email ? '' : ' <small style="opacity:.5">(por defecto)</small>'))
+        + row('WhatsApp', supportCfg.whatsapp ? esc(supportCfg.whatsapp) : '<span style="opacity:.5">Sin cargar</span>')
+        + row('Horario', supportCfg.hours ? esc(supportCfg.hours) : '<span style="opacity:.5">Sin cargar</span>');
+}
+
+async function editSupport() {
+    const inp = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.82rem;padding:.48rem .8rem;outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
+    const lbl = 'font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:rgba(200,184,154,.4);display:block;margin-bottom:.2rem;text-align:left';
+    const { value: form, isConfirmed } = await Swal.fire({
+        title: 'Soporte para clientes',
+        html: `<div style="text-align:left">
+            <label style="${lbl}">Email de soporte</label>
+            <input id="sp-email" type="email" style="${inp}" value="${esc(supportCfg.email || SUPPORT_DEFAULT_EMAIL)}">
+            <label style="${lbl}">WhatsApp (con código de país, ej: 5491112345678)</label>
+            <input id="sp-wa" inputmode="tel" style="${inp}" placeholder="Opcional" value="${esc(supportCfg.whatsapp || '')}">
+            <label style="${lbl}">Horario de atención (opcional)</label>
+            <input id="sp-hours" style="${inp}" placeholder="ej: Lunes a viernes de 9 a 18 h" value="${esc(supportCfg.hours || '')}">
+        </div>`,
+        focusConfirm: false, showCancelButton: true,
+        confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a', confirmButtonColor: '#2d9a4e', cancelButtonColor: 'rgba(124,108,92,.3)',
+        preConfirm: () => {
+            const email = document.getElementById('sp-email').value.trim();
+            const whatsapp = document.getElementById('sp-wa').value.replace(/[^0-9]/g, '');
+            const hours = document.getElementById('sp-hours').value.trim();
+            if (email && !/^[^@ ]+@[^@ ]+[.][^@ ]+$/.test(email)) { Swal.showValidationMessage('El email no es válido'); return false; }
+            if (whatsapp && whatsapp.length < 8) { Swal.showValidationMessage('El WhatsApp parece incompleto'); return false; }
+            return { email, whatsapp, hours };
+        },
+    });
+    if (!isConfirmed || !form) return;
+    try {
+        await db.collection('appConfig').doc('support').set(form);
+        supportCfg = form;
+        renderSupport();
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Soporte guardado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    } catch (e) {
+        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'No se pudo guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    }
 }
 
 async function createCoupon() {

@@ -15,6 +15,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('superAdminLink').style.display = 'inline-flex';
     }
     initThemeToggle('themeBtn');
+    initSupport(user);
 
     // Registrar/actualizar perfil en Firestore
     try {
@@ -433,4 +434,31 @@ function esc(str) {
     return String(str)
         .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
         .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ── Soporte: contacto con el administrador de Cubierto (appConfig/support) ──
+function initSupport(user) {
+    const modal = document.getElementById('supportModal');
+    const DEFAULT_EMAIL = 'frivasv2388@gmail.com';
+    let cfg = null;
+    const load = () => cfg ? Promise.resolve(cfg) : db.collection('appConfig').doc('support').get()
+        .then(s => (cfg = s.exists ? s.data() : {})).catch(() => (cfg = {}));
+
+    document.getElementById('supportBtn').addEventListener('click', async () => {
+        const c = await load();
+        const email = c.email || DEFAULT_EMAIL;
+        const msg = `Hola, necesito ayuda con Cubierto. Mi cuenta: ${user.email}`;
+        const opts = [];
+        if (c.whatsapp) opts.push(`<a class="support-opt wa" href="https://wa.me/${encodeURIComponent(c.whatsapp)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">
+            ${licon('message-circle', 18)}<span><b>WhatsApp</b><small>Respuesta más rápida</small></span></a>`);
+        opts.push(`<a class="support-opt" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('Soporte Cubierto')}&body=${encodeURIComponent(msg + '\n\n')}">
+            ${licon('mail', 18)}<span><b>Email</b><small>${esc(email)}</small></span></a>`);
+        document.getElementById('supportOptions').innerHTML = opts.join('');
+        const hours = document.getElementById('supportHours');
+        hours.hidden = !c.hours;
+        hours.innerHTML = c.hours ? `${licon('clock', 13)} ${esc(c.hours)}` : '';
+        modal.classList.add('visible');
+    });
+    document.getElementById('closeSupport').addEventListener('click', () => modal.classList.remove('visible'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('visible'); });
 }
