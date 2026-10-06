@@ -76,6 +76,10 @@ const periodPrice = (tier, periodId, cfg) => {
 };
 const addMonths = (ms, n) => { const d = new Date(ms); d.setMonth(d.getMonth() + n); return d.getTime(); };
 
+// Débito automático: si un cobro falla (o el primero todavía no llegó), el plan sigue activo
+// estos días después del vencimiento mientras la suscripción de MP siga autorizada.
+const GRACE_MS = 5 * 24 * 3600 * 1000;
+
 // Suscripción efectiva: un cambio programado (downgrade / cambio de período) rige desde su fecha
 function effectiveSub(sub, now) {
     sub = sub || {};
@@ -83,10 +87,16 @@ function effectiveSub(sub, now) {
     let planType = sub.planType, period = sub.period || "monthly", scheduled = sub.scheduled || null, due = false;
     if (scheduled && ms(scheduled.startsAt) <= now) { planType = scheduled.planType; period = scheduled.period || period; scheduled = null; due = true; }
     const paidUntil = ms(sub.paidUntil), trialEndsAt = ms(sub.trialEndsAt);
+    const billingOn = sub.billing?.status === "authorized";
+    // Vencido hace menos de 5 días con débito automático activo: en gracia (esperando el cobro)
+    const inGrace   = billingOn && sub.status === "active" && paidUntil <= now && paidUntil + GRACE_MS > now;
+    // Terminó la prueba con la suscripción ya autorizada: activo mientras llega el primer cobro
+    const trialToPaid = billingOn && sub.status === "trial" && trialEndsAt <= now && trialEndsAt + GRACE_MS > now;
     return {
-        active: sub.status === "active" && paidUntil > now,
+        active: (sub.status === "active" && paidUntil > now) || inGrace || trialToPaid,
         trial:  sub.status === "trial" && trialEndsAt > now,
-        planType, period, scheduled, scheduledDue: due, paidUntil, trialEndsAt,
+        pastDue: inGrace || trialToPaid, billingOn,
+        planType, period, scheduled, scheduledDue: due, paidUntil: trialToPaid ? trialEndsAt : paidUntil, trialEndsAt,
         scheduledStart: scheduled ? ms(scheduled.startsAt) : 0,
     };
 }
@@ -260,6 +270,11 @@ async function activateFromPayment(payment) {
 
     const parts = String(payment.external_reference || "").split("|");
     const uid   = parts[0];
+    // Débito de una suscripción (preapproval): lo maneja applyRecurringCharge
+    const preId = payment.metadata?.preapproval_id || payment.point_of_interaction?.transaction_data?.subscription_id;
+    if (parts[1] === "s" || (!parts[1] && preId)) {
+        return applyRecurringCharge({ subId: parts[1] === "s" ? parts[2] : null, preapprovalId: preId, paymentId: payment.id, amount: payment.transaction_amount });
+    }
     const cfg   = await getPlanConfig();
     let quote = null, quoteRef = null;
     if (parts[1] === "q" && parts[2]) {
@@ -317,6 +332,8 @@ async function activateFromPayment(payment) {
         return { ok: true, plan: tier.label, kind: q.kind, period: q.period, paidUntil: fields.paidUntil?.toMillis?.() || null };
     });
     if (!result.ok && ["upgrade_sin_plan_activo", "cotizacion_ya_usada"].includes(result.reason)) return unmatched(result.reason);
+    // Después de una mejora, los próximos débitos automáticos pasan al precio del plan nuevo
+    if (result.ok && result.kind === "upgrade" && !result.already) await syncBillingAmount(uid).catch(err => console.warn("syncBillingAmount", err.response?.data || err.message));
     return result;
 }
 
@@ -352,6 +369,8 @@ exports.createPayment = onRequest(
         const summary = { kind: q.kind, plan: q.tier.label, period: q.period, amount: q.amount,
                           startsAt: q.startsAt || null, until: q.until || null };
         if (req.body?.preview) { res.json(summary); return; }
+        // Altas, renovaciones y cambios van por débito automático (subscribe); acá solo se cobra la diferencia de una mejora
+        if (q.kind !== "upgrade") { res.status(400).json({ error: "Elegí el plan con la suscripción automática.", code: "use_subscribe" }); return; }
 
         // Mejora de pocos pesos (le quedan muy pocos días): se aplica sin cobrar
         if (q.kind === "upgrade" && q.amount < MIN_CHARGE) {
@@ -359,6 +378,7 @@ exports.createPayment = onRequest(
                 const s = (await tx.get(userRef)).data()?.subscription || {};
                 tx.set(userRef, { subscription: purchaseFields(s, { kind: "upgrade", tier: q.tier }, Date.now()) }, { merge: true });
             });
+            await syncBillingAmount(user.uid).catch(err => console.warn("syncBillingAmount", err.response?.data || err.message));
             res.json({ applied: true, ...summary }); return;
         }
 
@@ -395,6 +415,271 @@ exports.createPayment = onRequest(
             console.error("MP createPayment:", err.response?.data || err.message);
             res.status(502).json({ error: "No se pudo iniciar el pago. Intentá de nuevo." });
         }
+    }
+);
+
+// ══════════════════════════════════════════════════════════════
+//  COBRO AUTOMÁTICO — Mercado Pago Suscripciones (preapproval)
+//  billingSubs/{id}: { uid, preapprovalId, tierId, period, amount, startAt, status }
+//  users/{uid}.subscription.billing: { subId, preapprovalId, status, tierId, period, amount,
+//                                      lastChargeAt, lastFailureAt }
+//  external_reference del preapproval = "uid|s|billingSubId"
+//  - Cada cobro aprobado extiende paidUntil un período (desde el vencimiento anterior).
+//  - Downgrade con el mismo período: solo cambia el monto del próximo débito.
+//  - Cambio de período: suscripción nueva que arranca al terminar lo pagado; al autorizarla
+//    se cancela la anterior.
+// ══════════════════════════════════════════════════════════════
+const MP_API    = "https://api.mercadopago.com";
+const mpHeaders = () => ({ Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` });
+const tsMs      = v => v?.toMillis?.() || 0;
+
+const mpGetPreapproval    = async id => (await axios.get(`${MP_API}/preapproval/${encodeURIComponent(id)}`, { headers: mpHeaders() })).data;
+const mpUpdatePreapproval = async (id, body) => (await axios.put(`${MP_API}/preapproval/${encodeURIComponent(id)}`, body, { headers: mpHeaders() })).data;
+
+// Ajusta el monto de los próximos débitos al plan que corresponde (después de un upgrade)
+async function syncBillingAmount(uid) {
+    const userRef = db.collection("users").doc(uid);
+    const sub = (await userRef.get()).data()?.subscription || {};
+    const b = sub.billing;
+    if (b?.status !== "authorized" || !b.preapprovalId) return;
+    const cfg = await getPlanConfig();
+    // El próximo débito es del plan programado (si hay) o del actual
+    const target = sub.scheduled ? { planType: sub.scheduled.planType, period: sub.scheduled.period || sub.period } : { planType: sub.planType, period: sub.period };
+    const tier = cfg.tiers.find(t => t.id === target.planType);
+    if (!tier || (target.period || "monthly") !== b.period) return;
+    const amount = periodPrice(tier, b.period, cfg);
+    if (amount === b.amount && tier.id === b.tierId) return;
+    await mpUpdatePreapproval(b.preapprovalId, { auto_recurring: { transaction_amount: amount, currency_id: "ARS" } });
+    await userRef.set({ subscription: { billing: { amount, tierId: tier.id } } }, { merge: true });
+}
+
+// La suscripción de MP cambió de estado (autorizada, pausada, cancelada)
+async function applyPreapproval(pre) {
+    const [uid, tag, subId] = String(pre.external_reference || "").split("|");
+    if (tag !== "s" || !uid || !subId) return { ok: false, reason: "no_es_de_cubierto" };
+    const bsRef   = db.collection("billingSubs").doc(subId);
+    const userRef = db.collection("users").doc(uid);
+    let cancelOld = null;
+    const result = await db.runTransaction(async tx => {
+        const [bs, us] = await Promise.all([tx.get(bsRef), tx.get(userRef)]);
+        if (!bs.exists || bs.data().uid !== uid || !us.exists) return { ok: false, reason: "suscripcion_desconocida" };
+        const d = bs.data(), sub = us.data().subscription || {}, b = sub.billing || {};
+        const status = String(pre.status || "");
+        tx.set(bsRef, { status, preapprovalId: pre.id, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+        if (status === "authorized") {
+            if (b.subId === subId && b.status === "authorized") return { ok: true, already: true, status };
+            const now = Date.now();
+            const e   = effectiveSub(sub, now);
+            if (b.preapprovalId && b.preapprovalId !== pre.id && b.status === "authorized") cancelOld = b.preapprovalId;
+            const fields = { billing: {
+                provider: "mp", subId, preapprovalId: pre.id, status: "authorized",
+                tierId: d.tierId, period: d.period, amount: d.amount, startAt: d.startAt,
+                authorizedAt: FieldValue.serverTimestamp(), lastFailureAt: FieldValue.delete(),
+            } };
+            if (e.trial) {
+                // Arranca cuando termina la prueba (ese día es el primer débito)
+                fields.planType = d.tierId; fields.period = d.period;
+            } else if (e.active && !e.pastDue) {
+                // Ya tiene un período pagado: el plan elegido rige desde que termina
+                if (d.tierId !== e.planType || d.period !== e.period) {
+                    fields.scheduled = { planType: d.tierId, period: d.period, startsAt: Timestamp.fromMillis(e.paidUntil) };
+                }
+            } else {
+                // Sin plan, vencido o en gracia: activo ya, esperando el primer cobro (gracia de 5 días)
+                fields.status = "active"; fields.planType = d.tierId; fields.period = d.period;
+                fields.paidUntil = Timestamp.fromMillis(e.pastDue && e.paidUntil ? e.paidUntil : Math.max(now, tsMs(d.startAt)));
+                fields.scheduled = FieldValue.delete();
+            }
+            tx.set(userRef, { subscription: fields }, { merge: true });
+            return { ok: true, status };
+        }
+        if ((status === "cancelled" || status === "paused") && b.preapprovalId === pre.id) {
+            tx.set(userRef, { subscription: { billing: { status } } }, { merge: true });
+        }
+        return { ok: true, status };
+    });
+    if (cancelOld) await mpUpdatePreapproval(cancelOld, { status: "cancelled" }).catch(err => console.warn("No se pudo cancelar la suscripción anterior", cancelOld, err.response?.data || err.message));
+    return result;
+}
+
+// Un débito automático aprobado: extiende el plan un período. Idempotente por id de pago.
+async function applyRecurringCharge({ subId, preapprovalId, paymentId, amount }) {
+    let bs = null;
+    if (subId) bs = await db.collection("billingSubs").doc(String(subId)).get();
+    if ((!bs || !bs.exists) && preapprovalId) {
+        const q = await db.collection("billingSubs").where("preapprovalId", "==", String(preapprovalId)).limit(1).get();
+        bs = q.docs[0] || null;
+    }
+    if (!bs || !bs.exists) {
+        await db.collection("unmatchedPayments").doc(String(paymentId)).set({
+            paymentId: String(paymentId), amount: amount ?? null, preapprovalId: preapprovalId || null,
+            reason: "debito_sin_suscripcion", createdAt: FieldValue.serverTimestamp() }, { merge: true });
+        return { ok: false, reason: "debito_sin_suscripcion" };
+    }
+    const d = bs.data();
+    const userRef = db.collection("users").doc(d.uid);
+    const procRef = db.collection("processedPayments").doc(String(paymentId));
+    const cfg = await getPlanConfig();
+    return db.runTransaction(async tx => {
+        const [proc, us] = await Promise.all([tx.get(procRef), tx.get(userRef)]);
+        if (proc.exists) return { ok: true, already: true };
+        const sub = us.data()?.subscription || {};
+        const now = Date.now();
+        const months = PERIODS_DEFAULT[d.period]?.months || 1;
+        // El período nuevo empieza donde terminó el anterior (o al terminar la prueba)
+        let base = sub.status === "trial" ? tsMs(sub.trialEndsAt) : tsMs(sub.paidUntil);
+        if (!base || base < now - 10 * 24 * 3600 * 1000) base = now;   // estuvo vencido mucho tiempo
+        let planType = sub.planType || d.tierId, period = sub.period || d.period;
+        const fields = {
+            status: "active", paidAt: FieldValue.serverTimestamp(), mpPaymentId: String(paymentId),
+            billing: { lastChargeAt: FieldValue.serverTimestamp(), lastFailureAt: FieldValue.delete() },
+        };
+        // El plan programado (downgrade / cambio de período) rige desde este cobro
+        if (sub.scheduled && tsMs(sub.scheduled.startsAt) <= base + 60 * 1000) {
+            planType = sub.scheduled.planType; period = sub.scheduled.period || period; fields.scheduled = FieldValue.delete();
+        }
+        if (sub.status === "trial") { planType = d.tierId; period = d.period; }
+        fields.planType  = planType;
+        fields.period    = period;
+        fields.paidUntil = Timestamp.fromMillis(addMonths(base, PERIODS_DEFAULT[period]?.months || months));
+        tx.set(userRef, { subscription: fields }, { merge: true });
+        tx.set(procRef, { uid: d.uid, subId: bs.id, amount: amount ?? null, at: FieldValue.serverTimestamp() });
+        return { ok: true, plan: cfg.tiers.find(t => t.id === planType)?.label || planType, paidUntil: fields.paidUntil.toMillis() };
+    });
+}
+
+// Un débito automático rechazado: se marca para avisar en el dashboard (la gracia la da el vencimiento)
+async function markChargeFailure(preapprovalId) {
+    const q = await db.collection("billingSubs").where("preapprovalId", "==", String(preapprovalId)).limit(1).get();
+    if (q.empty) return;
+    await db.collection("users").doc(q.docs[0].data().uid).set({ subscription: { billing: { lastFailureAt: FieldValue.serverTimestamp() } } }, { merge: true });
+}
+
+// ── Suscribirse / cambiar de plan con débito automático ──────
+// Body: { planId, period, payerEmail?, preview? }
+//  - Mejora (nivel más caro): se rechaza acá → createPayment cobra la diferencia.
+//  - Ya tiene débito automático con el mismo período: solo cambia el monto del próximo débito.
+//  - Si no: suscripción nueva en MP que arranca ya, al terminar la prueba o al terminar lo pagado.
+exports.subscribe = onRequest(
+    { cors: true, secrets: ["MP_ACCESS_TOKEN"], invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+
+        const cfg     = await getPlanConfig();
+        const userRef = db.collection("users").doc(user.uid);
+        const sub     = (await userRef.get()).data()?.subscription || {};
+        if (sub.status === "blocked") { res.status(403).json({ error: "Tu cuenta está suspendida. Escribinos desde Soporte." }); return; }
+
+        const now = Date.now();
+        const tierId = String(req.body?.planId || ""), periodId = String(req.body?.period || "monthly");
+        const q = quotePurchase({ ...sub, scheduled: null }, cfg, tierId, periodId, now);
+        if (q.error) { res.status(400).json({ error: q.error }); return; }
+        if (q.kind === "upgrade") { res.status(400).json({ error: "Para pasar a un plan superior usá «Mejorar ahora».", code: "use_upgrade" }); return; }
+
+        const e = effectiveSub(sub, now);
+        const b = sub.billing || {};
+        const months = PERIODS_DEFAULT[periodId].months;
+        const amount = periodPrice(q.tier, periodId, cfg);
+
+        // 1) Débito automático activo con el mismo período → cambia el monto del próximo débito
+        if (b.status === "authorized" && b.period === periodId && b.preapprovalId) {
+            const startsAt = e.paidUntil || now;
+            const summary = { mode: "change", plan: q.tier.label, period: periodId, amount, months, startsAt };
+            if (req.body?.preview) { res.json(summary); return; }
+            const sameAsNow = tierId === e.planType;
+            try {
+                await mpUpdatePreapproval(b.preapprovalId, { auto_recurring: { transaction_amount: amount, currency_id: "ARS" } });
+            } catch (err) {
+                console.error("MP update preapproval:", err.response?.data || err.message);
+                res.status(502).json({ error: "No se pudo cambiar el plan en Mercado Pago. Intentá de nuevo." }); return;
+            }
+            await userRef.set({ subscription: {
+                billing: { amount, tierId },
+                scheduled: sameAsNow ? FieldValue.delete() : { planType: tierId, period: periodId, startsAt: Timestamp.fromMillis(startsAt) },
+            } }, { merge: true });
+            res.json({ changed: true, ...summary }); return;
+        }
+
+        // 2) Suscripción nueva en MP
+        const startsAt = Math.max(now + 2 * 60 * 1000, e.active && !e.pastDue ? e.paidUntil : 0, e.trial ? e.trialEndsAt : 0);
+        const summary = { mode: "subscribe", plan: q.tier.label, period: periodId, amount, months, startsAt, firstChargeNow: startsAt < now + 10 * 60 * 1000 };
+        if (req.body?.preview) { res.json(summary); return; }
+
+        const payerEmail = String(req.body?.payerEmail || user.email || "").trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+[.][^@\s]+$/.test(payerEmail)) { res.status(400).json({ error: "Ingresá el email de tu cuenta de Mercado Pago." }); return; }
+
+        const bsRef = db.collection("billingSubs").doc();
+        try {
+            const periodLabel = PERIODS_DEFAULT[periodId].label.toLowerCase();
+            const { data: pre } = await axios.post(`${MP_API}/preapproval`, {
+                reason: `Cubierto — Plan ${q.tier.label} (${periodLabel})`,
+                external_reference: `${user.uid}|s|${bsRef.id}`,
+                payer_email: payerEmail,
+                auto_recurring: {
+                    frequency: months, frequency_type: "months",
+                    start_date: new Date(startsAt).toISOString(),
+                    transaction_amount: amount, currency_id: "ARS",
+                },
+                back_url: `${APP_URL}/checkout.html?sub=${bsRef.id}`,
+                status: "pending",
+            }, { headers: mpHeaders() });
+            await bsRef.set({
+                uid: user.uid, preapprovalId: pre.id, tierId, period: periodId, amount, payerEmail,
+                startAt: Timestamp.fromMillis(startsAt), status: pre.status || "pending", createdAt: FieldValue.serverTimestamp(),
+            });
+            res.json({ url: pre.init_point, ...summary });
+        } catch (err) {
+            console.error("MP preapproval:", err.response?.data || err.message);
+            res.status(502).json({ error: "No se pudo iniciar la suscripción en Mercado Pago. Revisá que el email sea el de tu cuenta de Mercado Pago e intentá de nuevo." });
+        }
+    }
+);
+
+// ── Al volver de autorizar la suscripción en MP ───────────────
+// Respaldo del webhook: consulta el estado real en MP y lo aplica.
+exports.checkSubscription = onRequest(
+    { cors: true, secrets: ["MP_ACCESS_TOKEN"], invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        const bs = await db.collection("billingSubs").doc(String(req.body?.subId || "_")).get();
+        if (!bs.exists || bs.data().uid !== user.uid) { res.status(404).json({ error: "Suscripción no encontrada" }); return; }
+        try {
+            const pre = await mpGetPreapproval(bs.data().preapprovalId);
+            const result = await applyPreapproval(pre);
+            const cfg = await getPlanConfig();
+            res.json({ status: pre.status, ok: !!result.ok, plan: cfg.tiers.find(t => t.id === bs.data().tierId)?.label || bs.data().tierId,
+                       period: bs.data().period, amount: bs.data().amount, startsAt: tsMs(bs.data().startAt) });
+        } catch (err) {
+            console.error("MP checkSubscription:", err.response?.data || err.message);
+            res.status(502).json({ error: "No se pudo verificar la suscripción" });
+        }
+    }
+);
+
+// ── Cancelar la renovación automática ─────────────────────────
+// El plan sigue hasta el vencimiento de lo ya pagado.
+exports.cancelSubscription = onRequest(
+    { cors: true, secrets: ["MP_ACCESS_TOKEN"], invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        const userRef = db.collection("users").doc(user.uid);
+        const b = (await userRef.get()).data()?.subscription?.billing;
+        if (!b?.preapprovalId || b.status !== "authorized") { res.status(400).json({ error: "No tenés una renovación automática activa." }); return; }
+        try {
+            await mpUpdatePreapproval(b.preapprovalId, { status: "cancelled" });
+        } catch (err) {
+            console.error("MP cancel preapproval:", err.response?.data || err.message);
+            res.status(502).json({ error: "No se pudo cancelar en Mercado Pago. Intentá de nuevo." }); return;
+        }
+        await userRef.set({ subscription: { billing: { status: "cancelled", cancelledAt: FieldValue.serverTimestamp() }, scheduled: FieldValue.delete() } }, { merge: true });
+        res.json({ ok: true });
     }
 );
 
@@ -486,13 +771,30 @@ exports.mpWebhook = onRequest(
                 }
             }
 
-            const type = req.body?.type || req.query?.type;
-            if (type !== "payment" || !dataId) { res.status(200).send("OK"); return; }
+            const type = req.body?.type || req.query?.type || req.query?.topic;
+            if (!dataId) { res.status(200).send("OK"); return; }
 
             // La API de MP es la fuente de verdad (no el body de la notificación)
-            const payment = await fetchMpPayment(dataId);
-            const result  = await activateFromPayment(payment);
-            console.log("MP webhook", dataId, payment.status, JSON.stringify(result));
+            if (type === "payment") {
+                const payment = await fetchMpPayment(dataId);
+                const result  = await activateFromPayment(payment);
+                console.log("MP webhook payment", dataId, payment.status, JSON.stringify(result));
+            } else if (type === "subscription_preapproval" || type === "preapproval") {
+                // La suscripción se autorizó, pausó o canceló
+                const pre    = await mpGetPreapproval(dataId);
+                const result = await applyPreapproval(pre);
+                console.log("MP webhook preapproval", dataId, pre.status, JSON.stringify(result));
+            } else if (type === "subscription_authorized_payment" || type === "authorized_payment") {
+                // Un débito automático: aprobado → extiende el plan; rechazado → aviso (con 5 días de gracia)
+                const { data: ap } = await axios.get(`${MP_API}/authorized_payments/${encodeURIComponent(dataId)}`, { headers: mpHeaders() });
+                if (ap.payment?.status === "approved") {
+                    const result = await applyRecurringCharge({ preapprovalId: ap.preapproval_id, paymentId: ap.payment.id, amount: ap.transaction_amount });
+                    console.log("MP webhook débito", dataId, JSON.stringify(result));
+                } else if (ap.payment?.status === "rejected" || ap.status === "recycling") {
+                    await markChargeFailure(ap.preapproval_id);
+                    console.log("MP webhook débito rechazado", dataId, ap.status, ap.payment?.status_detail);
+                }
+            }
             res.status(200).send("OK");
         } catch (err) {
             console.error("MP webhook error:", err.response?.data || err.message);

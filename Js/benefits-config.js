@@ -28,6 +28,8 @@ const PERIODS_DEFAULT = {
 };
 const PERIOD_ORDER = ['monthly', 'quarterly', 'annual', 'biennial'];
 const TRIAL_DAYS = 14;
+const GRACE_DAYS = 5;   // débito automático fallido: días de gracia antes de bloquear la edición (igual que GRACE_MS en functions)
+const MP_SUBSCRIPTIONS_URL = 'https://www.mercadopago.com.ar/subscriptions';   // donde el cliente cambia la tarjeta
 
 // Acepta el formato nuevo (tiers) o el viejo (list con precio y duración por plan)
 function normalizePlans(data) {
@@ -60,13 +62,28 @@ function subscriptionInfo(sub, cfg, now = Date.now()) {
     const days = until => Math.max(0, Math.ceil((until - now) / 864e5));
     if (sub.status === 'blocked') return { state: 'blocked' };
     if (sub.status === 'pending_payment') return { state: 'pending' };
+    // Débito automático (Mercado Pago Suscripciones): si un cobro falla o todavía no llegó,
+    // el plan sigue activo GRACE_DAYS días después del vencimiento
+    const b = sub.billing || null;
+    const billing = b ? { status: b.status, amount: b.amount, period: b.period, tierId: b.tierId,
+                          lastFailureAt: ms(b.lastFailureAt), authorized: b.status === 'authorized' } : null;
+    const graceEnd = until => until + GRACE_DAYS * 864e5;
     if (sub.status === 'trial') {
         const until = ms(sub.trialEndsAt);
-        return until > now ? { state: 'trial', until, daysLeft: days(until), benefits: null } : { state: 'expired', wasTrial: true, until };
+        if (until > now) return { state: 'trial', until, daysLeft: days(until), benefits: null, billing,
+                                  nextPlan: billing?.authorized ? cfg.tiers.find(t => t.id === sub.planType) || null : null };
+        // Terminó la prueba con la suscripción ya autorizada: activo mientras llega el primer cobro
+        if (billing?.authorized && graceEnd(until) > now) {
+            const tier = cfg.tiers.find(t => t.id === sub.planType) || null;
+            return { state: 'active', until, daysLeft: 0, tierId: sub.planType, tier, period: sub.period || 'monthly', scheduled: null,
+                     benefits: tier ? (tier.benefits || null) : null, billing, pastDue: true, firstCharge: true, graceUntil: graceEnd(until) };
+        }
+        return { state: 'expired', wasTrial: true, until };
     }
     if (sub.status === 'active') {
         const until = ms(sub.paidUntil);
-        if (until && until <= now) return { state: 'expired', until, tierId: sub.planType, tier: cfg.tiers.find(t => t.id === sub.planType) || null };
+        const inGrace = until && until <= now && billing?.authorized && graceEnd(until) > now;
+        if (until && until <= now && !inGrace) return { state: 'expired', until, tierId: sub.planType, tier: cfg.tiers.find(t => t.id === sub.planType) || null };
         let tierId = sub.planType, period = sub.period || 'monthly', scheduled = sub.scheduled || null;
         if (scheduled && ms(scheduled.startsAt) <= now) { tierId = scheduled.planType; period = scheduled.period || period; scheduled = null; }
         const tier = cfg.tiers.find(t => t.id === tierId) || null;
@@ -74,6 +91,7 @@ function subscriptionInfo(sub, cfg, now = Date.now()) {
             state: 'active', until, daysLeft: until ? days(until) : null, tierId, tier, period,
             scheduled: scheduled ? { ...scheduled, startsAt: ms(scheduled.startsAt), tier: cfg.tiers.find(t => t.id === scheduled.planType) || null } : null,
             benefits: tier ? (tier.benefits || null) : null, coupon: sub.coupon || null,
+            billing, pastDue: !!inGrace, firstCharge: !!inGrace && !ms(b?.lastChargeAt), graceUntil: inGrace ? graceEnd(until) : null,
         };
     }
     return { state: 'none', trialAvailable: !sub.trialUsed };

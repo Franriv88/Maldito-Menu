@@ -225,6 +225,17 @@ Los inputs hardcodeados con `background: #111` necesitan override `body.light` p
   días restantes (vencimiento igual; < $100 se aplica sin cobrar); activo + mismo nivel, más barato u otro
   período → `renew`: se suma al final y el cambio queda en `subscription.scheduled` hasta esa fecha.
 
+- **Débito automático** (Mercado Pago Suscripciones / preapproval): altas, renovaciones, downgrades y cambios de
+  período van por `subscribe` (con `preview: true` solo cotiza). `billingSubs/{id}` + `subscription.billing`;
+  `external_reference = "uid|s|billingSubId"`. Cada débito aprobado (`applyRecurringCharge`, idempotente por
+  `processedPayments/{paymentId}`) extiende `paidUntil` un período. Downgrade con el mismo período = PUT del monto
+  del preapproval (rige el próximo débito); cambio de período = preapproval nuevo que arranca al terminar lo pagado
+  (al autorizarse se cancela el anterior). Débito fallido → `billing.lastFailureAt`, **5 días de gracia** (GRACE_MS /
+  GRACE_DAYS) antes de bloquear la edición. En prueba, el primer débito es el día que termina. `cancelSubscription`
+  cancela la renovación (el plan sigue hasta el vencimiento). El webhook de MP tiene que tener activados los temas de
+  pagos y de suscripciones (subscription_preapproval y subscription_authorized_payment).
+- `createPayment` solo cobra la **diferencia de un upgrade** (pago único) y después ajusta el monto de los débitos.
+
 1. `checkout.html` llama a `createPayment {planId, period}` (con `preview: true` solo cotiza) → guarda la
    cotización en `paymentQuotes` y crea la preferencia con `external_reference = "uid|q|quoteId"`
 2. `mpWebhook` (firma HMAC obligatoria) consulta el pago a la API de MP y aplica la cotización (idempotente:

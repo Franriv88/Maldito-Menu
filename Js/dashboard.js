@@ -71,15 +71,30 @@ function renderPlanBanner(sub, plansCfg) {
     if (info.state === 'trial') {
         state  = info.daysLeft <= 3 ? 'warn' : 'ok';
         title  = 'Prueba gratis · todo incluido';
-        detail = `Hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}. Elegí un plan antes para no perder la edición de tu menú.`;
-        action = `<a class="plan-banner-btn primary" href="./checkout.html?renovar=1">Elegir un plan</a>`;
+        if (info.nextPlan) {
+            state  = 'ok';
+            detail = `Hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}. Ese día empieza tu plan ${esc(info.nextPlan.label)} con débito automático.`;
+            action = `<a class="plan-banner-btn" href="./checkout.html?renovar=1">Ver mi plan</a>`;
+        } else {
+            detail = `Hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}. Elegí un plan antes para no perder la edición de tu menú.`;
+            action = `<a class="plan-banner-btn primary" href="./checkout.html?renovar=1">Elegir un plan</a>`;
+        }
+    } else if (info.state === 'active' && info.pastDue && !info.firstCharge) {
+        // Débito automático rechazado: 5 días de gracia antes de bloquear la edición
+        state  = 'off';
+        title  = 'No pudimos cobrar tu plan';
+        detail = `Revisá tu tarjeta en Mercado Pago (se reintenta el cobro). Tenés hasta el ${fecha(info.graceUntil)} antes de que se bloquee la edición del menú.`;
+        action = `<a class="plan-banner-btn primary" href="${MP_SUBSCRIPTIONS_URL}" target="_blank" rel="noopener">Ir a Mercado Pago</a>`;
     } else if (info.state === 'active') {
-        state  = info.daysLeft != null && info.daysLeft <= 5 ? 'warn' : 'ok';
+        const auto = info.billing?.authorized;
+        state  = info.firstCharge ? 'ok' : !auto && info.daysLeft != null && info.daysLeft <= 5 ? 'warn' : 'ok';
         title  = `Plan ${esc(info.tier?.label || info.tierId || 'activo')} · ${esc(plansCfg.periods[info.period]?.label.toLowerCase() || 'mensual')}`;
-        detail = info.until ? `Activo hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}` : 'Activo';
+        detail = info.firstCharge ? 'Mercado Pago está procesando tu primer cobro. Ya podés usar tu plan.'
+            : auto ? `Se renueva automáticamente el ${fecha(info.until)} (${'$' + Math.round(info.billing.amount || 0).toLocaleString('es-AR')})`
+            : info.until ? `Activo hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}${info.billing?.status === 'cancelled' ? ' · renovación automática cancelada' : ' · sin débito automático'}` : 'Activo';
         if (info.scheduled) detail += ` · desde el ${fecha(info.scheduled.startsAt)} pasás al plan ${esc(info.scheduled.tier?.label || info.scheduled.planType)} (${esc(plansCfg.periods[info.scheduled.period]?.label.toLowerCase() || '')})`;
         if (info.coupon) detail += ' · activado con cupón';
-        action = `<a class="plan-banner-btn" href="./checkout.html?renovar=1">Renovar o cambiar de plan</a>`;
+        action = `<a class="plan-banner-btn" href="./checkout.html?renovar=1">${auto ? 'Cambiar de plan' : 'Activar débito automático o cambiar de plan'}</a>`;
     } else if (isSuper && (info.state === 'none' || info.state === 'expired')) {
         state = 'ok'; title = 'SuperAdmin'; detail = 'Acceso total a todas las funciones'; action = '';
     } else if (info.state === 'pending') {

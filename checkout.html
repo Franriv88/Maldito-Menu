@@ -205,6 +205,7 @@
             font-size:.8rem;color:rgba(200,184,154,.75);line-height:1.5}
         .co-current b{color:#ddd0bb}
         .co-current[hidden]{display:none}
+        .co-current.warn{background:rgba(230,170,40,.07);border-color:rgba(230,170,40,.4)}
 
         /* Confirmación */
         .co-modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem}
@@ -215,6 +216,13 @@
         .co-modal-box .co-amount{font-family:'Cormorant Garant',serif;font-size:2.2rem;color:#ede4d8;margin:.4rem 0 .8rem}
         .co-modal-actions{display:flex;gap:.6rem;margin-top:1rem}
         .co-modal-actions .btn-pay{flex:1.4}
+        .co-link{background:none;border:none;padding:0;margin-left:.3rem;color:#e06070;text-decoration:underline;cursor:pointer;font:inherit;font-size:.78rem}
+        .co-email{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0 0;font-size:.78rem;color:rgba(200,184,154,.7)}
+        .co-email input{background:#0f0f0f;border:1px solid rgba(200,184,154,.25);border-radius:8px;color:#ede4d8;padding:.6rem .8rem;font:1rem 'Inter',sans-serif}
+        .co-email small{color:rgba(200,184,154,.45);font-size:.7rem}
+        .co-error{color:#e06070;font-size:.78rem;margin:.4rem 0 0}
+        .co-error:empty{display:none}
+        .co-modal-actions .btn-plain{flex:1.4}
         .co-modal-cancel{flex:1;height:48px;border-radius:12px;background:none;border:1px solid rgba(200,184,154,.25);color:#c8b89a;cursor:pointer;font:500 .85rem 'Inter',sans-serif}
         @media(max-width:400px){.co-plans{grid-template-columns:1fr;row-gap:1.6rem}}
 
@@ -316,7 +324,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./Js/benefits-config.js?v=3"></script>
+<script src="./Js/benefits-config.js?v=4"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -380,6 +388,41 @@ auth.onAuthStateChanged(async user => {
     const fecha    = ms => new Date(ms).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
     document.getElementById('loadingState').style.display = 'none';
+
+    // ── Volvió de autorizar el débito automático (suscripción de MP) ──
+    const subReturn = params.get('sub');
+    if (subReturn) {
+        let r = null;
+        try { r = await callFn('checkSubscription', { subId: subReturn }); }
+        catch (e) { console.warn('checkSubscription:', e.message); }
+        const title = document.getElementById('successTitle'), msg = document.getElementById('successMsg');
+        const per = r ? (plansCfg.periods[r.period]?.label || '').toLowerCase() : '';
+        if (r?.status === 'authorized') {
+            title.textContent = '¡Suscripción activada!';
+            msg.textContent = r.startsAt > Date.now() + 10 * 60 * 1000
+                ? `Plan ${r.plan} (${per}). El primer débito automático es el ${fecha(r.startsAt)}; después se cobra solo cada período.`
+                : `Plan ${r.plan} (${per}). Mercado Pago hace el primer cobro en unos minutos y después se cobra solo cada período.`;
+        } else if (!r || r.status === 'pending') {
+            title.textContent = 'Suscripción en proceso';
+            msg.textContent = 'Estamos confirmando la autorización con Mercado Pago. En unos minutos vas a ver tu plan en el panel.';
+        } else {
+            title.textContent = 'La suscripción no se completó';
+            msg.textContent = 'No se autorizó el débito automático. Podés intentarlo nuevamente.';
+            document.getElementById('successIcon').innerHTML = licon('x-circle', 48);
+            document.getElementById('successIcon').style.color = '#e06070';
+            document.getElementById('redirectMsg').textContent = 'Volviendo al selector de planes...';
+            document.getElementById('successState').style.display = 'block';
+            setTimeout(() => { window.location.href = './checkout.html?renovar=1'; }, 4000);
+            return;
+        }
+        document.getElementById('successState').style.display = 'block';
+        let n = 5;
+        const t = setInterval(() => {
+            document.getElementById('countdown').textContent = --n;
+            if (n <= 0) { clearInterval(t); window.location.href = './dashboard.html'; }
+        }, 1000);
+        return;
+    }
 
     // ── Volvió de MP ───────────────────────────────────────────
     if (paymentStatus) {
@@ -455,16 +498,30 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('planState').style.display = 'block';
     document.body.classList.add('co-wide');
 
-    // Plan actual / prueba
+    // Plan actual / prueba / débito automático
     const cur = document.getElementById('currentPlan');
     const perLabel = id => (plansCfg.periods[id]?.label || '').toLowerCase();
+    const billingOn = !!info.billing?.authorized;
+    const mpLink = `<a href="${MP_SUBSCRIPTIONS_URL}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Mercado Pago</a>`;
     if (info.state === 'active') {
-        cur.innerHTML = `Tu plan actual: <b>${esc(info.tier?.label || info.tierId)}</b> (${perLabel(info.period)}), activo hasta el <b>${fecha(info.until)}</b>.`
-            + (info.scheduled ? ` Desde el ${fecha(info.scheduled.startsAt)} pasás al plan <b>${esc(info.scheduled.tier?.label || info.scheduled.planType)}</b> (${perLabel(info.scheduled.period)}).` : '')
-            + `<br>Si mejorás tu plan, se activa ya y pagás solo la diferencia por los días que te quedan. Si elegís uno más económico u otro período, empieza cuando termina lo que ya pagaste.`;
+        let html = '';
+        if (info.pastDue && info.firstCharge) html += `<b>Mercado Pago está procesando tu primer cobro.</b> Mientras tanto ya podés usar tu plan.<br>`;
+        else if (info.pastDue) html += `<b style="color:#e6aa28">No pudimos cobrar tu plan.</b> Revisá tu tarjeta en ${mpLink}: tenés hasta el <b>${fecha(info.graceUntil)}</b> antes de que se bloquee la edición del menú.<br>`;
+        html += `Tu plan actual: <b>${esc(info.tier?.label || info.tierId)}</b> (${perLabel(info.period)})${info.pastDue ? '' : `, pagado hasta el <b>${fecha(info.until)}</b>`}.`;
+        if (info.scheduled) html += ` Desde el ${fecha(info.scheduled.startsAt)} pasás al plan <b>${esc(info.scheduled.tier?.label || info.scheduled.planType)}</b> (${perLabel(info.scheduled.period)}).`;
+        if (billingOn) html += `<br>Débito automático activo: ${money(info.billing.amount)} cada ${periodWord(info.billing.period)}${info.pastDue ? '' : `, próximo cobro el <b>${fecha(info.until)}</b>`}.
+            <button type="button" class="co-link" id="cancelAutoBtn">Cancelar renovación automática</button>`;
+        else if (info.billing?.status === 'cancelled') html += `<br>Cancelaste la renovación automática: tu plan sigue hasta el ${fecha(info.until)}. Elegí un plan para volver a activarla.`;
+        else html += `<br>Tu plan no tiene débito automático: elegí un plan para activarlo; el primer cobro es el ${fecha(info.until)}, cuando vence lo que ya tenés.`;
+        html += `<br><small>Si pasás a un plan superior, se activa ya y pagás solo la diferencia por los días que te quedan. Si elegís uno más económico u otro período, rige desde el próximo período.</small>`;
+        cur.innerHTML = html;
         cur.hidden = false;
+        cur.classList.toggle('warn', !!info.pastDue && !info.firstCharge);
+        document.getElementById('cancelAutoBtn')?.addEventListener('click', cancelAutoRenew);
     } else if (info.state === 'trial') {
-        cur.innerHTML = `Estás en tu <b>prueba gratis</b> hasta el <b>${fecha(info.until)}</b>. Si elegís un plan ahora, empieza a correr cuando termina la prueba.`;
+        cur.innerHTML = info.nextPlan
+            ? `Estás en tu <b>prueba gratis</b> hasta el <b>${fecha(info.until)}</b>. Ya elegiste el plan <b>${esc(info.nextPlan.label)}</b>: el primer débito automático es el ${fecha(info.until)}.`
+            : `Estás en tu <b>prueba gratis</b> hasta el <b>${fecha(info.until)}</b>. Elegí tu plan ahora o cuando quieras: el primer débito automático es recién el día que termina la prueba.`;
         cur.hidden = false;
     } else if (info.wasTrial) {
         cur.innerHTML = `Terminó tu prueba gratis. Tu menú sigue visible para tus clientes: elegí un plan para volver a editarlo.`;
@@ -490,6 +547,11 @@ auth.onAuthStateChanged(async user => {
     });
     if (renovando || info.state === 'active' || info.state === 'trial') document.getElementById('skipBtn').textContent = '← Volver al panel';
 
+    function periodWord(id) {
+        const m = plansCfg.periods[id]?.months || 1;
+        return m === 1 ? 'mes' : m === 12 ? 'año' : m === 24 ? '2 años' : `${m} meses`;
+    }
+
     function renderPeriods(periods, selected) {
         const el = document.getElementById('periodToggle');
         el.hidden = periods.length < 2;
@@ -507,14 +569,16 @@ auth.onAuthStateChanged(async user => {
         } else banner.hidden = true;
     }
 
-    // Qué haría el botón de cada plan (el monto real lo calcula el servidor)
+    // Qué haría el botón de cada plan (los montos reales los calcula el servidor)
     function actionFor(tier, period) {
-        if (info.state !== 'active') return { kind: 'new' };
+        if (info.state !== 'active') return { kind: 'subscribe' };
         const curTier = info.tier;
         const eq = t => t.monthlyPrice * (1 - (plansCfg.periods[info.period]?.discount || 0) / 100);
         if (curTier && tier.id !== info.tierId && eq(tier) > eq(curTier)) return { kind: 'upgrade' };
-        if (tier.id === info.tierId && period === info.period) return { kind: 'renew-same' };
-        return { kind: 'renew-change' };
+        const same = tier.id === info.tierId && period === info.period;
+        if (billingOn && same) return info.scheduled ? { kind: 'keep' } : { kind: 'current' };
+        if (!billingOn && same) return { kind: 'activate' };
+        return { kind: 'change' };
     }
 
     function renderPlans(plans, period) {
@@ -527,20 +591,22 @@ auth.onAuthStateChanged(async user => {
             const saving  = periodSavings(t, period, plansCfg);
             const act     = actionFor(t, period);
             const isCur   = info.state === 'active' && t.id === info.tierId;
-            const btn = act.kind === 'upgrade'
-                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Mejorar ahora</button>`
-                : act.kind === 'renew-same'
-                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Renovar</button>`
-                : act.kind === 'renew-change'
-                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Cambiar desde el ${fecha(info.until)}</button>`
-                : `<button class="btn-pay co-pay-btn" data-id="${t.id}"><img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago"></button>`;
+            const mpBtn   = label => `<button class="btn-pay co-pay-btn" data-id="${t.id}" aria-label="${label}"><img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="${label}"></button>`;
+            const btn = {
+                subscribe: mpBtn('Suscribirme con Mercado Pago'),
+                activate:  mpBtn('Activar débito automático con Mercado Pago'),
+                upgrade:   `<button class="btn-plain co-pay-btn" data-id="${t.id}">Mejorar ahora</button>`,
+                keep:      `<button class="btn-plain co-pay-btn" data-id="${t.id}">Mantener este plan</button>`,
+                current:   `<button class="btn-plain" disabled>Es tu plan actual</button>`,
+                change:    `<button class="btn-plain co-pay-btn" data-id="${t.id}">Cambiar desde el ${fecha(info.until)}</button>`,
+            }[act.kind];
             return `
                 <div class="co-plan ${t.recommended ? 'recommended' : ''} ${isCur ? 'current' : ''}">
                     ${t.recommended && !isCur ? '<div class="co-rec-badge">✦ Recomendado</div>' : ''}
                     ${isCur ? '<div class="co-plan-cur">Tu plan</div>' : ''}
                     <div class="co-plan-label">${esc(t.label)}</div>
                     <div class="co-plan-price">${money(monthly)} <span>/ mes</span></div>
-                    <div class="co-plan-sub">${p.months === 1 ? 'Se paga mes a mes' : `Pagás ${money(total)} cada ${p.months === 12 ? 'año' : p.months === 24 ? '2 años' : `${p.months} meses`}`}</div>
+                    <div class="co-plan-sub">${p.months === 1 ? 'Se cobra automáticamente cada mes' : `Se cobran ${money(total)} automáticamente cada ${periodWord(period)}`}</div>
                     ${saving > 0 ? `<span class="co-plan-save">Ahorrás ${money(saving)} frente a pagar mes a mes</span>` : ''}
                     ${t.benefits ? `<ul class="co-plan-features">${BENEFITS_CONFIG.map(b => {
                         const on = hasBenefit(t.benefits, b.id);
@@ -558,19 +624,22 @@ auth.onAuthStateChanged(async user => {
         });
     }
 
-    // Alta directa → Mercado Pago. Con plan activo → primero muestra el monto y lo que pasa.
+    // Mejora → cobra la diferencia (pago único). Todo lo demás → débito automático (suscripción de MP).
+    // Siempre muestra primero lo que va a pasar, con los montos que calcula el servidor.
     async function choosePlan(btn, planId, period) {
         const original = btn.innerHTML;
-        btn.disabled = true; btn.textContent = info.state === 'active' ? 'Calculando...' : 'Redirigiendo...';
+        const isUpgrade = actionFor(plans.find(t => t.id === planId), period).kind === 'upgrade';
+        const fn = isUpgrade ? 'createPayment' : 'subscribe';
+        btn.disabled = true; btn.textContent = 'Calculando...';
         try {
-            if (info.state === 'active') {
-                const q = await callFn('createPayment', { planId, period, preview: true });
-                btn.disabled = false; btn.innerHTML = original;
-                if (!(await confirmChange(q))) return;
-                btn.disabled = true; btn.textContent = 'Redirigiendo...';
-            }
-            const r = await callFn('createPayment', { planId, period });
+            const q = await callFn(fn, { planId, period, preview: true });
+            btn.disabled = false; btn.innerHTML = original;
+            const answer = await (isUpgrade ? confirmUpgrade(q) : confirmSubscription(q));
+            if (!answer) return;
+            btn.disabled = true; btn.textContent = 'Redirigiendo...';
+            const r = await callFn(fn, { planId, period, ...(answer.payerEmail && { payerEmail: answer.payerEmail }) });
             if (r.applied) { alert(`Listo: ya tenés el plan ${r.plan}.`); window.location.href = './dashboard.html'; return; }
+            if (r.changed) { alert(`Listo: desde el ${fecha(r.startsAt)} el débito automático pasa a ${money(r.amount)} por el plan ${r.plan}.`); window.location.href = './dashboard.html'; return; }
             window.location.href = r.url;
         } catch (e) {
             btn.disabled = false; btn.innerHTML = original;
@@ -578,28 +647,16 @@ auth.onAuthStateChanged(async user => {
         }
     }
 
-    function confirmChange(q) {
+    const MP_BTN = '<img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Continuar en Mercado Pago">';
+
+    function openModal(title, body, okHTML) {
         const modal = document.getElementById('confirmModal');
-        const per = (plansCfg.periods[q.period]?.label || '').toLowerCase();
-        let title, body;
-        if (q.kind === 'upgrade') {
-            title = `Mejorar al plan ${esc(q.plan)}`;
-            body = q.amount < 100
-                ? `<p>Te quedan muy pocos días del período actual: el cambio <b>no tiene costo</b> y se aplica ya.</p>`
-                : `<p>Se activa <b>ahora mismo</b>. Pagás solo la diferencia por los días que te quedan hasta el ${fecha(q.until)}:</p>
-                   <div class="co-amount">${money(q.amount)}</div>
-                   <p>Tu fecha de vencimiento no cambia. Al renovar, pagás el plan ${esc(q.plan)} completo.</p>`;
-        } else {
-            title = `Plan ${esc(q.plan)} · ${per}`;
-            body = `<p>${q.startsAt && q.startsAt > Date.now() + 60000
-                    ? `Empieza el <b>${fecha(q.startsAt)}</b>, cuando termina lo que ya pagaste. Hasta entonces seguís con tu plan actual.`
-                    : 'Empieza hoy.'}</p>
-                   <div class="co-amount">${money(q.amount)}</div>`;
-        }
         document.getElementById('cmTitle').innerHTML = title;
         document.getElementById('cmBody').innerHTML = body;
         const okBtn = document.getElementById('cmOk');
-        okBtn.innerHTML = q.kind === 'upgrade' && q.amount < 100 ? 'Aplicar cambio' : '<img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago">';
+        okBtn.innerHTML = okHTML;
+        okBtn.classList.toggle('btn-pay', okHTML === MP_BTN);
+        okBtn.classList.toggle('btn-plain', okHTML !== MP_BTN);
         modal.hidden = false;
         return new Promise(resolve => {
             const done = v => { modal.hidden = true; okBtn.onclick = null; resolve(v); };
@@ -607,6 +664,53 @@ auth.onAuthStateChanged(async user => {
             document.getElementById('cmCancel').onclick = () => done(false);
             modal.onclick = e => { if (e.target === modal) done(false); };
         });
+    }
+
+    async function confirmUpgrade(q) {
+        const free = q.amount < 100;
+        const ok = await openModal(`Mejorar al plan ${esc(q.plan)}`,
+            free ? `<p>Te quedan muy pocos días del período actual: el cambio <b>no tiene costo</b> y se aplica ya.</p>`
+                 : `<p>Se activa <b>ahora mismo</b>. Pagás solo la diferencia por los días que te quedan hasta el ${fecha(q.until)}:</p>
+                    <div class="co-amount">${money(q.amount)}</div>
+                    <p>Tu fecha de vencimiento no cambia y los próximos débitos automáticos pasan al precio del plan ${esc(q.plan)}.</p>`,
+            free ? 'Aplicar cambio' : MP_BTN);
+        return ok ? {} : null;
+    }
+
+    async function confirmSubscription(q) {
+        const per = perLabel(q.period);
+        if (q.mode === 'change') {
+            const ok = await openModal(`Plan ${esc(q.plan)} · ${per}`,
+                `<p>Seguís con tu plan actual hasta el <b>${fecha(q.startsAt)}</b>. Desde ese día el débito automático pasa a:</p>
+                 <div class="co-amount">${money(q.amount)} <small style="font-size:1rem">cada ${periodWord(q.period)}</small></div>
+                 <p>No pagás nada ahora.</p>`, 'Confirmar cambio');
+            return ok ? {} : null;
+        }
+        const when = q.firstChargeNow ? 'hoy' : `el <b>${fecha(q.startsAt)}</b>${info.state === 'trial' ? ', cuando termina tu prueba gratis' : ', cuando vence lo que ya pagaste'}`;
+        const ok = await openModal(`Plan ${esc(q.plan)} · ${per}`,
+            `<p>Se cobra automáticamente con tu tarjeta:</p>
+             <div class="co-amount">${money(q.amount)} <small style="font-size:1rem">cada ${periodWord(q.period)}</small></div>
+             <p>Primer cobro: ${when}. Podés cancelar la renovación cuando quieras.</p>
+             <label class="co-email">Email de tu cuenta de Mercado Pago
+                <input id="cmPayerEmail" type="email" autocomplete="email" value="${esc(auth.currentUser?.email || '')}">
+                <small>Tiene que ser el mismo con el que entrás a Mercado Pago.</small></label>
+             <p class="co-error" id="cmError"></p>`, MP_BTN);
+        if (!ok) return null;
+        const email = document.getElementById('cmPayerEmail').value.trim();
+        if (!/^[^@\s]+@[^@\s]+[.][^@\s]+$/.test(email)) { alert('Revisá el email de tu cuenta de Mercado Pago.'); return null; }
+        return { payerEmail: email };
+    }
+
+    async function cancelAutoRenew() {
+        const ok = await openModal('Cancelar la renovación automática',
+            `<p>No se te va a cobrar más. Tu plan sigue activo hasta el <b>${fecha(info.until)}</b> y después se bloquea la edición del menú (el menú sigue visible para tus clientes).</p>
+             <p>Podés volver a activarla cuando quieras eligiendo un plan.</p>`, 'Cancelar renovación');
+        if (!ok) return;
+        try {
+            await callFn('cancelSubscription', {});
+            alert('Listo: cancelaste la renovación automática.');
+            location.reload();
+        } catch (e) { alert(e.message); }
     }
 
     // ── Cupón de acceso ───────────────────────────────────────
