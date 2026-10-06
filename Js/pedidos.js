@@ -22,7 +22,11 @@ let wifiInfo    = null;   // { ip, at } última vez que este dispositivo registr
 const printing  = new Set();
 const TABLE_SESSION_TTL = 6 * 3600 * 1000; // igual que en functions/index.js
 
-const sessionsOn = () => orderingCfg.tableSessions !== false;
+// Catering / pedidos a distancia: las "mesas" son clientes con su link y no hay mesa abierta
+const isCatering = () => orderingCfg.businessType === 'catering';
+const sessionsOn = () => !isCatering() && orderingCfg.tableSessions !== false;
+// Título de un pedido: la mesa, o "Pedido de Marcela" en catering
+const orderTitle = o => o.kind === 'catering' ? `Pedido de ${o.mesaLabel}` : o.mesaLabel;
 const tableIsOpen = id => {
     const m = mesasState[id];
     const last = m?.lastActivityAt?.toMillis?.() || m?.openedAt?.toMillis?.() || 0;
@@ -100,6 +104,7 @@ auth.onAuthStateChanged(async user => {
 
     restRef().collection('config').doc('ordering').onSnapshot(doc => {
         orderingCfg = doc.exists ? doc.data() : {};
+        applyBizLabels(orderingCfg.businessType);
         renderChips();
         renderTables();
         renderTableStrip();
@@ -212,7 +217,7 @@ function renderBoard(freshIds = new Set()) {
         `Entregados hoy: ${delivered.length} · ${money(delivered.reduce((s, o) => s + (o.total || 0), 0))}` +
         (history.length > delivered.length ? ` · Rechazados: ${history.length - delivered.length}` : '');
     document.getElementById('historyBody').innerHTML = history.slice().reverse().map(o => `
-        <tr><td>#${o.number}</td><td>${esc(o.mesaLabel)}</td>
+        <tr><td>#${o.number}</td><td>${esc(orderTitle(o))}</td>
         <td>${(o.items || []).map(i => `${i.qty}× ${esc(i.nombre)}`).join(', ')}</td>
         <td>${STATUS_LABEL[o.status]}</td><td style="text-align:right">${money(o.total)}</td></tr>`).join('');
 }
@@ -230,7 +235,7 @@ function orderCard(o, isNew) {
     return `
     <article class="pd-card${isNew ? ' is-new' : ''}">
         <div class="pd-card-head">
-            <span class="pd-card-mesa">${esc(o.mesaLabel)}</span>
+            <span class="pd-card-mesa">${esc(orderTitle(o))}</span>
             <span class="pd-card-num">#${o.number}</span>
         </div>
         <div class="pd-card-meta">${minutesAgo(o)}${o.customerName ? ` · ${esc(o.customerName)}` : ''}</div>
@@ -254,7 +259,7 @@ function verificationBadges(o) {
     if (v.tableOpen) b.push(`<span class="pd-badge ok">${licon('check', 11)} Mesa abierta</span>`);
     if (v.wifi)      b.push(`<span class="pd-badge ok">${licon('wifi', 11)} Wi-Fi del local</span>`);
     if (v.gps)       b.push(`<span class="pd-badge ok">${licon('map-pin', 11)} GPS${o.distance != null ? ` · ${o.distance} m` : ''}</span>`);
-    if (!b.length && o.status === 'pendiente') b.push(`<span class="pd-badge warn">${licon('alert-triangle', 11)} Sin verificar · confirmá que estén en la mesa</span>`);
+    if (!b.length && o.status === 'pendiente' && o.kind !== 'catering') b.push(`<span class="pd-badge warn">${licon('alert-triangle', 11)} Sin verificar · confirmá que estén en la mesa</span>`);
     return b.length ? `<div class="pd-badges">${b.join('')}</div>` : '';
 }
 
@@ -273,7 +278,7 @@ async function onBoardClick(e) {
                 if (sessionsOn()) await setTableOpen(o.mesaId, true);
                 break;
             case 'reject':  {
-                const r = await Swal.fire({ title: `¿Rechazar el pedido #${o.number}?`, text: 'El comensal verá "No aceptado — consultá al mozo".', showCancelButton: true, confirmButtonText: 'Rechazar', cancelButtonText: 'Volver', confirmButtonColor: '#c0392b' });
+                const r = await Swal.fire({ title: `¿Rechazar el pedido #${o.number}?`, text: o.kind === 'catering' ? 'El cliente verá que su pedido no fue aceptado.' : 'El comensal verá "No aceptado — consultá al mozo".', showCancelButton: true, confirmButtonText: 'Rechazar', cancelButtonText: 'Volver', confirmButtonColor: '#c0392b' });
                 if (r.isConfirmed) await ref.update({ status: 'rechazado', updatedAt: now });
                 break;
             }
@@ -460,7 +465,7 @@ function ticketHTML(o) {
         .restr { background: #000; color: #fff; font-weight: bold; font-size: 1.2em; text-align: center; padding: 1.5mm; margin-bottom: 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .end { height: 12mm; }
     </style></head><body>
-        <h1>${esc(o.mesaLabel)}</h1>
+        <h1>${esc(orderTitle(o))}</h1>
         <h2>Pedido #${o.number}</h2>
         <div class="meta">${time}${o.customerName ? ' · ' + esc(o.customerName) : ''}<br>${esc(restName)}</div>
         <hr>
@@ -491,7 +496,7 @@ function printTicket(o) {
 function initTablesTab() {
     document.getElementById('addTableBtn').addEventListener('click', () => addTables(1));
     document.getElementById('addManyBtn').addEventListener('click', async () => {
-        const { value } = await Swal.fire({ title: '¿Cuántas mesas agregar?', input: 'number', inputValue: 10,
+        const { value } = await Swal.fire({ title: isCatering() ? '¿Cuántos clientes agregar?' : '¿Cuántas mesas agregar?', input: 'number', inputValue: 10,
             inputAttributes: { min: 1, max: 100 }, showCancelButton: true, confirmButtonText: 'Agregar', cancelButtonText: 'Cancelar' });
         const n = parseInt(value);
         if (n > 0) addTables(Math.min(n, 100));
@@ -517,7 +522,8 @@ async function addTables(n) {
     const tables = [...(orderingCfg.tables || [])];
     const nums = tables.map(t => parseInt((t.label.match(/\d+/) || [0])[0])).filter(Boolean);
     let next = (nums.length ? Math.max(...nums) : 0) + 1;
-    for (let i = 0; i < n; i++) tables.push({ id: randomId(), label: `Mesa ${next++}` });
+    const base = isCatering() ? 'Cliente' : 'Mesa';
+    for (let i = 0; i < n; i++) tables.push({ id: randomId(), label: `${base} ${next++}` });
     await saveTables(tables);
 }
 
@@ -533,14 +539,17 @@ function renderTables() {
     if (!grid) return;
     const tables = orderingCfg.tables || [];
     if (!tables.length) {
-        grid.innerHTML = '<p class="pd-empty">Todavía no hay mesas. Agregá la primera.</p>';
+        grid.innerHTML = `<p class="pd-empty">${isCatering() ? 'Todavía no hay clientes. Agregá el primero.' : 'Todavía no hay mesas. Agregá la primera.'}</p>`;
         return;
     }
     const canNfc = 'NDEFReader' in window;
-    grid.innerHTML = `<p class="pd-tname-tip">${licon('pencil', 13)} Tocá el nombre de una mesa para cambiarlo (por ejemplo: «Terraza 2» o «Barra»).</p>` + tables.map(t => `
+    const tip = isCatering()
+        ? 'Tocá el nombre de un cliente para cambiarlo (por ejemplo: «Marcela» o «Oficina Centro»). Los pedidos llegan como «Pedido de Marcela».'
+        : 'Tocá el nombre de una mesa para cambiarlo (por ejemplo: «Terraza 2» o «Barra»).';
+    grid.innerHTML = `<p class="pd-tname-tip">${licon('pencil', 13)} ${tip}</p>` + tables.map(t => `
         <div class="pd-table" data-id="${t.id}">
             <label class="pd-tname" title="Tocá para cambiar el nombre de la mesa">
-                <input class="pd-input" value="${esc(t.label)}" maxlength="30" aria-label="Nombre de la mesa (editable)">
+                <input class="pd-input" value="${esc(t.label)}" maxlength="30" aria-label="Nombre (editable)">
                 <span class="pd-tname-icon" aria-hidden="true">${licon('pencil', 13)}</span>
             </label>
             <div class="pd-qr">${qrSvg(tableUrl(t.id))}</div>
@@ -571,7 +580,7 @@ async function onTableClick(e) {
             printStickers([table]);
             break;
         case 'delete': {
-            const r = await Swal.fire({ title: `¿Eliminar ${table.label}?`, text: 'Su QR y sticker NFC dejan de funcionar para pedir.', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b' });
+            const r = await Swal.fire({ title: `¿Eliminar ${table.label}?`, text: isCatering() ? 'Su link y su QR dejan de funcionar para pedir.' : 'Su QR y sticker NFC dejan de funcionar para pedir.', showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b' });
             if (r.isConfirmed) await saveTables((orderingCfg.tables || []).filter(t => t.id !== id));
             break;
         }
@@ -597,7 +606,7 @@ async function onTableRename(e) {
 }
 
 function printStickers(tables) {
-    if (!tables.length) { toastMsg('No hay mesas para imprimir', 'info'); return; }
+    if (!tables.length) { toastMsg(isCatering() ? 'No hay clientes para imprimir' : 'No hay mesas para imprimir', 'info'); return; }
     const w = window.open('', '_blank');
     if (!w) { toastMsg('Permití las ventanas emergentes para imprimir', 'warning'); return; }
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Stickers · ${esc(restName)}</title><style>
@@ -612,7 +621,7 @@ function printStickers(tables) {
     </style></head><body><div class="grid">
         ${tables.map(t => `<div class="st">${qrSvg(tableUrl(t.id))}
             <div class="mesa">${esc(t.label)}</div>
-            <div class="hint">Escaneá el QR o acercá tu celular<br>para ver el menú y pedir</div>
+            <div class="hint">${isCatering() ? 'Escaneá el QR<br>para hacer tu pedido' : 'Escaneá el QR o acercá tu celular<br>para ver el menú y pedir'}</div>
             <div class="rest">${esc(restName)}</div></div>`).join('')}
     </div><script>window.onload = () => setTimeout(() => window.print(), 300);<\/script></body></html>`);
     w.document.close();
@@ -623,6 +632,64 @@ function printStickers(tables) {
 // ══════════════════════════════════════════════════════════════
 
 let settingsDirty = false;
+
+// Textos según el tipo de negocio (restaurante: mesas · catering: clientes)
+function applyBizLabels(type) {
+    const cat = type === 'catering';
+    document.body.classList.toggle('is-catering', cat);
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    set('tablesTabLabel', cat ? 'Clientes, QR y links' : 'Mesas, QR y NFC');
+    set('tablesTitle',    cat ? 'Clientes' : 'Mesas');
+    set('tablesIntro',    cat
+        ? 'Cada cliente tiene un link único y su QR. Mandale el link por WhatsApp o imprimí su QR: al abrirlo ve tu menú y te hace el pedido, que llega como «Pedido de» y su nombre.'
+        : 'Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.');
+    set('addTableLabel',  cat ? 'Agregar cliente' : 'Agregar mesa');
+    set('enabledTitle',   cat ? 'Recibir pedidos' : 'Pedidos desde la mesa');
+    set('apManualTitle',  cat ? 'Lo confirmás vos' : 'Lo acepta el mozo o la caja');
+    set('apManualText',   cat
+        ? 'El pedido aparece en "Nuevos" y pasa a preparación (e imprime) recién cuando lo aceptás.'
+        : 'El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.');
+    set('apDirectTitle',  cat ? 'Va directo a preparación' : 'Va directo a cocina si se verificó que el comensal está en el local');
+    set('apDirectText',   cat
+        ? 'Todos los pedidos pasan directo a cocina e imprimen, sin que tengas que aceptarlos.'
+        : 'Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.');
+}
+
+// datetime-local ⇄ Date (hora del dispositivo)
+const toLocalInput = d => {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const fmtWhen = ms => {   // "miércoles 7 de octubre a las 00:00 h" (igual que en el menú y el servidor)
+    const p = Object.fromEntries(new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
+        weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+    return `${p.weekday} ${p.day} de ${p.month} a las ${p.hour}:${p.minute} h`;
+};
+
+// Estado actual del límite y la pausa (lo que ve el cliente en el menú)
+function renderCapacityStatus() {
+    const el = document.getElementById('capacityStatus');
+    if (!el) return;
+    const now = Date.now();
+    const pause = orderingCfg.pause?.until?.toMillis?.() || 0;
+    const full  = orderingCfg.capacityFullUntil?.toMillis?.() || 0;
+    if (pause > now) {
+        el.className = 'pd-status-line warn';
+        el.innerHTML = `${licon('pause-circle', 14)} Pedidos pausados hasta el ${esc(fmtWhen(pause))}.`;
+    } else if (orderingCfg.limits?.enabled && full > now) {
+        el.className = 'pd-status-line warn';
+        el.innerHTML = `${licon('alert-triangle', 14)} Se llegó al límite: se vuelven a recibir pedidos el ${esc(fmtWhen(full))}.
+            <button class="pd-btn" type="button" id="reopenNowBtn">Recibir pedidos ya</button>`;
+        document.getElementById('reopenNowBtn').addEventListener('click', async () => {
+            await restRef().collection('config').doc('ordering').set({ capacityFullUntil: firebase.firestore.FieldValue.delete() }, { merge: true });
+            toastMsg('El menú vuelve a aceptar pedidos');
+        });
+    } else {
+        el.className = 'pd-status-line';
+        el.innerHTML = orderingCfg.limits?.enabled ? `${licon('check', 14)} Recibiendo pedidos.` : '';
+    }
+}
 
 function initSettingsTab() {
     const panel = document.getElementById('tab-settings');
@@ -666,8 +733,20 @@ function initSettingsTab() {
 }
 
 function fillSettings() {
+    renderCapacityStatus();
     if (settingsDirty) return; // no pisar lo que el usuario está editando
     const c = orderingCfg;
+    document.querySelector(`input[name="bizType"][value="${c.businessType === 'catering' ? 'catering' : 'restaurant'}"]`).checked = true;
+    const lim = c.limits || {};
+    document.getElementById('cfgLimitOn').checked = !!lim.enabled;
+    document.getElementById('cfgLimitMax').value = lim.max || '';
+    document.getElementById('cfgLimitPeriod').value = ['day', 'week', 'hours'].includes(lim.period) ? lim.period : 'day';
+    document.getElementById('cfgLimitHours').value = lim.hours || 2;
+    document.getElementById('cfgLimitMsg').value = lim.message || '';
+    const pauseUntil = c.pause?.until?.toDate?.();
+    document.getElementById('cfgPauseOn').checked = !!(pauseUntil && pauseUntil > new Date());
+    document.getElementById('cfgPauseUntil').value = pauseUntil ? toLocalInput(pauseUntil) : '';
+    document.getElementById('cfgPauseMsg').value = c.pause?.message || '';
     document.getElementById('cfgEnabled').checked = !!c.enabled;
     document.querySelector(`input[name="approval"][value="${c.approvalMode === 'direct' ? 'direct' : 'manual'}"]`).checked = true;
     document.getElementById('cfgSessions').checked = c.tableSessions !== false;
@@ -690,6 +769,14 @@ function updateSettingsVisibility() {
     document.getElementById('pm-cloud').classList.toggle('pd-hidden', mode !== 'epson' && mode !== 'star');
     document.getElementById('geoFields').style.opacity = document.getElementById('cfgGeo').checked ? '1' : '.45';
     document.getElementById('wifiStatus').style.opacity = document.getElementById('cfgWifi').checked ? '1' : '.45';
+    // Tipo de negocio (vista previa de los textos antes de guardar), límite y pausa
+    applyBizLabels(document.querySelector('input[name="bizType"]:checked')?.value);
+    const limOn = document.getElementById('cfgLimitOn').checked;
+    document.getElementById('limitFields').style.opacity = limOn ? '1' : '.45';
+    document.getElementById('limitFields').querySelectorAll('input, select, textarea').forEach(i => { i.disabled = !limOn; });
+    document.getElementById('limitHoursField').style.display = document.getElementById('cfgLimitPeriod').value === 'hours' ? '' : 'none';
+    const pauseOn = document.getElementById('cfgPauseOn').checked;
+    document.getElementById('pauseFields').style.display = pauseOn ? '' : 'none';
 
     const lat = document.getElementById('cfgLat').value, lng = document.getElementById('cfgLng').value;
     const map = document.getElementById('mapLink');
@@ -725,6 +812,29 @@ async function saveSettings() {
     }
     const printMode = document.querySelector('input[name="printMode"]:checked').value;
 
+    // Límite de pedidos y pausa
+    const limitOn = document.getElementById('cfgLimitOn').checked;
+    const limits = {
+        enabled: limitOn,
+        max:     parseInt(document.getElementById('cfgLimitMax').value) || 0,
+        period:  document.getElementById('cfgLimitPeriod').value,
+        hours:   Math.min(Math.max(parseInt(document.getElementById('cfgLimitHours').value) || 1, 1), 720),
+        message: document.getElementById('cfgLimitMsg').value.trim(),
+    };
+    if (limitOn && limits.max < 1) { toastMsg('Indicá el máximo de pedidos (1 o más)', 'warning'); return; }
+    const pauseOn = document.getElementById('cfgPauseOn').checked;
+    const pauseDate = pauseOn ? new Date(document.getElementById('cfgPauseUntil').value) : null;
+    if (pauseOn && (!pauseDate || isNaN(pauseDate) || pauseDate <= new Date())) {
+        toastMsg('Elegí una fecha y hora futura para pausar los pedidos', 'warning'); return;
+    }
+    const pause = {
+        until:   pauseOn ? firebase.firestore.Timestamp.fromDate(pauseDate) : null,
+        message: document.getElementById('cfgPauseMsg').value.trim(),
+    };
+    // Si cambió el límite, el aviso de "lleno" se recalcula con el próximo pedido
+    const normLimits = l => JSON.stringify([!!l?.enabled, l?.max || 0, l?.period || 'day', l?.hours || 1]);
+    const limitsChanged = normLimits(orderingCfg.limits) !== normLimits(limits);
+
     btn.disabled = true;
     try {
         const priv = { ...privateCfg, webhookUrl };
@@ -732,6 +842,10 @@ async function saveSettings() {
         if (!priv.webhookSecret) priv.webhookSecret = randomKey();
         await Promise.all([
             restRef().collection('config').doc('ordering').set({
+                businessType: document.querySelector('input[name="bizType"]:checked').value,
+                limits,
+                pause,
+                ...(limitsChanged && { capacityFullUntil: firebase.firestore.FieldValue.delete() }),
                 enabled:      document.getElementById('cfgEnabled').checked,
                 approvalMode: document.querySelector('input[name="approval"]:checked').value,
                 tableSessions: document.getElementById('cfgSessions').checked,

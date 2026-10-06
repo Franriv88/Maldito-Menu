@@ -90,7 +90,13 @@
             if (active && !wasActive) mountUI();
             if (!active && wasActive) unmountUI();
             if (active) renderBar();
-            window.MenuGuide?.show(active ? 'order' : 'view'); // guía de primera visita
+            // Guía de primera visita (en catering el último paso no habla de la mesa)
+            window.MenuGuide?.show(active ? 'order' : 'view', active && isCat() ? { steps: [
+                ['Tocá un producto', 'para ver su descripción.'],
+                ['Agregalo con +', 'y quitalo con −. Podés sumar varios.'],
+                ['Revisá tu pedido', 'en la barra de abajo, confirmá tu nombre y tocá Enviar pedido.'],
+                ['Seguí el estado', 'en Pedidos: ahí te avisamos cuando lo confirmamos y cuando está listo.'],
+            ] } : undefined);
         }, err => console.warn('ordering config:', err));
 
         // Estado de la mesa (abierta por el mozo → el pedido va directo a cocina)
@@ -204,13 +210,47 @@
         document.querySelectorAll('.to-add, .to-sub, .to-qty-badge').forEach(el => el.remove());
     }
 
+    // ── Catering / pedidos a distancia ────────────────────────
+    // Cada "mesa" es un cliente (ej. «Marcela»): no hay mozo ni local, y el pedido es «Pedido de Marcela».
+    const isCat = () => cfg?.businessType === 'catering';
+
+    // ── Pausa y límite de pedidos (config/ordering.pause / capacityFullUntil) ──
+    // Mismo texto por defecto y mismo {hasta} que functions/index.js
+    const DEFAULT_CAPACITY_MSG = 'Por ahora no podemos recibir más pedidos. Vas a poder volver a pedir desde el {hasta}.';
+    const DEFAULT_PAUSE_MSG    = 'Por ahora no estamos tomando pedidos. Volvemos el {hasta}.';
+    const fmtUntil = ms => {   // "miércoles 7 de octubre a las 00:00 h" (igual que formatArDate en functions)
+        const p = Object.fromEntries(new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
+            weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+            .formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+        return `${p.weekday} ${p.day} de ${p.month} a las ${p.hour}:${p.minute} h`;
+    };
+    let reopenTimer = null;
+    function closedInfo() {
+        const now = Date.now();
+        const pause = cfg?.pause?.until?.toMillis?.() || 0;
+        if (pause > now) return { until: pause, msg: String(cfg.pause.message || DEFAULT_PAUSE_MSG).split('{hasta}').join(fmtUntil(pause)) };
+        const full = cfg?.capacityFullUntil?.toMillis?.() || 0;
+        if (cfg?.limits?.enabled && full > now) return { until: full, msg: String(cfg.limits.message || DEFAULT_CAPACITY_MSG).split('{hasta}').join(fmtUntil(full)) };
+        return null;
+    }
+
     function cartCount() { return Object.values(cart).reduce((s, l) => s + l.qty, 0); }
     function cartTotal() { return Object.values(cart).reduce((s, l) => s + l.qty * l.price, 0); }
 
     function renderBar() {
+        const closed = closedInfo();
+        document.body.classList.toggle('ordering-closed', !!closed);
+        clearTimeout(reopenTimer);
+        if (closed) reopenTimer = setTimeout(renderBar, Math.min(closed.until - Date.now() + 1000, 2 ** 31 - 1));
+
         const banner = document.getElementById('toBanner');
-        if (banner) banner.innerHTML = `<span class="to-banner-dot"></span> ${esc(table.label)} · Pedí desde acá tocando <b>+</b>`
-            + (cfg.tableSessions !== false && !tableOpen ? '<small class="to-banner-sub">El mozo confirma tu primer pedido</small>' : '');
+        if (banner) {
+            if (closed) banner.innerHTML = `<span class="to-banner-dot off"></span> ${esc(closed.msg)}`;
+            else if (isCat()) banner.innerHTML = `<span class="to-banner-dot"></span> Pedido de ${esc(table.label)} · Agregá productos tocando <b>+</b>`
+                + (cfg.approvalMode !== 'direct' ? '<small class="to-banner-sub">Te confirmamos el pedido en breve</small>' : '');
+            else banner.innerHTML = `<span class="to-banner-dot"></span> ${esc(table.label)} · Pedí desde acá tocando <b>+</b>`
+                + (cfg.tableSessions !== false && !tableOpen ? '<small class="to-banner-sub">El mozo confirma tu primer pedido</small>' : '');
+        }
 
         const bar = document.getElementById('toBar');
         if (!bar) return;
@@ -222,8 +262,9 @@
         const live = myOrders.filter(o => !['entregado', 'rechazado'].includes(orderState[o.id]?.status));
         bar.innerHTML = `
             <button class="to-bar-orders" type="button">Pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>
-            <button class="to-bar-cart" type="button" ${n ? '' : 'disabled'}>
-                ${n ? `Ver pedido · ${n} ${n === 1 ? 'producto' : 'productos'}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : 'Agregá productos con +'}
+            <button class="to-bar-cart" type="button" ${n && !closed ? '' : 'disabled'}>
+                ${closed ? 'Pedidos cerrados por ahora'
+                    : n ? `Ver pedido · ${n} ${n === 1 ? 'producto' : 'productos'}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : 'Agregá productos con +'}
             </button>`;
         bar.querySelector('.to-bar-cart')?.addEventListener('click', openCart);
         bar.querySelector('.to-bar-orders')?.addEventListener('click', openOrders);
@@ -276,7 +317,7 @@
         if (!lines.length) { closeSheet(); return; }
         const el = openSheet(`
             <div class="to-sheet-head">
-                <h3>Tu pedido · ${esc(table.label)}</h3>
+                <h3>${isCat() ? 'Tu pedido' : `Tu pedido · ${esc(table.label)}`}</h3>
                 <button class="to-x" type="button" aria-label="Cerrar">×</button>
             </div>
             <div class="to-lines">
@@ -303,10 +344,10 @@
                 <textarea id="toNote" maxlength="300" rows="2" placeholder="Ej: leche de almendras, la carne bien cocida…"></textarea>
             </label>
             <label class="to-field">Tu nombre
-                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="¿A nombre de quién?" value="${esc(load(localStorage, NAME_KEY, ''))}">
+                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="¿A nombre de quién?" value="${esc(load(localStorage, NAME_KEY, '') || (isCat() ? table.label : ''))}">
             </label>
             ${hidePrices ? '' : `<div class="to-total"><span>Total</span><b>${money(cartTotal())}</b></div>`}
-            <p class="to-hint">Pagás al final, en el local.</p>
+            ${isCat() ? '' : '<p class="to-hint">Pagás al final, en el local.</p>'}
             <p class="to-error" id="toError"></p>
             <button class="to-send" type="button" id="toSend">Enviar pedido</button>`);
 
@@ -383,6 +424,12 @@
                 btn.textContent = 'Enviando…';
                 ({ ok, data } = await post({ ...payload, coords }));
             }
+            if (!ok && (data.code === 'capacity' || data.code === 'closed') && data.until) {
+                // Se llenó (o se pausó) mientras armaba el pedido: el menú pasa a mostrar el aviso
+                const until = { toMillis: () => data.until };
+                cfg = data.code === 'closed' ? { ...cfg, pause: { ...(cfg.pause || {}), until } } : { ...cfg, capacityFullUntil: until };
+                renderBar();
+            }
             if (!ok) throw new Error(data.error || 'No se pudo enviar el pedido.');
 
             cart = {};
@@ -416,8 +463,11 @@
 
     const countsForBill = o => o.status !== 'rechazado';
 
+    // En catering no hay mozo: el rechazo se explica distinto
+    const statusInfo = s => s === 'rechazado' && isCat() ? { label: 'No aceptado — contactanos', cls: 'st-rej' } : STATUS[s];
+
     function orderBlock(o, { title, mine = false }) {
-        const st = STATUS[o.status] || { label: 'Cargando…', cls: '' };
+        const st = statusInfo(o.status) || { label: 'Cargando…', cls: '' };
         return `
         <div class="to-order${mine ? ' mine' : ''}">
             <div class="to-order-head"><b>${title}</b><span class="to-status ${st.cls}">${st.label}</span></div>
@@ -437,16 +487,16 @@
     }
 
     function tableHTML() {
-        if (!tableData) return '<p class="to-empty">Cargando los pedidos de la mesa…</p>';
+        if (!tableData) return `<p class="to-empty">${isCat() ? 'Cargando los pedidos…' : 'Cargando los pedidos de la mesa…'}</p>`;
         if (tableData.error) return `<p class="to-empty">${esc(tableData.error)}</p>`;
-        if (!tableData.orders.length) return '<p class="to-empty">Todavía no hay pedidos en esta mesa.</p>';
+        if (!tableData.orders.length) return `<p class="to-empty">${isCat() ? `Todavía no hay pedidos de ${esc(table.label)}.` : 'Todavía no hay pedidos en esta mesa.'}</p>`;
         const mineIds = new Set(myOrders.map(o => o.id));
         const total = tableData.orders.filter(countsForBill).reduce((s, o) => s + o.total, 0);
         return tableData.orders.slice().reverse().map(o => orderBlock(o, {
                 title: `#${o.number} · ${esc(o.customerName || 'Sin nombre')}${mineIds.has(o.id) ? ' (vos)' : ''}`,
                 mine: mineIds.has(o.id),
             })).join('')
-            + (hidePrices ? '' : `<div class="to-sum"><span>Total de la mesa</span><b>${money(total)}</b></div>`);
+            + (hidePrices ? '' : `<div class="to-sum"><span>${isCat() ? 'Total' : 'Total de la mesa'}</span><b>${money(total)}</b></div>`);
     }
 
     async function fetchTableOrders() {
@@ -475,7 +525,7 @@
             </div>
             <div class="to-tabs" role="tablist">
                 <button type="button" role="tab" class="to-tab${tab === 'mine' ? ' on' : ''}" data-tab="mine" aria-selected="${tab === 'mine'}">Mis pedidos</button>
-                <button type="button" role="tab" class="to-tab${tab === 'table' ? ' on' : ''}" data-tab="table" aria-selected="${tab === 'table'}">Pedidos de la mesa</button>
+                <button type="button" role="tab" class="to-tab${tab === 'table' ? ' on' : ''}" data-tab="table" aria-selected="${tab === 'table'}">${isCat() ? `Pedidos de ${esc(table.label)}` : 'Pedidos de la mesa'}</button>
             </div>
             <div class="to-orders">${tab === 'mine' ? mineHTML() : tableHTML()}</div>`);
         el.scrollTop = keepScroll;
@@ -499,7 +549,7 @@
                 const prev = orderState[id]?.status;
                 orderState[id] = doc.data();
                 const now = orderState[id].status;
-                if (prev && prev !== now && STATUS[now]) toast(`Pedido #${orderState[id].number}: ${STATUS[now].label}`);
+                if (prev && prev !== now && STATUS[now]) toast(`Pedido #${orderState[id].number}: ${statusInfo(now).label}`);
                 if (active) renderBar();
                 if (document.querySelector('#toSheet.open .to-orders')) openOrders();
             }, () => {});

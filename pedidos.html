@@ -121,6 +121,9 @@
         /* Mesas */
         .pd-section { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
         .pd-section h3 { margin: 0 0 4px; font-size: .95rem; color: var(--pd-accent); }
+        body.is-catering .pd-only-restaurant { display: none; }
+        #limitFields, #pauseFields { transition: opacity .15s; }
+        .pd-status-line.warn { color: #e6aa28; }
         .pd-section > p { margin: 0 0 12px; font-size: .8rem; color: var(--pd-muted); line-height: 1.5; }
         .pd-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .pd-table { background: var(--pd-raised); border: 1px solid var(--pd-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
@@ -202,7 +205,7 @@
 
     <nav class="pd-tabs" role="tablist">
         <button class="pd-tab active" data-tab="board" role="tab"><i data-lucide="chef-hat" style="width:15px;height:15px"></i> Pedidos <span class="pd-count" id="pendingCount"></span></button>
-        <button class="pd-tab" data-tab="tables" role="tab"><i data-lucide="qr-code" style="width:15px;height:15px"></i> Mesas, QR y NFC</button>
+        <button class="pd-tab" data-tab="tables" role="tab"><i data-lucide="qr-code" style="width:15px;height:15px"></i> <span id="tablesTabLabel">Mesas, QR y NFC</span></button>
         <button class="pd-tab" data-tab="settings" role="tab"><i data-lucide="settings" style="width:15px;height:15px"></i> Configuración</button>
     </nav>
 
@@ -242,10 +245,10 @@
     <!-- ── Mesas ── -->
     <section class="pd-panel" id="tab-tables">
         <div class="pd-section">
-            <h3>Mesas</h3>
-            <p>Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.</p>
+            <h3 id="tablesTitle">Mesas</h3>
+            <p id="tablesIntro">Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.</p>
             <div class="pd-row" style="margin-top:0">
-                <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> Agregar mesa</button>
+                <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> <span id="addTableLabel">Agregar mesa</span></button>
                 <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
                 <button class="pd-btn" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos los stickers</button>
             </div>
@@ -257,7 +260,15 @@
     <!-- ── Configuración ── -->
     <section class="pd-panel" id="tab-settings">
         <div class="pd-section">
-            <h3>Pedidos desde la mesa</h3>
+            <h3>Tipo de negocio</h3>
+            <label class="pd-radio"><input type="radio" name="bizType" value="restaurant">
+                <div><b>Restaurante, bar o café</b><span>Los comensales piden desde su mesa escaneando el QR o acercando el celular al sticker NFC.</span></div></label>
+            <label class="pd-radio"><input type="radio" name="bizType" value="catering">
+                <div><b>Catering, viandas o pedidos</b><span>En lugar de mesas cargás a tus clientes (ej. «Marcela» o «Oficina Centro»): cada uno tiene su link y su QR, y los pedidos llegan como «Pedido de Marcela». No se verifica que estén en un local.</span></div></label>
+        </div>
+
+        <div class="pd-section">
+            <h3 id="enabledTitle">Pedidos desde la mesa</h3>
             <label class="pd-switch"><input type="checkbox" id="cfgEnabled"> Recibir pedidos desde el menú</label>
             <p class="pd-help">Si está apagado, el QR/NFC abre el menú normal sin botón de pedir.</p>
         </div>
@@ -265,12 +276,43 @@
         <div class="pd-section">
             <h3>¿Qué pasa cuando llega un pedido?</h3>
             <label class="pd-radio"><input type="radio" name="approval" value="manual">
-                <div><b>Lo acepta el mozo o la caja</b><span>El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.</span></div></label>
+                <div><b id="apManualTitle">Lo acepta el mozo o la caja</b><span id="apManualText">El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.</span></div></label>
             <label class="pd-radio"><input type="radio" name="approval" value="direct">
-                <div><b>Va directo a cocina si se verificó que el comensal está en el local</b><span>Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.</span></div></label>
+                <div><b id="apDirectTitle">Va directo a cocina si se verificó que el comensal está en el local</b><span id="apDirectText">Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.</span></div></label>
         </div>
 
         <div class="pd-section">
+            <h3>Límite de pedidos</h3>
+            <p>Para no recibir más pedidos de los que podés preparar. Cuando se llega al límite, el menú muestra tu mensaje y no deja pedir hasta que se libere un lugar.</p>
+            <label class="pd-switch"><input type="checkbox" id="cfgLimitOn"> Limitar la cantidad de pedidos</label>
+            <div id="limitFields">
+                <div class="pd-row">
+                    <label class="pd-field" style="max-width:160px">Máximo de pedidos <input class="pd-input" id="cfgLimitMax" type="number" min="1" max="10000" placeholder="ej: 20"></label>
+                    <label class="pd-field" style="max-width:220px">Por
+                        <select class="pd-select" id="cfgLimitPeriod">
+                            <option value="day">Día</option>
+                            <option value="week">Semana (de lunes a domingo)</option>
+                            <option value="hours">Cada cierta cantidad de horas</option>
+                        </select></label>
+                    <label class="pd-field" style="max-width:140px" id="limitHoursField">Horas <input class="pd-input" id="cfgLimitHours" type="number" min="1" max="720" value="2"></label>
+                </div>
+                <label class="pd-field" style="margin-top:10px">Mensaje cuando se llega al límite
+                    <textarea class="pd-input" id="cfgLimitMsg" rows="2" maxlength="300" placeholder="Por ahora no podemos recibir más pedidos. Vas a poder volver a pedir desde el {hasta}."></textarea></label>
+                <p class="pd-help">Escribí <b>{hasta}</b> donde quieras que aparezca la fecha y hora en que se vuelve a recibir pedidos. Los pedidos rechazados no cuentan para el límite.</p>
+            </div>
+            <div class="pd-status-line" id="capacityStatus"></div>
+
+            <label class="pd-switch" style="margin-top:16px"><input type="checkbox" id="cfgPauseOn"> Pausar los pedidos hasta una fecha</label>
+            <div id="pauseFields">
+                <div class="pd-row">
+                    <label class="pd-field" style="max-width:260px">Hasta <input class="pd-input" id="cfgPauseUntil" type="datetime-local"></label>
+                </div>
+                <label class="pd-field" style="margin-top:10px">Mensaje mientras está pausado
+                    <textarea class="pd-input" id="cfgPauseMsg" rows="2" maxlength="300" placeholder="Por ahora no estamos tomando pedidos. Volvemos el {hasta}."></textarea></label>
+            </div>
+        </div>
+
+        <div class="pd-section pd-only-restaurant">
             <h3>Verificar que el comensal esté en el local</h3>
             <p>Evita pedidos de quien se llevó una foto del QR. Se usan en este orden y, si alguno confirma la presencia, no se le pide nada al comensal.</p>
             <label class="pd-switch"><input type="checkbox" id="cfgSessions"> <span><b>Mesa abierta</b> — los pedidos de una mesa abierta van directo a cocina</span></label>
@@ -280,7 +322,7 @@
             <div class="pd-status-line" id="wifiStatus"></div>
         </div>
 
-        <div class="pd-section">
+        <div class="pd-section pd-only-restaurant">
             <h3>GPS (opcional)</h3>
             <label class="pd-switch"><input type="checkbox" id="cfgGeo"> Pedir ubicación si la mesa está cerrada y el comensal no está en el Wi-Fi</label>
             <p class="pd-help">El celular pide permiso de ubicación y el servidor compara la distancia con la del local. Adentro de edificios el GPS puede errar 20–100 m, por eso conviene un radio de al menos 100 m. Si lo dejás apagado, esos pedidos quedan en "Nuevos" para que los acepte el mozo.</p>
@@ -357,7 +399,7 @@
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=2"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=3"></script>
+    <script src="./Js/pedidos.js?v=4"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

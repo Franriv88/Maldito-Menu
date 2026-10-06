@@ -449,6 +449,43 @@ function networkKey(ip) {
 const isTableOpen = (mesaData, now = Date.now()) => !!mesaData?.open &&
     now - (mesaData.lastActivityAt?.toMillis?.() || mesaData.openedAt?.toMillis?.() || 0) < TABLE_SESSION_TTL;
 
+// ── Límite de pedidos (config/ordering.limits) y pausa (config/ordering.pause) ──
+// limits: { enabled, max, period: 'day' | 'week' | 'hours', hours, message }
+//   day/week: día o semana (lunes) calendario, hora Argentina (UTC−3, sin horario de verano)
+//   hours:    ventana móvil de las últimas N horas
+// El mensaje puede incluir {hasta}, que se reemplaza por la fecha en que se vuelve a recibir pedidos.
+const AR_OFFSET = 3 * 3600 * 1000;
+const DAY_MS    = 24 * 3600 * 1000;
+
+function capacityWindow(limits, now) {
+    if (limits.period === "hours") {
+        const h = Math.min(Math.max(Number(limits.hours) || 1, 1), 24 * 30);
+        return { start: now - h * 3600 * 1000, rolling: h * 3600 * 1000 };
+    }
+    const local    = now - AR_OFFSET;                       // "hora Argentina" expresada como UTC
+    const dayStart = Math.floor(local / DAY_MS) * DAY_MS;
+    if (limits.period === "week") {
+        const dow = (new Date(dayStart).getUTCDay() + 6) % 7; // lunes = 0
+        const start = dayStart - dow * DAY_MS + AR_OFFSET;
+        return { start, end: start + 7 * DAY_MS };
+    }
+    const start = dayStart + AR_OFFSET;
+    return { start, end: start + DAY_MS };
+}
+
+// "miércoles 7 de octubre a las 00:00 h" (hora Argentina, 24 h). Igual en table-ordering.js y pedidos.js.
+function formatArDate(ms) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires", weekday: "long", day: "numeric", month: "long",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+    return `${p.weekday} ${p.day} de ${p.month} a las ${p.hour}:${p.minute} h`;
+}
+
+const DEFAULT_CAPACITY_MSG = "Por ahora no podemos recibir más pedidos. Vas a poder volver a pedir desde el {hasta}.";
+const DEFAULT_PAUSE_MSG    = "Por ahora no estamos tomando pedidos. Volvemos el {hasta}.";
+const fillUntil = (msg, ms) => String(msg || "").split("{hasta}").join(formatArDate(ms));
+
 // ¿El plan del dueño incluye pedidos en mesa?
 async function ownerHasTableOrders(ownerId) {
     const uSnap = await db.collection("users").doc(ownerId).get();
@@ -523,11 +560,20 @@ exports.placeOrder = onRequest(
         const table = (cfg.tables || []).find(t => t.id === mesa);
         if (!table) { res.status(400).json({ error: "Mesa no reconocida. Escaneá el código de tu mesa." }); return; }
 
-        // ── Verificación de presencia ──
+        // Catering / pedidos a distancia: cada "mesa" es un cliente con su link; no se verifica presencia
+        const isCatering = cfg.businessType === "catering";
         const now        = Date.now();
-        const useSession = cfg.tableSessions !== false;
-        const useWifi    = cfg.wifiCheck !== false;
-        const useGeo     = !!(cfg.geo?.enabled && typeof cfg.geo.lat === "number" && typeof cfg.geo.lng === "number");
+
+        // ── Pausa manual ("no recibir pedidos hasta…") ──
+        const pauseUntil = cfg.pause?.until?.toMillis?.() || 0;
+        if (pauseUntil > now) {
+            res.status(403).json({ error: fillUntil(cfg.pause.message || DEFAULT_PAUSE_MSG, pauseUntil), code: "closed", until: pauseUntil }); return;
+        }
+
+        // ── Verificación de presencia ──
+        const useSession = !isCatering && cfg.tableSessions !== false;
+        const useWifi    = !isCatering && cfg.wifiCheck !== false;
+        const useGeo     = !isCatering && !!(cfg.geo?.enabled && typeof cfg.geo.lat === "number" && typeof cfg.geo.lng === "number");
 
         const tableOpen = useSession && isTableOpen(mesaSnap.data(), now);
         const netKey    = networkKey(clientIp(req));
@@ -584,6 +630,8 @@ exports.placeOrder = onRequest(
         if (!lines.length) { res.status(400).json({ error: "Los productos ya no están disponibles." }); return; }
 
         const orderRef = restRef.collection("pedidos").doc();
+        const limits   = cfg.limits || {};
+        const maxOrders = limits.enabled ? Math.floor(Number(limits.max) || 0) : 0;
 
         try {
             const number = await db.runTransaction(async tx => {
@@ -594,6 +642,23 @@ exports.placeOrder = onRequest(
                 const recent = ((priv.rate || {})[mesa] || []).filter(t => now - t < 10 * 60 * 1000);
                 if (recent.length >= 15) throw Object.assign(new Error("rate"), { code: "rate" });
 
+                // Límite de pedidos del local (por día, semana o cada N horas). Los rechazados no cuentan.
+                let fullUntil = null;
+                if (maxOrders > 0) {
+                    const win  = capacityWindow(limits, now);
+                    const snap = await tx.get(restRef.collection("pedidos").where("createdAt", ">=", Timestamp.fromMillis(win.start)));
+                    const times = snap.docs.map(d => d.data()).filter(o => o.status !== "rechazado")
+                        .map(o => o.createdAt?.toMillis?.() || now).sort((a, b) => a - b);
+                    // Ventana móvil: se libera un lugar cuando el pedido más viejo que sobra sale de la ventana
+                    const untilFor = list => win.rolling ? list[list.length - maxOrders] + win.rolling : win.end;
+                    if (times.length >= maxOrders) throw Object.assign(new Error("capacity"), { code: "capacity", until: untilFor(times) });
+                    if (times.length + 1 >= maxOrders) fullUntil = untilFor([...times, now]);
+                }
+                if (fullUntil) {
+                    // Así el menú muestra el aviso antes de que alguien arme otro pedido
+                    tx.set(restRef.collection("config").doc("ordering"), { capacityFullUntil: Timestamp.fromMillis(fullUntil) }, { merge: true });
+                }
+
                 // Número de pedido diario (se reinicia cada día, hora Argentina)
                 const today = new Date(now - 3 * 3600 * 1000).toISOString().slice(0, 10);
                 const next  = priv.counterDay === today ? (priv.counter || 0) + 1 : 1;
@@ -601,6 +666,7 @@ exports.placeOrder = onRequest(
                 tx.set(privRef, { counter: next, counterDay: today, rate: { [mesa]: [...recent, now] } }, { merge: true });
                 tx.set(orderRef, {
                     number:     next,
+                    kind:       isCatering ? "catering" : "mesa",
                     mesaId:     mesa,
                     mesaLabel:  table.label || mesa,
                     items:      lines,
@@ -630,7 +696,12 @@ exports.placeOrder = onRequest(
             res.json({ ok: true, orderId: orderRef.id, number, status: direct ? "en_cocina" : "pendiente" });
         } catch (err) {
             if (err.code === "rate") {
-                res.status(429).json({ error: "Se hicieron muchos pedidos desde esta mesa. Llamá al mozo." }); return;
+                res.status(429).json({ error: isCatering
+                    ? "Se hicieron muchos pedidos seguidos. Esperá unos minutos e intentá de nuevo."
+                    : "Se hicieron muchos pedidos desde esta mesa. Llamá al mozo." }); return;
+            }
+            if (err.code === "capacity") {
+                res.status(403).json({ error: fillUntil(limits.message || DEFAULT_CAPACITY_MSG, err.until), code: "capacity", until: err.until }); return;
             }
             console.error("placeOrder:", err.message);
             res.status(500).json({ error: "No se pudo enviar el pedido. Intentá de nuevo." });
@@ -728,6 +799,7 @@ exports.onOrderWritten = onDocumentWritten(
             orderId:      event.params.orderId,
             number:       after.number,
             table:        { id: after.mesaId, label: after.mesaLabel },
+            kind:         after.kind || "mesa",   // "catering": label es el nombre del cliente
             items:        after.items,
             total:        after.total,
             note:         after.note,
@@ -758,7 +830,7 @@ function ticketLines(o, width = 42) {
     const line = "-".repeat(width);
     const out  = [
         `PEDIDO #${o.number}`,
-        `MESA: ${o.mesaLabel}`,
+        o.kind === "catering" ? `CLIENTE: ${o.mesaLabel}` : `MESA: ${o.mesaLabel}`,
         new Date((o.createdAt?.toDate?.() || new Date()).getTime() - 3 * 3600 * 1000)
             .toISOString().slice(11, 16) + (o.customerName ? `  ${o.customerName}` : ""),
         line,
@@ -899,7 +971,7 @@ exports.printerPoll = onRequest(
     <Parameter><devid>local_printer</devid><timeout>10000</timeout><printjobid>${job.id}</printjobid></Parameter>
     <PrintData>
       <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-        <text lang="es"/><text dw="true" dh="true"/><text>PEDIDO #${job.data().number}&#10;MESA ${xmlEsc(job.data().mesaLabel)}&#10;</text><text dw="false" dh="false"/>
+        <text lang="es"/><text dw="true" dh="true"/><text>PEDIDO #${job.data().number}&#10;${job.data().kind === "catering" ? "CLIENTE" : "MESA"} ${xmlEsc(job.data().mesaLabel)}&#10;</text><text dw="false" dh="false"/>
         ${text}
         <cut type="feed"/>
       </epos-print>

@@ -489,6 +489,11 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 }
 .to-toast.show { transform: translate(-50%, 0); }
 .to-banner { flex-wrap: wrap; }
+/* Pedidos pausados o al límite: no se puede agregar al pedido y el aviso se destaca */
+body.ordering-closed .item-header .to-add,
+body.ordering-closed .to-qty-badge { display: none; }
+body.ordering-closed .to-banner { text-align: center; line-height: 1.45; padding: 12px 18px; }
+.to-banner-dot.off { background: #e6aa28; box-shadow: 0 0 0 3px rgba(230,170,40,.25); flex-shrink: 0; }
 .to-banner-sub { flex-basis: 100%; text-align: center; font-size: .72rem; opacity: .75; }
 
 /* Restricciones alimentarias (chips con ícono) */
