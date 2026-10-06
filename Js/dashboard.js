@@ -29,10 +29,12 @@ auth.onAuthStateChanged(async user => {
         }, { merge: true });
 
         // Verificar suscripción
-        if (userDoc.exists) {
-            const st = userDoc.data().subscription?.status;
-            if (st === 'blocked') { showBlockedScreen(); return; }
-            if (st === 'pending_payment') { window.location.href = './checkout.html'; return; }
+        const sub = userDoc.exists ? userDoc.data().subscription : null;
+        if (sub?.status === 'blocked') { showBlockedScreen(); return; }
+        if (sub?.status === 'pending_payment') { window.location.href = './checkout.html'; return; }
+        // Cuenta nueva (o que nunca tuvo plan): arranca la prueba gratis de 14 días
+        if (user.email !== 'frivasv2388@gmail.com' && subscriptionInfo(sub, normalizePlans({})).state === 'none' && !sub?.trialUsed) {
+            await startTrialIfAvailable(user);
         }
     } catch (err) {
         console.warn('Error actualizando perfil:', err);
@@ -44,7 +46,7 @@ auth.onAuthStateChanged(async user => {
 
 function watchSubscriptionStatus(uid) {
     const plansPromise = db.collection('appConfig').doc('plans').get()
-        .then(s => s.exists ? (s.data().list || []) : []).catch(() => []);
+        .then(s => normalizePlans(s.exists ? s.data() : {})).catch(() => normalizePlans({}));
     db.collection('users').doc(uid).onSnapshot(async snap => {
         if (snap.exists && snap.data().subscription?.status === 'blocked') {
             auth.signOut().then(() => {
@@ -57,30 +59,35 @@ function watchSubscriptionStatus(uid) {
 }
 
 // ── Plan actual (siempre visible arriba de los restaurantes) ──
-function renderPlanBanner(sub, plans) {
+function renderPlanBanner(sub, plansCfg) {
     const el = document.getElementById('planBanner');
     if (!el) return;
     const isSuper = auth.currentUser?.email === 'frivasv2388@gmail.com';
-    const plan    = plans.find(p => p.id === sub?.planType);
-    const until   = sub?.paidUntil?.toDate ? sub.paidUntil.toDate() : null;
-    const expired = until && until < new Date();
-    const active  = sub?.status === 'active' && !expired;
-    const days    = until ? Math.ceil((until - new Date()) / 86400000) : null;
-    const fecha   = until ? until.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const info    = subscriptionInfo(sub, plansCfg);
+    const fecha   = ms => new Date(ms).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const quedan  = d => d === 1 ? 'queda 1 día' : `quedan ${d} días`;
 
     let state, title, detail, action;
-    if (active) {
-        state  = days <= 5 ? 'warn' : 'ok';
-        title  = `Plan ${esc(plan?.label || sub.planType || 'activo')}`;
-        detail = until ? `Activo hasta el ${fecha} · ${days === 1 ? 'queda 1 día' : `quedan ${days} días`}` : 'Activo';
-        if (sub.coupon) detail += ' · activado con cupón';
+    if (info.state === 'trial') {
+        state  = info.daysLeft <= 3 ? 'warn' : 'ok';
+        title  = 'Prueba gratis · todo incluido';
+        detail = `Hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}. Elegí un plan antes para no perder la edición de tu menú.`;
+        action = `<a class="plan-banner-btn primary" href="./checkout.html?renovar=1">Elegir un plan</a>`;
+    } else if (info.state === 'active') {
+        state  = info.daysLeft != null && info.daysLeft <= 5 ? 'warn' : 'ok';
+        title  = `Plan ${esc(info.tier?.label || info.tierId || 'activo')} · ${esc(plansCfg.periods[info.period]?.label.toLowerCase() || 'mensual')}`;
+        detail = info.until ? `Activo hasta el ${fecha(info.until)} · ${quedan(info.daysLeft)}` : 'Activo';
+        if (info.scheduled) detail += ` · desde el ${fecha(info.scheduled.startsAt)} pasás al plan ${esc(info.scheduled.tier?.label || info.scheduled.planType)} (${esc(plansCfg.periods[info.scheduled.period]?.label.toLowerCase() || '')})`;
+        if (info.coupon) detail += ' · activado con cupón';
         action = `<a class="plan-banner-btn" href="./checkout.html?renovar=1">Renovar o cambiar de plan</a>`;
-    } else if (isSuper && !sub?.status) {
+    } else if (isSuper && (info.state === 'none' || info.state === 'expired')) {
         state = 'ok'; title = 'SuperAdmin'; detail = 'Acceso total a todas las funciones'; action = '';
+    } else if (info.state === 'pending') {
+        state = 'warn'; title = 'Pago en proceso'; detail = 'Tu plan se activa cuando Mercado Pago acredite el pago.'; action = '';
     } else {
         state  = 'off';
-        title  = expired ? `Plan ${esc(plan?.label || sub?.planType || '')} vencido` : 'Sin plan activo';
-        detail = expired ? `Venció el ${fecha}. Renová para seguir editando tu menú.` : 'Elegí un plan para publicar y editar tu menú.';
+        title  = info.wasTrial ? 'Terminó tu prueba gratis' : info.state === 'expired' ? `Plan ${esc(info.tier?.label || '')} vencido` : 'Sin plan activo';
+        detail = info.state === 'expired' ? `Venció el ${fecha(info.until)}. Tu menú sigue visible: elegí un plan para volver a editarlo.` : 'Elegí un plan para publicar y editar tu menú.';
         action = `<a class="plan-banner-btn primary" href="./checkout.html?renovar=1">Elegir un plan</a>`;
     }
     el.className = `plan-banner ${state}`;
@@ -251,10 +258,9 @@ async function createRestaurant() {
             db.collection('users').doc(user.uid).get(),
             db.collection('appConfig').doc('plans').get().catch(() => null),
         ]);
-        const planType = userSnap.data()?.subscription?.planType;
-        const plans    = plansSnap?.exists ? (plansSnap.data().list || []) : [];
-        const benefits = getPlanBenefits(plans, planType);
-        const limit    = getRestaurantLimit(benefits);
+        const info     = subscriptionInfo(userSnap.data()?.subscription, normalizePlans(plansSnap?.exists ? plansSnap.data() : {}));
+        const limit    = user.email === 'frivasv2388@gmail.com' ? Infinity
+            : (info.state === 'trial' || info.state === 'active') ? getRestaurantLimit(info.benefits) : 1;
         if (existingSnap.size >= limit) {
             alert(`Tu plan permite hasta ${limit} restaurante${limit === 1 ? '' : 's'}. Para agregar más, cambiá a un plan superior.`);
             btn.disabled = false;

@@ -84,11 +84,10 @@ auth.onAuthStateChanged(async user => {
             db.collection('users').doc(user.uid).get(),
             db.collection('appConfig').doc('plans').get().catch(() => null),
         ]);
-        const sub = uSnap.data()?.subscription || {};
-        if (sub.status === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
-        if (sub.status !== 'active') { window.location.href = './checkout.html'; return; }
-        const plans = pSnap?.exists ? (pSnap.data().list || []) : [];
-        allowed = !!hasBenefit(getPlanBenefits(plans, sub.planType), 'table_orders');
+        const info = subscriptionInfo(uSnap.data()?.subscription, normalizePlans(pSnap?.exists ? pSnap.data() : {}));
+        if (info.state === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
+        if (info.state !== 'active' && info.state !== 'trial') { window.location.href = './checkout.html'; return; }
+        allowed = !!hasBenefit(info.benefits, 'table_orders');   // en la prueba: todo incluido
     }
     if (!allowed) {
         document.querySelector('.pd-tabs').classList.add('pd-hidden');

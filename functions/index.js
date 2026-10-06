@@ -31,9 +31,121 @@ async function requireUser(req, res) {
     }
 }
 
-async function getPlans() {
+// ══════════════════════════════════════════════════════════════
+//  PLANES = niveles × períodos (appConfig/plans). Misma lógica que Js/benefits-config.js
+//  { tiers: [{ id, label, monthlyPrice, benefits, recommended }],
+//    periods: { monthly|quarterly|annual|biennial: { discount (%), enabled } } }
+// ══════════════════════════════════════════════════════════════
+const PERIODS_DEFAULT = {
+    monthly:   { label: "Mensual",    months: 1,  discount: 0,  enabled: true },
+    quarterly: { label: "Trimestral", months: 3,  discount: 10, enabled: true },
+    annual:    { label: "Anual",      months: 12, discount: 20, enabled: true },
+    biennial:  { label: "Bienal",     months: 24, discount: 30, enabled: true },
+};
+const PERIOD_ORDER = ["monthly", "quarterly", "annual", "biennial"];
+const TRIAL_DAYS   = 14;
+const MONTH_MS     = 30 * 24 * 3600 * 1000;
+const MIN_CHARGE   = 100;   // ARS: una mejora más barata que esto se aplica sin cobrar
+
+function normalizePlans(data) {
+    data = data || {};
+    let tiers = Array.isArray(data.tiers) ? data.tiers : (data.list || [])
+        .filter(p => !p.durationDays || Number(p.durationDays) <= 31)
+        .map(p => ({ id: p.id, label: p.label, monthlyPrice: Number(p.price) || 0, benefits: p.benefits || null, recommended: !!p.recommended }));
+    tiers = tiers.map(t => ({ ...t, monthlyPrice: Number(t.monthlyPrice) || 0 }));
+    const periods = {};
+    PERIOD_ORDER.forEach(id => {
+        const d = PERIODS_DEFAULT[id], c = (data.periods || {})[id] || {};
+        periods[id] = {
+            label: d.label, months: d.months,
+            discount: Math.min(Math.max(Number(c.discount ?? d.discount) || 0, 0), 90),
+            enabled: id === "monthly" ? true : (c.enabled ?? d.enabled) !== false,
+        };
+    });
+    return { tiers, periods };
+}
+
+async function getPlanConfig() {
     const snap = await db.collection("appConfig").doc("plans").get();
-    return snap.exists ? (snap.data().list || []) : [];
+    return normalizePlans(snap.exists ? snap.data() : {});
+}
+
+const periodPrice = (tier, periodId, cfg) => {
+    const p = cfg.periods[periodId] || cfg.periods.monthly;
+    return Math.round(tier.monthlyPrice * p.months * (1 - p.discount / 100));
+};
+const addMonths = (ms, n) => { const d = new Date(ms); d.setMonth(d.getMonth() + n); return d.getTime(); };
+
+// Suscripción efectiva: un cambio programado (downgrade / cambio de período) rige desde su fecha
+function effectiveSub(sub, now) {
+    sub = sub || {};
+    const ms = v => v?.toMillis?.() || 0;
+    let planType = sub.planType, period = sub.period || "monthly", scheduled = sub.scheduled || null, due = false;
+    if (scheduled && ms(scheduled.startsAt) <= now) { planType = scheduled.planType; period = scheduled.period || period; scheduled = null; due = true; }
+    const paidUntil = ms(sub.paidUntil), trialEndsAt = ms(sub.trialEndsAt);
+    return {
+        active: sub.status === "active" && paidUntil > now,
+        trial:  sub.status === "trial" && trialEndsAt > now,
+        planType, period, scheduled, scheduledDue: due, paidUntil, trialEndsAt,
+        scheduledStart: scheduled ? ms(scheduled.startsAt) : 0,
+    };
+}
+
+// Qué significa comprar tierId + periodId para esta suscripción y cuánto cuesta:
+//  - sin plan / en prueba / vencido → "new": arranca ya (o al terminar la prueba)
+//  - activo y nivel más caro        → "upgrade": rige ya; paga la diferencia por los días que le quedan
+//  - activo y mismo nivel o más barato, o cambio de período → "renew": se suma al final; si cambia
+//    de nivel o período, el cambio queda programado para cuando termina lo ya pagado
+function quotePurchase(sub, cfg, tierId, periodId, now) {
+    const tier = cfg.tiers.find(t => t.id === tierId);
+    if (!tier || !(tier.monthlyPrice > 0)) return { error: "Plan inexistente" };
+    const per = cfg.periods[periodId];
+    if (!per || !per.enabled) return { error: "Período no disponible" };
+    const e = effectiveSub(sub, now);
+    if (e.active) {
+        const cur    = cfg.tiers.find(t => t.id === e.planType);
+        const curEnd = e.scheduled ? e.scheduledStart : e.paidUntil;  // hasta cuándo dura el nivel actual
+        const eq     = t => t.monthlyPrice * (1 - (cfg.periods[e.period]?.discount || 0) / 100);
+        if (cur && tierId !== e.planType && eq(tier) > eq(cur)) {
+            const amount = Math.round((eq(tier) - eq(cur)) * Math.max(0, curEnd - now) / MONTH_MS);
+            return { kind: "upgrade", tier, period: e.period, amount, until: curEnd };
+        }
+        if (e.scheduled && (e.scheduled.planType !== tierId || (e.scheduled.period || e.period) !== periodId)) {
+            return { error: "Ya tenés un cambio de plan programado. Podés renovar con ese mismo plan o escribirnos desde Soporte." };
+        }
+        return { kind: "renew", tier, period: periodId, amount: periodPrice(tier, periodId, cfg), startsAt: e.paidUntil };
+    }
+    const startsAt = e.trial ? Math.max(now, e.trialEndsAt) : now;   // en prueba: lo pago empieza cuando termina la prueba
+    return { kind: "new", tier, period: periodId, amount: periodPrice(tier, periodId, cfg), startsAt };
+}
+
+// Campos de subscription a escribir (merge) para aplicar una compra ya pagada (o un cupón)
+function purchaseFields(sub, q, now) {
+    const e = effectiveSub(sub, now);
+    const del = FieldValue.delete();
+    if (q.kind === "upgrade") {
+        return {
+            status: "active", planType: q.tier.id, period: e.period, paidUntil: Timestamp.fromMillis(e.paidUntil),
+            ...(e.scheduledDue && { scheduled: del }),
+        };
+    }
+    const months = PERIODS_DEFAULT[q.period].months;
+    if (q.kind === "renew" && e.active) {
+        const base = e.paidUntil;
+        const change = !e.scheduled && (q.tier.id !== e.planType || q.period !== e.period);
+        return {
+            status: "active", planType: e.planType, period: e.period,
+            paidUntil: Timestamp.fromMillis(addMonths(base, months)),
+            ...(change ? { scheduled: { planType: q.tier.id, period: q.period, startsAt: Timestamp.fromMillis(base) } }
+                       : e.scheduledDue ? { scheduled: del } : {}),
+        };
+    }
+    // Nuevo (o "renovación" de algo que ya venció)
+    const start = e.trial ? Math.max(now, e.trialEndsAt) : now;
+    return {
+        status: "active", planType: q.tier.id, period: q.period,
+        paidUntil: Timestamp.fromMillis(addMonths(start, months)), scheduled: del,
+    };
 }
 
 // ── Enviar código OTP por email ───────────────────────────────
@@ -140,57 +252,72 @@ exports.verifyOTPAndSignIn = onRequest(
 //  Firestore impiden que el cliente modifique users/{uid}.subscription
 // ══════════════════════════════════════════════════════════════
 
-// Activa (o extiende) la suscripción a partir de un pago de MP. Idempotente.
+// Activa, renueva o mejora la suscripción a partir de un pago aprobado de MP. Idempotente.
+// external_reference = "uid|q|quoteId" (cotización guardada en paymentQuotes al crear el pago).
+// Formato viejo "uid|planId": se toma como plan mensual de ese nivel.
 async function activateFromPayment(payment) {
     if (payment.status !== "approved") return { ok: false, reason: "not_approved" };
 
-    const [uid, planId] = String(payment.external_reference || "").split("|");
-    const plans = await getPlans();
-    const plan  = plans.find(p => p.id === planId);
+    const parts = String(payment.external_reference || "").split("|");
+    const uid   = parts[0];
+    const cfg   = await getPlanConfig();
+    let quote = null, quoteRef = null;
+    if (parts[1] === "q" && parts[2]) {
+        quoteRef = db.collection("paymentQuotes").doc(parts[2]);
+        const qs = await quoteRef.get();
+        if (qs.exists && qs.data().uid === uid) quote = qs.data();
+    } else if (parts[1]) {
+        quote = { tierId: parts[1], period: "monthly", kind: "auto", amount: null };
+    }
+    const tier = quote && cfg.tiers.find(t => t.id === quote.tierId);
 
-    if (!uid || !plan) {
+    const unmatched = async reason => {
         await db.collection("unmatchedPayments").doc(String(payment.id)).set({
             paymentId: String(payment.id),
             amount:    payment.transaction_amount,
             payerEmail: payment.payer?.email || null,
             externalReference: payment.external_reference || null,
-            reason:    !uid ? "sin_external_reference" : "plan_inexistente",
-            createdAt: FieldValue.serverTimestamp(),
+            reason, createdAt: FieldValue.serverTimestamp(),
         }, { merge: true });
-        console.warn("MP: pago sin usuario/plan identificable", payment.id);
-        return { ok: false, reason: "unmatched" };
-    }
+        console.warn("MP: pago sin aplicar", payment.id, reason);
+        return { ok: false, reason };
+    };
+    if (!uid || !quote || !tier) return unmatched(!uid ? "sin_external_reference" : "plan_inexistente");
 
-    if (Number(payment.transaction_amount) + 0.01 < Number(plan.price)) {
-        console.warn(`MP: monto ${payment.transaction_amount} menor al plan ${plan.id} (${plan.price})`);
+    const expected = quote.amount ?? periodPrice(tier, quote.period, cfg);
+    if (Number(payment.transaction_amount) + 0.01 < Number(expected)) {
+        console.warn(`MP: monto ${payment.transaction_amount} menor al cotizado (${expected})`);
         return { ok: false, reason: "amount_mismatch" };
     }
 
     const userRef = db.collection("users").doc(uid);
-    return db.runTransaction(async tx => {
+    const result = await db.runTransaction(async tx => {
         const snap = await tx.get(userRef);
+        const used = quoteRef ? (await tx.get(quoteRef)).data()?.paymentId : null;
         if (!snap.exists) return { ok: false, reason: "user_not_found" };
         const sub = snap.data().subscription || {};
-        if (sub.mpPaymentId === String(payment.id)) return { ok: true, already: true };
+        // Idempotente: el mismo pago (webhook + checkPayment, o reintentos de MP) se aplica una sola vez
+        if (sub.mpPaymentId === String(payment.id) || used === String(payment.id)) return { ok: true, already: true, plan: tier.label };
+        if (used) return { ok: false, reason: "cotizacion_ya_usada" };
 
-        // Si todavía tiene días pagos, el nuevo período se suma al final
-        const now  = new Date();
-        const prev = sub.status === "active" && sub.paidUntil?.toDate ? sub.paidUntil.toDate() : null;
-        const base = prev && prev > now ? prev : now;
-        const paidUntil = new Date(base);
-        paidUntil.setDate(paidUntil.getDate() + (plan.durationDays || 30));
-
-        tx.set(userRef, {
-            subscription: {
-                status:      "active",
-                planType:    plan.id,
-                paidUntil:   Timestamp.fromDate(paidUntil),
-                paidAt:      FieldValue.serverTimestamp(),
-                mpPaymentId: String(payment.id),
-            },
-        }, { merge: true });
-        return { ok: true, plan: plan.label, days: plan.durationDays || 30 };
+        const now = Date.now();
+        const e   = effectiveSub(sub, now);
+        // La cotización dice qué se pagó; si la situación cambió (ej. una mejora que se paga
+        // después de que venció el plan), se registra para revisarla a mano.
+        let q;
+        if (quote.kind === "upgrade") {
+            if (!e.active) return { ok: false, reason: "upgrade_sin_plan_activo" };
+            q = { kind: "upgrade", tier, period: e.period };
+        } else {
+            q = { kind: e.active ? "renew" : "new", tier, period: quote.period };
+        }
+        const fields = purchaseFields(sub, q, now);
+        tx.set(userRef, { subscription: { ...fields, paidAt: FieldValue.serverTimestamp(), mpPaymentId: String(payment.id) } }, { merge: true });
+        if (quoteRef) tx.set(quoteRef, { usedAt: FieldValue.serverTimestamp(), paymentId: String(payment.id) }, { merge: true });
+        return { ok: true, plan: tier.label, kind: q.kind, period: q.period, paidUntil: fields.paidUntil?.toMillis?.() || null };
     });
+    if (!result.ok && ["upgrade_sin_plan_activo", "cotizacion_ya_usada"].includes(result.reason)) return unmatched(result.reason);
+    return result;
 }
 
 async function fetchMpPayment(paymentId) {
@@ -202,8 +329,10 @@ async function fetchMpPayment(paymentId) {
 }
 
 // ── Crear preferencia de pago (Checkout Pro) ──────────────────
-// El precio sale de appConfig/plans (nunca del cliente) y el
-// external_reference "uid|planId" identifica al usuario y al plan.
+// Body: { planId (nivel), period }. El servidor decide si es alta, renovación o mejora y
+// calcula el monto (nunca viene del cliente). La cotización queda en paymentQuotes/{id}
+// y el external_reference "uid|q|id" la vincula con el pago.
+// Con { preview: true } solo devuelve la cotización (para mostrarla antes de pagar).
 
 exports.createPayment = onRequest(
     { cors: true, secrets: ["MP_ACCESS_TOKEN"], invoker: "public" },
@@ -212,22 +341,43 @@ exports.createPayment = onRequest(
         const user = await requireUser(req, res);
         if (!user) return;
 
-        const plan = (await getPlans()).find(p => p.id === req.body?.planId);
-        if (!plan) { res.status(400).json({ error: "Plan inexistente" }); return; }
+        const cfg     = await getPlanConfig();
+        const userRef = db.collection("users").doc(user.uid);
+        const sub     = (await userRef.get()).data()?.subscription || {};
+        if (sub.status === "blocked") { res.status(403).json({ error: "Tu cuenta está suspendida. Escribinos desde Soporte." }); return; }
+
+        const now = Date.now();
+        const q = quotePurchase(sub, cfg, String(req.body?.planId || ""), String(req.body?.period || "monthly"), now);
+        if (q.error) { res.status(400).json({ error: q.error }); return; }
+        const summary = { kind: q.kind, plan: q.tier.label, period: q.period, amount: q.amount,
+                          startsAt: q.startsAt || null, until: q.until || null };
+        if (req.body?.preview) { res.json(summary); return; }
+
+        // Mejora de pocos pesos (le quedan muy pocos días): se aplica sin cobrar
+        if (q.kind === "upgrade" && q.amount < MIN_CHARGE) {
+            await db.runTransaction(async tx => {
+                const s = (await tx.get(userRef)).data()?.subscription || {};
+                tx.set(userRef, { subscription: purchaseFields(s, { kind: "upgrade", tier: q.tier }, Date.now()) }, { merge: true });
+            });
+            res.json({ applied: true, ...summary }); return;
+        }
 
         try {
+            const quoteRef = db.collection("paymentQuotes").doc();
+            await quoteRef.set({ uid: user.uid, tierId: q.tier.id, period: q.period, kind: q.kind, amount: q.amount, createdAt: FieldValue.serverTimestamp() });
+            const periodLabel = PERIODS_DEFAULT[q.period].label.toLowerCase();
             const { data: pref } = await axios.post(
                 "https://api.mercadopago.com/checkout/preferences",
                 {
                     items: [{
-                        id:          plan.id,
-                        title:       `Cubierto — Plan ${plan.label}`,
+                        id:          `${q.tier.id}-${q.period}`,
+                        title:       q.kind === "upgrade" ? `Cubierto — Mejora a plan ${q.tier.label}` : `Cubierto — Plan ${q.tier.label} (${periodLabel})`,
                         quantity:    1,
                         currency_id: "ARS",
-                        unit_price:  Number(plan.price),
+                        unit_price:  Number(q.amount),
                     }],
                     payer:              user.email ? { email: user.email } : undefined,
-                    external_reference: `${user.uid}|${plan.id}`,
+                    external_reference: `${user.uid}|q|${quoteRef.id}`,
                     back_urls: {
                         success: `${APP_URL}/checkout.html`,
                         pending: `${APP_URL}/checkout.html`,
@@ -239,15 +389,37 @@ exports.createPayment = onRequest(
                 { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
             );
 
-            await db.collection("users").doc(user.uid).set({
-                subscription: { planType: plan.id, paymentInitiated: FieldValue.serverTimestamp() },
-            }, { merge: true });
-
-            res.json({ url: pref.init_point });
+            await userRef.set({ subscription: { paymentInitiated: FieldValue.serverTimestamp() } }, { merge: true });
+            res.json({ url: pref.init_point, ...summary });
         } catch (err) {
             console.error("MP createPayment:", err.response?.data || err.message);
             res.status(502).json({ error: "No se pudo iniciar el pago. Intentá de nuevo." });
         }
+    }
+);
+
+// ── Prueba gratis de 14 días ──────────────────────────────────
+// Una sola vez por cuenta, y solo si nunca tuvo un plan pago.
+exports.startTrial = onRequest(
+    { cors: true, invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        const userRef = db.collection("users").doc(user.uid);
+        const result = await db.runTransaction(async tx => {
+            const snap = await tx.get(userRef);
+            const sub  = snap.data()?.subscription || {};
+            const eligible = !sub.trialUsed && !sub.paidUntil && !["active", "trial", "blocked", "pending_payment"].includes(sub.status);
+            if (!eligible) return null;
+            const now = Date.now(), ends = now + TRIAL_DAYS * 24 * 3600 * 1000;
+            tx.set(userRef, {
+                email: snap.data()?.email || user.email || null,
+                subscription: { status: "trial", trialUsed: true, trialStartedAt: Timestamp.fromMillis(now), trialEndsAt: Timestamp.fromMillis(ends) },
+            }, { merge: true });
+            return { status: "trial", trialUsed: true, trialEndsAt: ends };
+        });
+        res.json(result ? { subscription: result } : { subscription: null });
     }
 );
 
@@ -342,7 +514,7 @@ exports.redeemCoupon = onRequest(
         const code = String(req.body?.code || "").trim().toUpperCase();
         if (!code) { res.status(400).json({ error: "Ingresá un código" }); return; }
 
-        const plans      = await getPlans();
+        const cfg        = await getPlanConfig();
         const couponsRef = db.collection("appConfig").doc("coupons");
         const userRef    = db.collection("users").doc(user.uid);
 
@@ -361,10 +533,18 @@ exports.redeemCoupon = onRequest(
                     return { error: "Ya usaste este cupón." };
                 }
 
-                const plan = plans.find(p => p.id === coupon.planId);
-                const days = plan?.durationDays || 30;
-                const paidUntil = new Date();
-                paidUntil.setDate(paidUntil.getDate() + days);
+                // El cupón regala un nivel por un período (mensual si no dice otro). Si ya tiene un plan
+                // activo, se suma al final como una renovación.
+                const tier   = cfg.tiers.find(t => t.id === coupon.planId);
+                const period = PERIODS_DEFAULT[coupon.period] ? coupon.period : "monthly";
+                if (!tier) return { error: "El plan de este cupón ya no existe. Escribinos desde Soporte." };
+                const now = Date.now();
+                const sub = uSnap.data()?.subscription || {};
+                const e   = effectiveSub(sub, now);
+                if (e.active && e.scheduled && (e.scheduled.planType !== tier.id || (e.scheduled.period || e.period) !== period)) {
+                    return { error: "Ya tenés un cambio de plan programado. Escribinos desde Soporte para aplicar el cupón." };
+                }
+                const fields = purchaseFields(sub, { kind: e.active ? "renew" : "new", tier, period }, now);
 
                 list[idx] = {
                     ...coupon,
@@ -374,15 +554,9 @@ exports.redeemCoupon = onRequest(
                 tx.set(couponsRef, { list }, { merge: true });
                 tx.set(userRef, {
                     email: uSnap.data()?.email || user.email || null,
-                    subscription: {
-                        status:    "active",
-                        planType:  coupon.planId,
-                        paidUntil: Timestamp.fromDate(paidUntil),
-                        paidAt:    FieldValue.serverTimestamp(),
-                        coupon:    code,
-                    },
+                    subscription: { ...fields, paidAt: FieldValue.serverTimestamp(), coupon: code },
                 }, { merge: true });
-                return { ok: true, plan: plan?.label || coupon.planId, days };
+                return { ok: true, plan: tier.label, period, months: PERIODS_DEFAULT[period].months };
             });
 
             if (result.error) { res.status(400).json(result); return; }
@@ -491,12 +665,12 @@ async function ownerHasTableOrders(ownerId) {
     const uSnap = await db.collection("users").doc(ownerId).get();
     const u = uSnap.data() || {};
     if (u.email === SUPERADMIN_EMAIL) return true;
-    const sub = u.subscription || {};
-    if (sub.status !== "active") return false;
-    if (sub.paidUntil?.toDate && sub.paidUntil.toDate() < new Date()) return false;
-    const plan = (await getPlans()).find(p => p.id === sub.planType);
-    if (!plan) return false;
-    return !plan.benefits || plan.benefits.table_orders === true;
+    const e = effectiveSub(u.subscription, Date.now());
+    if (e.trial) return true;                 // la prueba de 14 días incluye todo
+    if (!e.active) return false;
+    const tier = (await getPlanConfig()).tiers.find(t => t.id === e.planType);
+    if (!tier) return false;
+    return !tier.benefits || tier.benefits.table_orders === true;
 }
 
 // ── Registrar el Wi-Fi del local ──────────────────────────────

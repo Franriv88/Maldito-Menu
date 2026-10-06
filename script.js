@@ -247,27 +247,22 @@ auth.onAuthStateChanged(async user => {
         const restData = restDoc.data();
         const nombre   = restData.nombre || 'Mi Restaurante';
 
-        // Verificar estado de suscripción (bloquear si no activa)
+        // Suscripción: prueba de 14 días, plan activo (con su nivel) o vencido → elegir plan
         if (!isSuperAdmin) {
-            const uCheck = await db.collection('users').doc(user.uid).get();
-            const subStatus = uCheck.data()?.subscription?.status;
-            if (subStatus === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
-            if (subStatus === 'pending_payment' || subStatus === 'unpaid') {
-                window.location.href = './checkout.html'; return;
+            const [uSnap, pSnap] = await Promise.all([
+                db.collection('users').doc(user.uid).get(),
+                db.collection('appConfig').doc('plans').get().catch(() => null),
+            ]);
+            const plansCfg = normalizePlans(pSnap?.exists ? pSnap.data() : {});
+            let sub  = uSnap.data()?.subscription || null;
+            let info = subscriptionInfo(sub, plansCfg);
+            if (info.state === 'none' && info.trialAvailable) {
+                sub  = await startTrialIfAvailable(user) || sub;   // cuenta nueva: arranca la prueba gratis
+                info = subscriptionInfo(sub, plansCfg);
             }
-        }
-
-        // Cargar beneficios del plan del usuario
-        if (!isSuperAdmin) {
-            try {
-                const [uSnap, pSnap] = await Promise.all([
-                    db.collection('users').doc(user.uid).get(),
-                    db.collection('appConfig').doc('plans').get().catch(() => null),
-                ]);
-                const planType = uSnap.data()?.subscription?.planType;
-                const plans    = pSnap?.exists ? (pSnap.data().list || []) : [];
-                window.userBenefits = getPlanBenefits(plans, planType);
-            } catch { window.userBenefits = null; }
+            if (info.state === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
+            if (info.state !== 'trial' && info.state !== 'active') { window.location.href = './checkout.html'; return; }
+            window.userBenefits = info.benefits;   // null = todo incluido (prueba)
         } else {
             window.userBenefits = null; // superadmin = acceso total
         }

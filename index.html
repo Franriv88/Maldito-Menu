@@ -1379,7 +1379,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
             lastLogin:   firebase.firestore.FieldValue.serverTimestamp(),
             ...(!snap.data()?.subscription && { subscription: { status: 'unpaid' } }),
         }, { merge: true });
-        window.location.href = './checkout.html';
+        window.location.href = './dashboard.html';   // ahí arranca la prueba gratis de 14 días
         return;
     }
 
@@ -1432,7 +1432,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
         ...(!snap.data()?.subscription && { subscription: { status: 'unpaid' } }),
     }, { merge: true });
 
-    window.location.href = './checkout.html';
+    window.location.href = './dashboard.html';   // ahí arranca la prueba gratis de 14 días
 });
 </script>
 <script>lucide.createIcons();</script>

@@ -104,11 +104,16 @@ restaurants/{restaurantId}/
 
 users/{uid}/
   { email, displayName, lastLogin, createdAt,
-    subscription: { status, planType, paidUntil, paidAt, paymentInitiated } }
+    subscription: { status: trial|active|unpaid|pending_payment|blocked, planType (id de nivel), period,
+                    paidUntil, trialEndsAt, trialUsed, scheduled: { planType, period, startsAt }, coupon,
+                    mpPaymentId, paidAt, paymentInitiated } }
+    ← estado efectivo: subscriptionInfo() en Js/benefits-config.js (= effectiveSub() en functions)
 
   imageData/{imgN}: { src }       ← cada imagen de sección en SU PROPIO documento (límite 1 MB c/u;
                                      antes iban todas juntas en config/images y MALIK llegó a 1022 KB)
-  config/ordering:  { enabled, approvalMode: 'manual'|'direct', tableSessions, wifiCheck,
+  config/ordering:  { enabled, businessType: 'restaurant'|'catering', approvalMode: 'manual'|'direct', tableSessions, wifiCheck,
+                     limits: { enabled, max, period: 'day'|'week'|'hours', hours, message }, pause: { until, message },
+                     capacityFullUntil (lo escribe placeOrder al llenarse),
                      geo: {enabled, lat, lng, radius},
                      tables: [{id, label}], printMode: 'browser'|'epson'|'star'|'none', paperWidth }
   mesas/{tableId}:  { open, openedAt, lastActivityAt, openedBy }  ← "mesa abierta" (vence a las 6 h sin actividad)
@@ -119,11 +124,16 @@ users/{uid}/
 
 appConfig/
   coupons:  { list: [...] }  ← NO legible por clientes; se canjea con la function redeemCoupon
-  plans:    { list: [{id, label, price, durationDays, mpLink, savingsLabel, recommended}] }
+  plans:    { tiers: [{ id, label, monthlyPrice, benefits, recommended }],
+              periods: { monthly|quarterly|annual|biennial: { discount, enabled } } }
+            ← precio = mensual × meses × (1 − descuento). El formato viejo { list } se convierte solo (normalizePlans)
+  support:  { email, whatsapp, hours }  ← botón "Soporte" del dashboard (se edita en el superadmin)
   payments: { mpLinkMonthly, mpLinkQuarterly }  ← legacy, migrar a plans
 ```
 
-**Estados de suscripción**: `active` | `unpaid` | `pending_payment` | `blocked`
+**Estados de suscripción**: `trial` | `active` | `unpaid` | `pending_payment` | `blocked`
+
+paymentQuotes/{id}: { uid, tierId, period, kind: new|renew|upgrade, amount, usedAt, paymentId } ← solo servidor
 
 ---
 
@@ -208,14 +218,27 @@ Los inputs hardcodeados con `background: #111` necesitan override `body.light` p
 
 **`users/{uid}.subscription` solo la escribe el servidor** (o el superadmin) — las reglas lo bloquean al cliente.
 
-1. `checkout.html` llama a la function `createPayment` → crea preferencia de Checkout Pro con
-   el precio de `appConfig/plans` y `external_reference = "uid|planId"` → redirige a `init_point`
-2. `mpWebhook` (firma HMAC obligatoria) consulta el pago a la API de MP y activa/extiende el plan
+- **Prueba gratis**: 14 días con todo incluido (`startTrial`, una vez por cuenta, la piden dashboard/admin).
+  Al vencer, el editor manda al checkout; el menú público sigue visible.
+- **Cambios de plan** (`quotePurchase` en functions): sin plan/en prueba/vencido → `new` (en prueba arranca
+  al terminar la prueba); activo + nivel más caro → `upgrade` inmediato pagando la diferencia proporcional a los
+  días restantes (vencimiento igual; < $100 se aplica sin cobrar); activo + mismo nivel, más barato u otro
+  período → `renew`: se suma al final y el cambio queda en `subscription.scheduled` hasta esa fecha.
+
+1. `checkout.html` llama a `createPayment {planId, period}` (con `preview: true` solo cotiza) → guarda la
+   cotización en `paymentQuotes` y crea la preferencia con `external_reference = "uid|q|quoteId"`
+2. `mpWebhook` (firma HMAC obligatoria) consulta el pago a la API de MP y aplica la cotización (idempotente:
+   la cotización guarda el paymentId; un pago menor o una cotización reusada van a `unmatchedPayments`)
 3. Al volver, `checkout.html` llama a `checkPayment` (respaldo del webhook; nunca confía en `?status=`)
 4. Pagos que no se pueden asociar quedan en la colección `unmatchedPayments`
 5. `mpLink` en los planes es legacy: ya no se usa
 
 ## Pedidos en mesa (beneficio `table_orders`, opt-in por plan)
+
+- **Catering** (`businessType: 'catering'`): las mesas son clientes ("Pedido de Marcela"), sin verificación de
+  presencia; los pedidos llevan `kind: 'catering'`. **Límite y pausa** valen para ambos tipos y los aplica placeOrder
+  en la transacción (los rechazados no cuentan); `{hasta}` en el mensaje = fecha de reapertura.
+- Nombre del comensal obligatorio (cliente y placeOrder).
 
 - URL de mesa: `menu.html?r={id}&mesa={tableId}` (mismo link en QR y sticker NFC)
 - `placeOrder` valida plan del dueño, mesa, precios desde Firestore y límite por mesa

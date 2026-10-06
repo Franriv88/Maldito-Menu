@@ -179,6 +179,43 @@
             border-radius:8px;padding:.2rem .5rem;display:inline-block;align-self:flex-start;
         }
         .co-plans.single{grid-template-columns:minmax(0,1fr)}
+
+        /* ── Período (mensual / trimestral / anual / bienal) ── */
+        .co-periods{display:flex;gap:4px;padding:4px;margin:0 auto 1rem;width:max-content;max-width:100%;flex-wrap:wrap;justify-content:center;
+            background:rgba(200,184,154,.06);border:1px solid rgba(200,184,154,.14);border-radius:12px}
+        .co-period{background:none;border:none;cursor:pointer;padding:.45rem .9rem;border-radius:9px;font:500 .78rem 'Inter',sans-serif;
+            color:rgba(200,184,154,.6);display:inline-flex;align-items:center;gap:.4rem;transition:background .15s,color .15s}
+        .co-period:hover{color:#ddd0bb}
+        .co-period.on{background:#c8b89a;color:#161412}
+        .co-period small{font-size:.62rem;font-weight:700;color:#5cbf7a;background:rgba(40,167,69,.14);border-radius:6px;padding:.05rem .35rem}
+        .co-period.on small{color:#1d6b35;background:rgba(40,167,69,.2)}
+        .co-savings-banner{margin:0 0 1.1rem;text-align:center;font-size:.78rem;color:#5cbf7a}
+        .co-plan-month{font-size:.72rem;color:rgba(200,184,154,.5);margin-top:-.3rem}
+        .co-plan-cur{position:absolute;top:-10px;right:12px;background:#28a745;color:#fff;font-size:.55rem;font-weight:700;letter-spacing:1.2px;
+            text-transform:uppercase;padding:.2rem .6rem;border-radius:10px}
+        .co-plan.current{border-color:rgba(40,167,69,.45)}
+        .co-plan-note{font-size:.7rem;color:rgba(200,184,154,.55);line-height:1.45;text-align:center;margin:-.2rem 0 0}
+        .btn-plain{width:100%;height:48px;border-radius:12px;cursor:pointer;font:600 .85rem 'Inter',sans-serif;
+            background:transparent;border:1px solid rgba(200,184,154,.35);color:#c8b89a}
+        .btn-plain:hover{border-color:#c8b89a;background:rgba(200,184,154,.06)}
+        .btn-plain:disabled{opacity:.5;cursor:default}
+
+        /* Plan actual */
+        .co-current{margin:0 0 1.2rem;padding:.8rem 1rem;border-radius:12px;background:rgba(40,167,69,.06);border:1px solid rgba(40,167,69,.22);
+            font-size:.8rem;color:rgba(200,184,154,.75);line-height:1.5}
+        .co-current b{color:#ddd0bb}
+        .co-current[hidden]{display:none}
+
+        /* Confirmación */
+        .co-modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem}
+        .co-modal[hidden]{display:none}
+        .co-modal-box{width:100%;max-width:420px;background:#161616;border:1px solid rgba(200,184,154,.18);border-radius:16px;padding:1.5rem;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+        .co-modal-box h3{margin:0 0 .8rem;font-family:'Cormorant Garant',serif;font-style:italic;font-weight:400;font-size:1.5rem;color:#ede4d8}
+        .co-modal-box p{font-size:.84rem;line-height:1.55;color:rgba(200,184,154,.75);margin:0 0 .6rem}
+        .co-modal-box .co-amount{font-family:'Cormorant Garant',serif;font-size:2.2rem;color:#ede4d8;margin:.4rem 0 .8rem}
+        .co-modal-actions{display:flex;gap:.6rem;margin-top:1rem}
+        .co-modal-actions .btn-pay{flex:1.4}
+        .co-modal-cancel{flex:1;height:48px;border-radius:12px;background:none;border:1px solid rgba(200,184,154,.25);color:#c8b89a;cursor:pointer;font:500 .85rem 'Inter',sans-serif}
         @media(max-width:400px){.co-plans{grid-template-columns:1fr;row-gap:1.6rem}}
 
         /* ── COMPUTADORA: más ancho mientras se eligen los planes ── */
@@ -219,6 +256,9 @@
                 <div class="co-benefit"><div class="co-check">✓</div><span>Soporte directo del administrador</span></div>
             </div>
 
+            <div class="co-current" id="currentPlan" hidden></div>
+            <div class="co-periods" id="periodToggle" role="tablist" aria-label="Período de facturación"></div>
+            <p class="co-savings-banner" id="savingsBanner" hidden></p>
             <div class="co-plans" id="dynamicPlans">
                 <!-- planes cargados dinámicamente -->
             </div>
@@ -243,6 +283,18 @@
             <button class="btn-skip" id="skipBtn">Explorar primero, pagar después →</button>
         </div>
 
+        <!-- Confirmación de un cambio de plan (monto calculado por el servidor) -->
+        <div class="co-modal" id="confirmModal" hidden>
+            <div class="co-modal-box" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+                <h3 id="cmTitle"></h3>
+                <div id="cmBody"></div>
+                <div class="co-modal-actions">
+                    <button type="button" class="co-modal-cancel" id="cmCancel">Volver</button>
+                    <button type="button" class="btn-pay" id="cmOk"><img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago"></button>
+                </div>
+            </div>
+        </div>
+
         <!-- SUCCESS -->
         <div class="co-success" id="successState">
             <div class="s-icon" id="successIcon"></div>
@@ -264,9 +316,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="./Js/benefits-config.js?v=2"></script>
+<script src="./Js/benefits-config.js?v=3"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
 <script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 function licon(name, size = 16) {
     if (typeof lucide === 'undefined') return '';
     const aliases = { 'check-circle-2':'circle-check-big', 'x-circle':'circle-x', 'alert-triangle':'triangle-alert' };
@@ -317,17 +371,13 @@ auth.onAuthStateChanged(async user => {
     ]);
 
     const userData  = userSnap.exists ? userSnap.data() : {};
-    const subStatus = userData.subscription?.status;
 
-    // ── Cargar planes (nuevo doc o fallback al viejo) ──────────
-    let plans = [];
-    if (plansSnap && plansSnap.exists && (plansSnap.data().list || []).length) {
-        plans = plansSnap.data().list;
-    } else {
-        const d = paySnap && paySnap.exists ? paySnap.data() : {};
-        if (d.mpLinkMonthly)   plans.push({ id: 'monthly',   label: 'Mensual',    price: 20000, durationDays: 30, mpLink: d.mpLinkMonthly,   savingsLabel: '',              recommended: false });
-        if (d.mpLinkQuarterly) plans.push({ id: 'quarterly', label: 'Trimestral', price: 54000, durationDays: 90, mpLink: d.mpLinkQuarterly, savingsLabel: 'Ahorrás $6.000', recommended: true  });
-    }
+    // ── Planes: niveles × períodos (Js/benefits-config.js) ─────
+    const plansCfg = normalizePlans(plansSnap && plansSnap.exists ? plansSnap.data() : {});
+    const plans    = plansCfg.tiers.filter(t => t.monthlyPrice > 0);
+    const info     = subscriptionInfo(userData.subscription, plansCfg);
+    const money    = n => '$' + Math.round(n).toLocaleString('es-AR');
+    const fecha    = ms => new Date(ms).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
     document.getElementById('loadingState').style.display = 'none';
 
@@ -342,9 +392,11 @@ auth.onAuthStateChanged(async user => {
         const realStatus = verified?.status || paymentStatus;
 
         if (realStatus === 'active') {
-            document.getElementById('successTitle').textContent = '¡Suscripción activada!';
-            document.getElementById('successMsg').textContent   =
-                `Tu plan ${verified.plan || 'de suscripción'} está activo por ${verified.days || 30} días.`;
+            document.getElementById('successTitle').textContent = verified.kind === 'upgrade' ? '¡Plan mejorado!' : '¡Suscripción activada!';
+            document.getElementById('successMsg').textContent =
+                verified.kind === 'upgrade' ? `Ya tenés el plan ${verified.plan} con todas sus funciones.`
+                : verified.paidUntil ? `Tu plan ${verified.plan || ''} está activo hasta el ${fecha(verified.paidUntil)}.`
+                : `Tu plan ${verified.plan || 'de suscripción'} está activo.`;
             document.getElementById('successState').style.display = 'block';
 
         } else if (realStatus === 'approved' || realStatus === 'success') {
@@ -385,12 +437,12 @@ auth.onAuthStateChanged(async user => {
     }
 
     // ── Ya tiene suscripción activa ────────────────────────────
-    // Con ?renovar=1 (desde el panel) puede renovar o cambiar de plan: el servidor suma los días al final del período
+    // Con ?renovar=1 (desde el panel) puede renovar, mejorar o cambiar de plan
     const renovando = new URLSearchParams(location.search).has('renovar');
-    if (subStatus === 'active' && !renovando) { window.location.href = './dashboard.html'; return; }
+    if (info.state === 'active' && !renovando) { window.location.href = './dashboard.html'; return; }
 
     // ── Pago pendiente de confirmación ─────────────────────────
-    if (subStatus === 'pending_payment') {
+    if (info.state === 'pending') {
         document.getElementById('planState').style.display  = 'block';
         document.getElementById('pendingState').style.display = 'block';
         document.getElementById('dynamicPlans').style.display = 'none';
@@ -403,56 +455,157 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('planState').style.display = 'block';
     document.body.classList.add('co-wide');
 
+    // Plan actual / prueba
+    const cur = document.getElementById('currentPlan');
+    const perLabel = id => (plansCfg.periods[id]?.label || '').toLowerCase();
+    if (info.state === 'active') {
+        cur.innerHTML = `Tu plan actual: <b>${esc(info.tier?.label || info.tierId)}</b> (${perLabel(info.period)}), activo hasta el <b>${fecha(info.until)}</b>.`
+            + (info.scheduled ? ` Desde el ${fecha(info.scheduled.startsAt)} pasás al plan <b>${esc(info.scheduled.tier?.label || info.scheduled.planType)}</b> (${perLabel(info.scheduled.period)}).` : '')
+            + `<br>Si mejorás tu plan, se activa ya y pagás solo la diferencia por los días que te quedan. Si elegís uno más económico u otro período, empieza cuando termina lo que ya pagaste.`;
+        cur.hidden = false;
+    } else if (info.state === 'trial') {
+        cur.innerHTML = `Estás en tu <b>prueba gratis</b> hasta el <b>${fecha(info.until)}</b>. Si elegís un plan ahora, empieza a correr cuando termina la prueba.`;
+        cur.hidden = false;
+    } else if (info.wasTrial) {
+        cur.innerHTML = `Terminó tu prueba gratis. Tu menú sigue visible para tus clientes: elegí un plan para volver a editarlo.`;
+        cur.hidden = false;
+    }
+
     if (!plans.length) {
         document.getElementById('noConfigMsg').style.display = 'block';
         document.getElementById('dynamicPlans').style.display = 'none';
     } else {
-        renderPlans(plans);
+        const periods = PERIOD_ORDER.filter(id => plansCfg.periods[id].enabled);
+        let period = info.state === 'active' && periods.includes(info.period) ? info.period : 'monthly';
+        const renderAll = () => { renderPeriods(periods, period); renderPlans(plans, period); };
+        document.getElementById('periodToggle').addEventListener('click', e => {
+            const b = e.target.closest('[data-period]');
+            if (b) { period = b.dataset.period; renderAll(); }
+        });
+        renderAll();
     }
 
     document.getElementById('skipBtn').addEventListener('click', () => {
         window.location.href = './dashboard.html';
     });
-    if (renovando) document.getElementById('skipBtn').textContent = '← Volver al panel';
+    if (renovando || info.state === 'active' || info.state === 'trial') document.getElementById('skipBtn').textContent = '← Volver al panel';
 
-    function renderPlans(plans) {
+    function renderPeriods(periods, selected) {
+        const el = document.getElementById('periodToggle');
+        el.hidden = periods.length < 2;
+        el.innerHTML = periods.map(id => {
+            const p = plansCfg.periods[id];
+            return `<button type="button" role="tab" class="co-period${id === selected ? ' on' : ''}" data-period="${id}" aria-selected="${id === selected}">
+                ${p.label}${p.discount ? `<small>−${p.discount}%</small>` : ''}</button>`;
+        }).join('');
+        const banner = document.getElementById('savingsBanner');
+        const p = plansCfg.periods[selected];
+        if (p.months > 1 && p.discount > 0) {
+            const best = Math.max(...plans.map(t => periodSavings(t, selected, plansCfg)));
+            banner.textContent = `✓ Ahorrás hasta ${money(best)} ${p.months === 3 ? 'cada 3 meses' : p.months === 12 ? 'por año' : `cada ${p.months / 12} años`} comparado con pagar mes a mes`;
+            banner.hidden = false;
+        } else banner.hidden = true;
+    }
+
+    // Qué haría el botón de cada plan (el monto real lo calcula el servidor)
+    function actionFor(tier, period) {
+        if (info.state !== 'active') return { kind: 'new' };
+        const curTier = info.tier;
+        const eq = t => t.monthlyPrice * (1 - (plansCfg.periods[info.period]?.discount || 0) / 100);
+        if (curTier && tier.id !== info.tierId && eq(tier) > eq(curTier)) return { kind: 'upgrade' };
+        if (tier.id === info.tierId && period === info.period) return { kind: 'renew-same' };
+        return { kind: 'renew-change' };
+    }
+
+    function renderPlans(plans, period) {
         const container = document.getElementById('dynamicPlans');
         container.classList.toggle('single', plans.length === 1);
-        container.innerHTML = plans.map(p => {
-            const price = Number(p.price).toLocaleString('es-AR');
+        const p = plansCfg.periods[period];
+        container.innerHTML = plans.map(t => {
+            const total   = periodPrice(t, period, plansCfg);
+            const monthly = periodMonthly(t, period, plansCfg);
+            const saving  = periodSavings(t, period, plansCfg);
+            const act     = actionFor(t, period);
+            const isCur   = info.state === 'active' && t.id === info.tierId;
+            const btn = act.kind === 'upgrade'
+                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Mejorar ahora</button>`
+                : act.kind === 'renew-same'
+                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Renovar</button>`
+                : act.kind === 'renew-change'
+                ? `<button class="btn-plain co-pay-btn" data-id="${t.id}">Cambiar desde el ${fecha(info.until)}</button>`
+                : `<button class="btn-pay co-pay-btn" data-id="${t.id}"><img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago"></button>`;
             return `
-                <div class="co-plan ${p.recommended ? 'recommended' : ''}">
-                    ${p.recommended ? '<div class="co-rec-badge">✦ Recomendado</div>' : ''}
-                    <div class="co-plan-label">${p.label}</div>
-                    <div class="co-plan-price">$${price} <span>ARS</span></div>
-                    <div class="co-plan-sub">${p.durationDays} días de acceso</div>
-                    ${p.savingsLabel ? `<span class="co-plan-save">${p.savingsLabel}</span>` : ''}
-                    ${p.benefits ? `<ul class="co-plan-features">${BENEFITS_CONFIG.map(b => {
-                        const on = hasBenefit(p.benefits, b.id);
+                <div class="co-plan ${t.recommended ? 'recommended' : ''} ${isCur ? 'current' : ''}">
+                    ${t.recommended && !isCur ? '<div class="co-rec-badge">✦ Recomendado</div>' : ''}
+                    ${isCur ? '<div class="co-plan-cur">Tu plan</div>' : ''}
+                    <div class="co-plan-label">${esc(t.label)}</div>
+                    <div class="co-plan-price">${money(monthly)} <span>/ mes</span></div>
+                    <div class="co-plan-sub">${p.months === 1 ? 'Se paga mes a mes' : `Pagás ${money(total)} cada ${p.months === 12 ? 'año' : p.months === 24 ? '2 años' : `${p.months} meses`}`}</div>
+                    ${saving > 0 ? `<span class="co-plan-save">Ahorrás ${money(saving)} frente a pagar mes a mes</span>` : ''}
+                    ${t.benefits ? `<ul class="co-plan-features">${BENEFITS_CONFIG.map(b => {
+                        const on = hasBenefit(t.benefits, b.id);
                         const lbl = b.id === 'restaurants'
-                            ? `${p.benefits.restaurants || 1} restaurante${(p.benefits.restaurants||1)>1?'s':''}`
+                            ? `${t.benefits.restaurants || 1} restaurante${(t.benefits.restaurants||1)>1?'s':''}`
                             : b.label;
                         return `<li class="co-feat-item${on?'':' disabled'}"><span class="co-feat-check">${on?'✓':'–'}</span><span>${lbl}</span></li>`;
                     }).join('')}</ul>` : ''}
-                    <button class="btn-pay co-pay-btn" data-id="${p.id}" style="margin-top:auto">
-                        <img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago">
-                    </button>
+                    <div style="margin-top:auto;display:flex;flex-direction:column;gap:.5rem">${btn}</div>
                 </div>`;
         }).join('');
 
         container.querySelectorAll('.co-pay-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const original = btn.innerHTML;
+            btn.addEventListener('click', () => choosePlan(btn, btn.dataset.id, period));
+        });
+    }
+
+    // Alta directa → Mercado Pago. Con plan activo → primero muestra el monto y lo que pasa.
+    async function choosePlan(btn, planId, period) {
+        const original = btn.innerHTML;
+        btn.disabled = true; btn.textContent = info.state === 'active' ? 'Calculando...' : 'Redirigiendo...';
+        try {
+            if (info.state === 'active') {
+                const q = await callFn('createPayment', { planId, period, preview: true });
+                btn.disabled = false; btn.innerHTML = original;
+                if (!(await confirmChange(q))) return;
                 btn.disabled = true; btn.textContent = 'Redirigiendo...';
-                try {
-                    // El servidor crea el pago con el precio real del plan
-                    const { url } = await callFn('createPayment', { planId: btn.dataset.id });
-                    window.location.href = url;
-                } catch (e) {
-                    btn.disabled = false; btn.innerHTML = original;
-                    alert(e.message);
-                }
-            });
+            }
+            const r = await callFn('createPayment', { planId, period });
+            if (r.applied) { alert(`Listo: ya tenés el plan ${r.plan}.`); window.location.href = './dashboard.html'; return; }
+            window.location.href = r.url;
+        } catch (e) {
+            btn.disabled = false; btn.innerHTML = original;
+            alert(e.message);
+        }
+    }
+
+    function confirmChange(q) {
+        const modal = document.getElementById('confirmModal');
+        const per = (plansCfg.periods[q.period]?.label || '').toLowerCase();
+        let title, body;
+        if (q.kind === 'upgrade') {
+            title = `Mejorar al plan ${esc(q.plan)}`;
+            body = q.amount < 100
+                ? `<p>Te quedan muy pocos días del período actual: el cambio <b>no tiene costo</b> y se aplica ya.</p>`
+                : `<p>Se activa <b>ahora mismo</b>. Pagás solo la diferencia por los días que te quedan hasta el ${fecha(q.until)}:</p>
+                   <div class="co-amount">${money(q.amount)}</div>
+                   <p>Tu fecha de vencimiento no cambia. Al renovar, pagás el plan ${esc(q.plan)} completo.</p>`;
+        } else {
+            title = `Plan ${esc(q.plan)} · ${per}`;
+            body = `<p>${q.startsAt && q.startsAt > Date.now() + 60000
+                    ? `Empieza el <b>${fecha(q.startsAt)}</b>, cuando termina lo que ya pagaste. Hasta entonces seguís con tu plan actual.`
+                    : 'Empieza hoy.'}</p>
+                   <div class="co-amount">${money(q.amount)}</div>`;
+        }
+        document.getElementById('cmTitle').innerHTML = title;
+        document.getElementById('cmBody').innerHTML = body;
+        const okBtn = document.getElementById('cmOk');
+        okBtn.innerHTML = q.kind === 'upgrade' && q.amount < 100 ? 'Aplicar cambio' : '<img class="mp-logo-img" src="img/mercado-pago-btn.png" alt="Pagar con Mercado Pago">';
+        modal.hidden = false;
+        return new Promise(resolve => {
+            const done = v => { modal.hidden = true; okBtn.onclick = null; resolve(v); };
+            okBtn.onclick = () => done(true);
+            document.getElementById('cmCancel').onclick = () => done(false);
+            modal.onclick = e => { if (e.target === modal) done(false); };
         });
     }
 

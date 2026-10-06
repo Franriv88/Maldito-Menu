@@ -340,6 +340,7 @@
             <div class="sa-section-title">Planes de suscripción</div>
             <button onclick="editPlan(-1)" style="background:rgba(40,167,69,.12);border:1px solid rgba(40,167,69,.28);color:#5cbf7a;border-radius:8px;padding:.38rem 1rem;font-size:.72rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i data-lucide="plus" class="icon" style="width:13px;height:13px;stroke-width:2"></i> Agregar plan</button>
         </div>
+        <div id="periodsEditor" style="margin-bottom:1rem"></div>
         <div class="sa-plans-grid" id="plansList">
             <p style="color:rgba(200,184,154,.3);font-size:.78rem">Cargando planes...</p>
         </div>
@@ -419,7 +420,7 @@
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="./Js/benefits-config.js?v=2"></script>
+<script src="./Js/benefits-config.js?v=3"></script>
 <script>
 
 const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
@@ -444,40 +445,44 @@ auth.onAuthStateChanged(async user => {
 
     await loadData();
     await loadPlansConfig();
+    renderStats(); renderTable();   // la tabla muestra el nombre del plan: redibujar con los planes ya cargados
     await loadCoupons();
     await loadSupport();
 });
 
 // ── Plan management ───────────────────────────────────────────
+// appConfig/plans = { tiers: [{ id, label, monthlyPrice, benefits, recommended }],
+//                     periods: { monthly|quarterly|annual|biennial: { discount, enabled } } }
+// appPlans = niveles (tiers). El precio de cada período se calcula: mensual × meses × (1 − descuento).
+let appPeriods = normalizePlans({}).periods;
 
 async function loadPlansConfig() {
     try {
         const snap = await db.collection('appConfig').doc('plans').get();
-        if (snap.exists && (snap.data().list || []).length) {
-            appPlans = snap.data().list;
-        } else {
-            // Migrate from old payments doc
-            const pay = await db.collection('appConfig').doc('payments').get().catch(() => null);
-            const d = pay && pay.exists ? pay.data() : {};
-            appPlans = [
-                { id: 'monthly',   label: 'Mensual',    price: 20000, durationDays: 30, mpLink: d.mpLinkMonthly   || '', savingsLabel: '',              recommended: false },
-                { id: 'quarterly', label: 'Trimestral', price: 54000, durationDays: 90, mpLink: d.mpLinkQuarterly || '', savingsLabel: 'Ahorrás $6.000', recommended: true  },
-            ];
-        }
+        const cfg  = normalizePlans(snap.exists ? snap.data() : {});   // convierte el formato viejo (list) si hace falta
+        appPlans   = cfg.tiers;
+        appPeriods = cfg.periods;
     } catch(e) { console.error('Error cargando planes:', e); }
     renderPlans();
 }
 
 async function savePlans() {
-    await db.collection('appConfig').doc('plans').set({ list: appPlans });
+    await db.collection('appConfig').doc('plans').set({
+        tiers: appPlans.map(t => ({ id: t.id, label: t.label, monthlyPrice: Number(t.monthlyPrice) || 0, recommended: !!t.recommended, benefits: t.benefits || null })),
+        periods: Object.fromEntries(PERIOD_ORDER.map(id => [id, { discount: appPeriods[id].discount, enabled: appPeriods[id].enabled }])),
+    });
 }
 
+const saMoney = n => '$' + Math.round(n).toLocaleString('es-AR');
+
 function renderPlans() {
+    renderPeriodsEditor();
     const container = document.getElementById('plansList');
     if (!appPlans.length) {
         container.innerHTML = '<p style="color:rgba(200,184,154,.3);font-size:.78rem">No hay planes configurados.</p>';
         return;
     }
+    const cfg = { tiers: appPlans, periods: appPeriods };
     container.innerHTML = appPlans.map((p, i) => {
         const benefitBadges = p.benefits ? BENEFITS_CONFIG.map(b => {
             const on  = hasBenefit(p.benefits, b.id);
@@ -486,17 +491,16 @@ function renderPlans() {
                 ? 'background:rgba(40,167,69,.12);color:#5cbf7a;border:1px solid rgba(40,167,69,.25)'
                 : 'background:rgba(124,108,92,.08);color:rgba(200,184,154,.3);border:1px solid rgba(124,108,92,.15)'}">${lbl}</span>`;
         }).join('') : '';
+        const prices = PERIOD_ORDER.filter(id => appPeriods[id].enabled).map(id =>
+            `<div style="display:flex;justify-content:space-between;font-size:.7rem;color:rgba(200,184,154,.55);padding:.1rem 0">
+                <span>${appPeriods[id].label}</span><span>${saMoney(periodPrice(p, id, cfg))}${id !== 'monthly' ? ` <small style="color:#5cbf7a">(−${saMoney(periodSavings(p, id, cfg))})</small>` : ''}</span></div>`).join('');
         return `
         <div class="sa-plan-card ${p.recommended ? 'sa-plan-recommended' : ''}">
             ${p.recommended ? '<span class="sa-plan-rec-badge">✦ Recomendado</span>' : ''}
             <div class="sa-plan-name">${esc(p.label)}</div>
-            <div class="sa-plan-price">$${Number(p.price).toLocaleString('es-AR')} <span>ARS</span></div>
-            <div class="sa-plan-meta">${p.durationDays} días de acceso</div>
-            ${p.savingsLabel ? `<div class="sa-plan-saving">${esc(p.savingsLabel)}</div>` : ''}
+            <div class="sa-plan-price">${saMoney(p.monthlyPrice)} <span>ARS / mes</span></div>
+            <div style="margin:.35rem 0 .2rem">${prices}</div>
             ${benefitBadges ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:.4rem 0">${benefitBadges}</div>` : ''}
-            <div class="sa-plan-link-status has-link">
-                ${licon('link-2',12)} Cobro automático con Mercado Pago
-            </div>
             <div class="sa-plan-actions">
                 <button class="sa-btn sa-btn-unblock" onclick="editPlan(${i})" style="flex:1">Editar</button>
                 <button class="sa-btn sa-btn-delete"  onclick="deletePlan(${i})">✕</button>
@@ -505,10 +509,43 @@ function renderPlans() {
     }).join('');
 }
 
+// Descuentos por período (iguales para todos los niveles)
+function renderPeriodsEditor() {
+    const el = document.getElementById('periodsEditor');
+    if (!el) return;
+    el.innerHTML = `
+        <div style="font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:rgba(200,184,154,.4);margin-bottom:.5rem">Períodos y descuento sobre el precio mensual</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+        ${PERIOD_ORDER.map(id => {
+            const p = appPeriods[id];
+            return `<label style="display:flex;align-items:center;gap:.45rem;padding:.45rem .7rem;border:1px solid rgba(200,184,154,.15);border-radius:8px;font-size:.75rem;color:rgba(200,184,154,.75)">
+                <input type="checkbox" data-period-on="${id}" ${p.enabled ? 'checked' : ''} ${id === 'monthly' ? 'disabled' : ''} style="accent-color:#c8b89a">
+                ${p.label}
+                ${id === 'monthly' ? '<span style="opacity:.5">(base)</span>' : `<input type="number" min="0" max="90" data-period-disc="${id}" value="${p.discount}" style="width:52px;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:6px;color:#c8b89a;padding:.2rem .35rem;font-size:.75rem"> %`}
+            </label>`;
+        }).join('')}
+        <button class="sa-btn sa-btn-unblock" onclick="savePeriods()" style="font-size:.7rem">Guardar períodos</button>
+        </div>`;
+}
+
+async function savePeriods() {
+    document.querySelectorAll('[data-period-on]').forEach(i => { if (i.dataset.periodOn !== 'monthly') appPeriods[i.dataset.periodOn].enabled = i.checked; });
+    document.querySelectorAll('[data-period-disc]').forEach(i => {
+        appPeriods[i.dataset.periodDisc].discount = Math.min(Math.max(parseInt(i.value) || 0, 0), 90);
+    });
+    try {
+        await savePlans();
+        renderPlans();
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Períodos guardados', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    } catch(e) {
+        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    }
+}
+
 async function editPlan(idx) {
     const isNew = idx < 0;
     const plan  = isNew
-        ? { label: '', price: '', durationDays: 30, mpLink: '', savingsLabel: '', recommended: false }
+        ? { label: '', monthlyPrice: '', recommended: false }
         : appPlans[idx];
 
     const inp = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.82rem;padding:.48rem .8rem;outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
@@ -518,14 +555,10 @@ async function editPlan(idx) {
         title: isNew ? 'Nuevo plan' : 'Editar plan',
         html: `<div style="text-align:left">
             <label style="${lbl}">Nombre del plan</label>
-            <input id="sp-label" style="${inp}" value="${esc(plan.label)}" placeholder="Ej: Mensual">
-            <label style="${lbl}">Precio (ARS)</label>
-            <input id="sp-price" type="number" min="0" style="${inp}" value="${plan.price}" placeholder="20000">
-            <label style="${lbl}">Duración (días)</label>
-            <input id="sp-days"  type="number" min="1" style="${inp}" value="${plan.durationDays}" placeholder="30">
-            <input id="sp-link"  type="hidden" value="${esc(plan.mpLink || '')}">
-            <label style="${lbl}">Etiqueta de ahorro (opcional)</label>
-            <input id="sp-save" style="${inp}" value="${esc(plan.savingsLabel || '')}" placeholder="Ej: Ahorrás $6.000">
+            <input id="sp-label" style="${inp}" value="${esc(plan.label)}" placeholder="Ej: Básico, Pro">
+            <label style="${lbl}">Precio mensual (ARS)</label>
+            <input id="sp-price" type="number" min="0" style="${inp}" value="${plan.monthlyPrice}" placeholder="10000">
+            <p style="font-size:.7rem;color:rgba(200,184,154,.45);margin:-.2rem 0 .6rem">Trimestral, anual y bienal se calculan con los descuentos de los períodos.</p>
             <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:rgba(200,184,154,.6);margin-top:.3rem">
                 <input type="checkbox" id="sp-rec" ${plan.recommended ? 'checked' : ''} style="accent-color:#c8b89a">
                 Marcar como recomendado
@@ -536,7 +569,7 @@ async function editPlan(idx) {
                     <div style="${lbl};margin-bottom:.3rem">Restaurantes</div>
                     <div style="display:flex;gap:.8rem">
                         ${[1,3,5].map(n => `<label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:rgba(200,184,154,.7);cursor:pointer">
-                            <input type="radio" name="sp-restaurants" value="${n}" ${(plan.benefits?.restaurants||1)===n?'checked':''} style="accent-color:#c8b89a"> ${n}
+                            <input type="radio" name="sp-restaurants" value="${n}" ${(Number(plan.benefits?.restaurants)||1)===n?'checked':''} style="accent-color:#c8b89a"> ${n}
                         </label>`).join('')}
                     </div>
                 </div>
@@ -556,26 +589,16 @@ async function editPlan(idx) {
         confirmButtonColor: '#2d9a4e',
         cancelButtonColor: 'rgba(124,108,92,.3)',
         preConfirm: () => {
-            const label       = document.getElementById('sp-label').value.trim();
-            const price       = +document.getElementById('sp-price').value;
-            const durationDays = +document.getElementById('sp-days').value;
-            if (!label)          { Swal.showValidationMessage('El nombre es obligatorio'); return false; }
-            if (!price || price <= 0) { Swal.showValidationMessage('Ingresá un precio válido'); return false; }
-            if (!durationDays || durationDays <= 0) { Swal.showValidationMessage('Ingresá una duración válida'); return false; }
+            const label        = document.getElementById('sp-label').value.trim();
+            const monthlyPrice = +document.getElementById('sp-price').value;
+            if (!label)                           { Swal.showValidationMessage('El nombre es obligatorio'); return false; }
+            if (!monthlyPrice || monthlyPrice <= 0) { Swal.showValidationMessage('Ingresá un precio mensual válido'); return false; }
             const restaurants = parseInt(document.querySelector('input[name="sp-restaurants"]:checked')?.value || '1');
             const benefits = { restaurants };
             BENEFITS_CONFIG.filter(b => b.type === 'bool').forEach(b => {
                 benefits[b.id] = document.getElementById(`sp-${b.id}`)?.checked ?? true;
             });
-            return {
-                label,
-                price,
-                durationDays,
-                mpLink:       document.getElementById('sp-link').value.trim(),
-                savingsLabel: document.getElementById('sp-save').value.trim(),
-                recommended:  document.getElementById('sp-rec').checked,
-                benefits,
-            };
+            return { label, monthlyPrice, recommended: document.getElementById('sp-rec').checked, benefits };
         },
     });
     if (!isConfirmed || !form) return;
@@ -691,7 +714,7 @@ function renderCoupons() {
             const max  = c.usesMax   || '∞';
             return `<tr style="border-top:1px solid rgba(124,108,92,.1)">
                 <td style="padding:.5rem .6rem;font-weight:600;color:#c8b89a;letter-spacing:.5px">${esc(c.code)}</td>
-                <td style="padding:.5rem .6rem;color:rgba(200,184,154,.7)">${plan ? esc(plan.label) : c.planId}</td>
+                <td style="padding:.5rem .6rem;color:rgba(200,184,154,.7)">${plan ? esc(plan.label) : c.planId} · ${(PERIODS_DEFAULT[c.period] || PERIODS_DEFAULT.monthly).label.toLowerCase()}</td>
                 <td style="padding:.5rem .6rem;color:rgba(200,184,154,.5)">${used} / ${max}</td>
                 <td style="padding:.5rem .6rem">
                     <span style="${c.active ? 'color:#5cbf7a' : 'color:rgba(200,184,154,.3)'}">
@@ -776,6 +799,8 @@ async function createCoupon() {
             <input id="cp-code" style="${inp}" placeholder="ej: GRATIS2025" style="text-transform:uppercase">
             <label style="${lbl}">Plan que otorga</label>
             <select id="cp-plan" style="${inp}">${planOptions}</select>
+            <label style="${lbl}">Por cuánto tiempo</label>
+            <select id="cp-period" style="${inp}">${PERIOD_ORDER.map(id => `<option value="${id}">${PERIODS_DEFAULT[id].label} (${PERIODS_DEFAULT[id].months} ${PERIODS_DEFAULT[id].months === 1 ? 'mes' : 'meses'})</option>`).join('')}</select>
             <label style="${lbl}">Usos máximos (0 = ilimitado)</label>
             <input id="cp-uses" type="number" min="0" style="${inp}" value="1">
             <label style="${lbl}">Descripción (opcional)</label>
@@ -791,11 +816,12 @@ async function createCoupon() {
         preConfirm: () => {
             const code  = document.getElementById('cp-code').value.trim().toUpperCase();
             const planId = document.getElementById('cp-plan').value;
+            const period = document.getElementById('cp-period').value;
             const uses  = parseInt(document.getElementById('cp-uses').value) || 0;
             const label = document.getElementById('cp-label').value.trim();
             if (!code) { Swal.showValidationMessage('El código es obligatorio'); return false; }
             if (appCoupons.some(c => c.code === code)) { Swal.showValidationMessage('Ya existe un cupón con ese código'); return false; }
-            return { code, planId, usesMax: uses, usesCount: 0, label, active: true };
+            return { code, planId, period, usesMax: uses, usesCount: 0, label, active: true };
         },
     });
     if (!isConfirmed || !form) return;
@@ -874,8 +900,9 @@ async function loadData() {
 
 function renderStats() {
     const total     = allUsers.length;
-    const active    = allUsers.filter(u => u.subscription?.status === 'active').length;
-    const unpaid    = allUsers.filter(u => !u.subscription?.status || u.subscription.status === 'unpaid').length;
+    const effState  = u => subscriptionInfo(u.subscription, { tiers: appPlans, periods: appPeriods }).state;
+    const active    = allUsers.filter(u => effState(u) === 'active').length;
+    const unpaid    = allUsers.filter(u => ['none', 'expired'].includes(effState(u))).length;
     const blocked   = allUsers.filter(u => u.subscription?.status === 'blocked').length;
     const totalRest = allUsers.reduce((acc, u) => acc + u.restaurants.length, 0);
 
@@ -1000,12 +1027,16 @@ function renderTable() {
     }
 
     tbody.innerHTML = filtered.map(u => {
-        const status    = u.subscription?.status || 'unpaid';
+        // Estado efectivo: un plan "active" vencido o una prueba terminada se muestran como impagos
+        const eff       = subscriptionInfo(u.subscription, { tiers: appPlans, periods: appPeriods }).state;
+        const status    = eff === 'trial' ? 'trial' : eff === 'expired' ? 'unpaid' : (u.subscription?.status || 'unpaid');
         const badgeClass = status === 'active' ? 'sa-badge-active'
+                         : status === 'trial' ? 'sa-badge-pending'
                          : status === 'blocked' ? 'sa-badge-blocked'
                          : status === 'pending_payment' ? 'sa-badge-pending'
                          : 'sa-badge-unpaid';
         const badgeText  = status === 'active' ? `${licon('check',11)} Activo`
+                         : status === 'trial' ? `${licon('sparkles',11)} En prueba`
                          : status === 'blocked' ? `${licon('ban',11)} Bloqueado`
                          : status === 'pending_payment' ? `${licon('clock',11)} Pago pendiente`
                          : `${licon('alert-triangle',11)} Impago`;
@@ -1061,9 +1092,13 @@ function renderTable() {
                 <span class="sa-badge sa-badge-rest">${u.restaurants.length} rest.</span>
             </td>
             <td style="font-size:.75rem;color:rgba(200,184,154,.65)">
-                ${appPlans.find(p => p.id === u.subscription?.planType)?.label
-                    ? `<span style="background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.18);border-radius:5px;padding:.15rem .5rem;font-size:.68rem">${esc(appPlans.find(p => p.id === u.subscription?.planType).label)}</span>`
-                    : '<span style="color:rgba(200,184,154,.25);font-size:.7rem">—</span>'}
+                ${(() => {
+                    const inf = subscriptionInfo(u.subscription, { tiers: appPlans, periods: appPeriods });
+                    const chip = t => `<span style="background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.18);border-radius:5px;padding:.15rem .5rem;font-size:.68rem">${t}</span>`;
+                    if (inf.state === 'trial') return chip(`Prueba · ${inf.daysLeft} d`);
+                    if (inf.tier) return chip(`${esc(inf.tier.label)} · ${appPeriods[inf.period]?.label.toLowerCase() || ''}`);
+                    return '<span style="color:rgba(200,184,154,.25);font-size:.7rem">—</span>';
+                })()}
             </td>
             <td><span class="sa-badge ${badgeClass}">${badgeText}</span></td>
             <td style="font-size:.75rem;color:rgba(200,184,154,.5)">${paidUntil}</td>
@@ -1113,44 +1148,47 @@ async function markPaid(uid) {
         Swal.fire({ toast:true, position:'top-end', icon:'warning', title:'No hay planes configurados', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
         return;
     }
-
-    const inputOptions = {};
-    appPlans.forEach(p => {
-        inputOptions[p.id] = `${p.label} — $${Number(p.price).toLocaleString('es-AR')} (${p.durationDays} días)`;
-    });
-    const defaultPlan = (appPlans.find(p => p.recommended) || appPlans[0]).id;
-
-    const { value: planId, isConfirmed } = await Swal.fire({
+    const sel = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.2);border-radius:8px;color:#c8b89a;font-size:.82rem;padding:.48rem .8rem;margin-bottom:.6rem';
+    const cfg = { tiers: appPlans, periods: appPeriods };
+    const defaultTier = (appPlans.find(p => p.recommended) || appPlans[0]).id;
+    const { value: form, isConfirmed } = await Swal.fire({
         title: 'Confirmar pago',
-        input: 'radio',
-        inputOptions,
-        inputValue: defaultPlan,
-        showCancelButton: true,
-        confirmButtonText: 'Confirmar',
-        cancelButtonText: 'Cancelar',
-        background: '#1a1a1a',
-        color: '#c8b89a',
-        confirmButtonColor: '#2d9a4e',
-        cancelButtonColor: 'rgba(124,108,92,.3)',
-        inputValidator: v => !v && 'Seleccioná un plan',
+        html: `<div style="text-align:left">
+            <select id="mp-tier" style="${sel}">${appPlans.map(t => `<option value="${t.id}" ${t.id === defaultTier ? 'selected' : ''}>${esc(t.label)} — ${saMoney(t.monthlyPrice)}/mes</option>`).join('')}</select>
+            <select id="mp-period" style="${sel}">${PERIOD_ORDER.map(id => `<option value="${id}">${appPeriods[id].label} (${appPeriods[id].months} ${appPeriods[id].months === 1 ? 'mes' : 'meses'})</option>`).join('')}</select>
+            <p id="mp-total" style="font-size:.78rem;color:rgba(200,184,154,.6);margin:0"></p>
+        </div>`,
+        didOpen: () => {
+            const upd = () => {
+                const t = appPlans.find(x => x.id === document.getElementById('mp-tier').value);
+                document.getElementById('mp-total').textContent = `Total del período: ${saMoney(periodPrice(t, document.getElementById('mp-period').value, cfg))}`;
+            };
+            document.getElementById('mp-tier').addEventListener('change', upd);
+            document.getElementById('mp-period').addEventListener('change', upd);
+            upd();
+        },
+        showCancelButton: true, confirmButtonText: 'Confirmar', cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a', confirmButtonColor: '#2d9a4e', cancelButtonColor: 'rgba(124,108,92,.3)',
+        preConfirm: () => ({ tierId: document.getElementById('mp-tier').value, period: document.getElementById('mp-period').value }),
     });
-    if (!isConfirmed || !planId) return;
-
-    const plan = appPlans.find(p => p.id === planId);
+    if (!isConfirmed || !form) return;
+    const plan = appPlans.find(p => p.id === form.tierId);
     if (!plan) return;
 
-    const paidUntil = new Date();
-    paidUntil.setDate(paidUntil.getDate() + plan.durationDays);
+    // Si tiene un plan activo del mismo nivel y período, se suma al final; si no, empieza hoy
+    const u    = allUsers.find(x => x.uid === uid);
+    const info = subscriptionInfo(u?.subscription, cfg);
+    const base = info.state === 'active' && info.tierId === form.tierId && info.period === form.period ? new Date(info.until) : new Date();
+    const paidUntil = new Date(base);
+    paidUntil.setMonth(paidUntil.getMonth() + PERIODS_DEFAULT[form.period].months);
 
     try {
-        await db.collection('users').doc(uid).set(
-            { subscription: { status: 'active', planType: plan.id, paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil) } },
-            { merge: true }
-        );
-        const u = allUsers.find(u => u.uid === uid);
-        if (u) u.subscription = { status: 'active', planType: plan.id, paidUntil: { seconds: Math.floor(paidUntil.getTime() / 1000) } };
+        const subscription = { status: 'active', planType: plan.id, period: form.period, paidUntil: firebase.firestore.Timestamp.fromDate(paidUntil),
+                               scheduled: firebase.firestore.FieldValue.delete() };
+        await db.collection('users').doc(uid).set({ subscription }, { merge: true });
+        if (u) u.subscription = { ...(u.subscription || {}), status: 'active', planType: plan.id, period: form.period, paidUntil: { seconds: Math.floor(paidUntil.getTime() / 1000) }, scheduled: null };
         renderStats(); renderCharts(); renderTable();
-        Swal.fire({ toast:true, position:'top-end', icon:'success', title:`Plan "${plan.label}" confirmado (${plan.durationDays} días)`, timer:2500, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:`Plan "${plan.label}" (${appPeriods[form.period].label.toLowerCase()}) confirmado`, timer:2500, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
     } catch (err) {
         console.error(err);
         Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
