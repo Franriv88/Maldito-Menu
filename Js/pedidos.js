@@ -499,6 +499,10 @@ function initTablesTab() {
     document.getElementById('printStickersBtn').addEventListener('click', () => printStickers(orderingCfg.tables || []));
     document.getElementById('tablesGrid').addEventListener('click', onTableClick);
     document.getElementById('tablesGrid').addEventListener('change', onTableRename);
+    // Enter confirma el nombre (dispara el guardado al salir del campo)
+    document.getElementById('tablesGrid').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target.matches('.pd-table input')) { e.preventDefault(); e.target.blur(); }
+    });
 
     document.getElementById('nfcHelp').innerHTML = 'NDEFReader' in window
         ? `${licon('nfc', 13)} Este dispositivo puede grabar stickers NFC: tocá "Grabar NFC" y apoyá el sticker en la parte de atrás del celular.`
@@ -533,9 +537,12 @@ function renderTables() {
         return;
     }
     const canNfc = 'NDEFReader' in window;
-    grid.innerHTML = tables.map(t => `
+    grid.innerHTML = `<p class="pd-tname-tip">${licon('pencil', 13)} Tocá el nombre de una mesa para cambiarlo (por ejemplo: «Terraza 2» o «Barra»).</p>` + tables.map(t => `
         <div class="pd-table" data-id="${t.id}">
-            <input class="pd-input" value="${esc(t.label)}" maxlength="30" aria-label="Nombre de la mesa">
+            <label class="pd-tname" title="Tocá para cambiar el nombre de la mesa">
+                <input class="pd-input" value="${esc(t.label)}" maxlength="30" aria-label="Nombre de la mesa (editable)">
+                <span class="pd-tname-icon" aria-hidden="true">${licon('pencil', 13)}</span>
+            </label>
             <div class="pd-qr">${qrSvg(tableUrl(t.id))}</div>
             <div class="pd-actions">
                 <button class="pd-btn" data-act="copy" title="Copiar link">${licon('link-2', 14)} Link</button>

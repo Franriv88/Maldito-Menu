@@ -124,7 +124,16 @@
         .pd-section > p { margin: 0 0 12px; font-size: .8rem; color: var(--pd-muted); line-height: 1.5; }
         .pd-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .pd-table { background: var(--pd-raised); border: 1px solid var(--pd-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
-        .pd-table input { width: 100%; text-align: center; font-weight: 700; }
+        /* Nombre de la mesa: se ve editable (lápiz + borde punteado) */
+        .pd-tname { position: relative; display: block; width: 100%; cursor: text; }
+        .pd-table .pd-tname input { width: 100%; text-align: center; font-weight: 700; padding-left: 30px; padding-right: 30px;
+            border-style: dashed; border-color: color-mix(in srgb, var(--pd-accent) 45%, transparent); cursor: text; transition: border-color .15s, background .15s; }
+        .pd-table .pd-tname input:hover { border-color: var(--pd-accent); }
+        .pd-table .pd-tname input:focus { border-style: solid; border-color: var(--pd-accent); }
+        .pd-tname-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: inline-flex; color: var(--pd-accent); opacity: .7; pointer-events: none; }
+        .pd-tname:hover .pd-tname-icon { opacity: 1; }
+        .pd-tname input:focus + .pd-tname-icon { opacity: 0; }
+        .pd-tname-tip { grid-column: 1 / -1; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--pd-muted); }
         .pd-qr { width: 150px; height: 150px; background: #fff; border-radius: 8px; padding: 6px; }
         .pd-qr svg { width: 100%; height: 100%; display: block; }
         .pd-table .pd-actions { justify-content: center; }
@@ -348,7 +357,7 @@
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=2"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=2"></script>
+    <script src="./Js/pedidos.js?v=3"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>
