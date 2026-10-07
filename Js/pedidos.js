@@ -591,21 +591,42 @@ async function onTableClick(e) {
             if (r.isConfirmed) await saveTables((orderingCfg.tables || []).filter(t => t.id !== id));
             break;
         }
-        case 'nfc':
+        case 'nfc': {
+            // "Cancelar" (o salir de la página) tiene que liberar el NFC: mientras Chrome espera
+            // un sticker, Android no deja leer NFC en el resto del celular
+            const ctrl = nfcOperation();
+            let written = false;
             try {
                 const ndef = new NDEFReader();
-                Swal.fire({ title: 'Acercá el sticker NFC', text: `Apoyalo en la parte de atrás del celular para grabar ${table.label}.`, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' });
-                await ndef.write({ records: [{ recordType: 'url', data: url }] });
+                Swal.fire({ title: 'Acercá el sticker NFC', text: `Apoyalo en la parte de atrás del celular para grabar ${table.label}.`, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' })
+                    .then(r => { if (r.isDismissed && !written) ctrl.abort(); });
+                await ndef.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal });
+                written = true;
+                releaseNfc(ctrl);
                 await offerNfcLock(ndef, table.label);
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'No se pudo grabar', text: err.message });
+                if (err.name !== 'AbortError') Swal.fire({ icon: 'error', title: 'No se pudo grabar', text: err.message });
+            } finally {
+                releaseNfc(ctrl);
             }
             break;
+        }
     }
 }
 
 // Después de grabar: ofrecer bloquear el sticker (solo lectura) para que nadie lo reescriba con
 // otro link. Es permanente. Web NFC makeReadOnly(): Chrome 100+ en Android.
+// Una sola operación NFC a la vez; se libera al terminar, al cancelar o al ocultarse la página
+let activeNfc = null;
+function nfcOperation() { releaseNfc(); activeNfc = new AbortController(); return activeNfc; }
+function releaseNfc(ctrl = activeNfc) {
+    if (!ctrl) return;
+    try { ctrl.abort(); } catch { /* ya liberado */ }
+    if (activeNfc === ctrl) activeNfc = null;
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && activeNfc) { releaseNfc(); Swal.close(); } });
+window.addEventListener('pagehide', () => releaseNfc());
+
 async function offerNfcLock(ndef, label) {
     if (!('makeReadOnly' in NDEFReader.prototype)) {
         Swal.fire({ icon: 'success', title: `${label} grabada`, timer: 1800, showConfirmButton: false });
@@ -620,13 +641,19 @@ async function offerNfcLock(ndef, label) {
         showCancelButton: true, confirmButtonText: 'Bloquear sticker', cancelButtonText: 'Ahora no',
     });
     if (!r.isConfirmed) return;
+    const ctrl = nfcOperation();   // operación aparte: "Cancelar" libera el NFC
+    let done = false;
     try {
         Swal.fire({ title: 'Acercá el sticker otra vez', text: 'Apoyalo en la parte de atrás del celular para bloquearlo.',
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' });
-        await ndef.makeReadOnly();
+                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' })
+            .then(x => { if (x.isDismissed && !done) ctrl.abort(); });
+        await ndef.makeReadOnly({ signal: ctrl.signal });
+        done = true;
         Swal.fire({ icon: 'success', title: 'Sticker bloqueado', text: `${label} ya no se puede reescribir.`, timer: 2200, showConfirmButton: false });
     } catch (err) {
-        Swal.fire({ icon: 'error', title: 'No se pudo bloquear', text: `${err.message} — El sticker quedó grabado pero sin bloquear; podés intentarlo de nuevo con "Grabar NFC".` });
+        if (err.name !== 'AbortError') Swal.fire({ icon: 'error', title: 'No se pudo bloquear', text: `${err.message} — El sticker quedó grabado pero sin bloquear; podés intentarlo de nuevo con "Grabar NFC".` });
+    } finally {
+        releaseNfc(ctrl);
     }
 }
 

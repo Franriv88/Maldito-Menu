@@ -14,6 +14,18 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const status = {};   // id → 'written' | 'locked'
 let tables = [], isCatering = false;
 
+// Mientras Chrome espera un sticker para grabar, Android no deja leer NFC en el resto del
+// sistema. Por eso la operación se libera siempre: al terminar, al cancelar, y apenas la
+// página deja de verse (otra pestaña, otra app, pantalla apagada o se cierra).
+let activeNfc = null;
+function releaseNfc() {
+    if (!activeNfc) return;
+    try { activeNfc.abort(); } catch { /* ya liberado */ }
+    activeNfc = null;
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) { releaseNfc(); Swal.close(); } });
+window.addEventListener('pagehide', releaseNfc);
+
 const swalTheme = () => document.body.classList.contains('light')
     ? { background: '#fffdf9', color: '#3a2e22', confirmButtonColor: '#6b5135' }
     : { background: '#1a1a1a', color: '#ddd0bb', confirmButtonColor: '#c8b89a' };
@@ -95,7 +107,9 @@ function icon(name, size) {
 // Devuelve false si el usuario canceló.
 async function writeOne(t, { step } = {}) {
     const lock = document.getElementById('lockAfter').checked && canLock;
+    releaseNfc();
     const ctrl = new AbortController();
+    activeNfc = ctrl;
     const waiting = sw({
         title: `${step ? `${step} · ` : ''}${esc(t.label)}`,
         html: `Acercá el sticker a la parte de atrás del celular${lock ? ' y <b>mantenelo apoyado</b> hasta que termine (se graba y se bloquea)' : ''}.`,
@@ -121,6 +135,9 @@ async function writeOne(t, { step } = {}) {
             text: `${err.message}. Probá apoyar el sticker en otra parte del celular.`,
             showCancelButton: true, confirmButtonText: 'Reintentar', cancelButtonText: step ? 'Terminar' : 'Cerrar' });
         return r.isConfirmed ? writeOne(t, { step }) : false;
+    } finally {
+        // Liberar el NFC apenas termina (si no, el celular no lee otros stickers)
+        if (activeNfc === ctrl) releaseNfc();
     }
 }
 
