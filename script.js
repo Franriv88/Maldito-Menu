@@ -1611,6 +1611,9 @@ function populateStyleControls(cfg) {
     if (hidePricesBox) hidePricesBox.checked = !!cfg.hidePrices;
     const disclaimerBox = document.getElementById('cfg-showDisclaimer');
     if (disclaimerBox) disclaimerBox.checked = cfg.showDisclaimer !== false;
+    // Idiomas del menú además del español (sin configurar: inglés, igual que el menú público)
+    const menuLangs = Array.isArray(cfg.menuLangs) ? cfg.menuLangs : ['en'];
+    document.querySelectorAll('.cfg-menuLang').forEach(b => { b.checked = menuLangs.includes(b.value); });
     document.body.classList.toggle('prices-hidden', !!cfg.hidePrices);
 
     const sv = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
@@ -1712,6 +1715,10 @@ function initStyleControls() {
     const disclaimerBox = document.getElementById('cfg-showDisclaimer');
     if (disclaimerBox) disclaimerBox.addEventListener('change', () =>
         saveStyleField('showDisclaimer', disclaimerBox.checked));
+
+    // ── Idiomas del menú ──
+    document.querySelectorAll('.cfg-menuLang').forEach(box => box.addEventListener('change', () =>
+        saveStyleField('menuLangs', [...document.querySelectorAll('.cfg-menuLang:checked')].map(b => b.value))));
 
     // ── Publicar el menú sin precios (pide confirmación al activarlo) ──
     const hidePricesBox = document.getElementById('cfg-hidePrices');

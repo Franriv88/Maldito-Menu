@@ -17,7 +17,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="./Css/menu-styles.css?v=17">
+    <link rel="stylesheet" href="./Css/menu-styles.css?v=18">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=20">
     <style>
@@ -136,6 +136,16 @@
                 </label>
             </div>
 
+            <!-- Idiomas del menú (traducción automática) -->
+            <div class="sidebar-section">
+                <label class="ctrl-label">Idiomas del menú</label>
+                <label class="bg-remove-toggle"><input type="checkbox" checked disabled><span>Español (el que escribís)</span></label>
+                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="en"><span>Inglés</span></label>
+                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="de"><span>Alemán</span></label>
+                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="fr"><span>Francés</span></label>
+                <p class="ctrl-help">Escribí el menú en español: se traduce solo a los idiomas que marques. Tus clientes eligen el idioma en la ventana de bienvenida del menú.</p>
+            </div>
+
             <div class="sidebar-section feature-gated-section" id="pageBgSection">
                 <label class="ctrl-label">Fondo de página <span class="plan-lock-badge" id="pageBgBadge"></span></label>
                 <div class="bg-img-row">
@@ -240,7 +250,7 @@
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/fonts.js?v=2"></script>
-    <script src="script.js?v=32"></script>
+    <script src="script.js?v=33"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

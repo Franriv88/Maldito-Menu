@@ -92,7 +92,9 @@ restaurants/{restaurantId}/
     styles:      { fontFamily, titleFontFamily, fontSize, titleFontSize,
                    titleColor, textColor, bgPage, bgMenu, headerMode,
                    logoBase64, logoStorageUrl, faviconBase64, faviconStorageUrl,
-                   logoSize, logoOpacity }
+                   logoSize, logoOpacity,
+                   menuLangs: ['en', 'de', 'fr']  ← idiomas además del español (sin el campo: ['en']; [] = solo español).
+                                                     Lo respetan el menú (MenuI18n.setAllowed) y translateMenu (403) }
     images:      { (img1..img4 viejos: se migran solos a imageData al abrir el editor),
                    img1_layout, img1_height, img1_flipH,
                    encuadre: img1_pos / img1_posY (anclaje 0–100 = centro del zoom),

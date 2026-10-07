@@ -84,9 +84,9 @@ window.MenuGuide = (() => {
             : st === 'error' ? T('La traducción automática no está disponible ahora: el menú se muestra en español.')
             : T('Menú traducido automáticamente.');
         return `
-            ${window.MenuI18n ? `
-            <div class="mg-langs" role="radiogroup" aria-label="${esc(T('Idioma'))}">
-                ${MenuI18n.LANGS.map(l => `<button type="button" class="mg-lang${l.id === cur ? ' on' : ''}" data-lang="${l.id}"
+            ${window.MenuI18n && MenuI18n.langs().length > 1 ? `
+            <div class="mg-langs n${MenuI18n.langs().length}" role="radiogroup" aria-label="${esc(T('Idioma'))}">
+                ${MenuI18n.langs().map(l => `<button type="button" class="mg-lang${l.id === cur ? ' on' : ''}" data-lang="${l.id}"
                     role="radio" aria-checked="${l.id === cur}" lang="${l.id}">${l.label}</button>`).join('')}
             </div>
             <p class="mg-lang-note${st === 'error' ? ' err' : ''}" aria-live="polite">${esc(note)}</p>` : ''}
@@ -150,9 +150,16 @@ window.MenuGuide = (() => {
             const def = typeof lucide !== 'undefined' ? lucide.Languages || lucide.Globe : null;
             let svg = '';
             if (def) { const ic = lucide.createElement(def); ic.setAttribute('width', 15); ic.setAttribute('height', 15); svg = ic.outerHTML; }
-            btn.innerHTML = `${svg}<span>${cur.toUpperCase()}</span>`;
-            btn.setAttribute('aria-label', T('Ver instrucciones y cambiar idioma'));
-            btn.title = T('Ver instrucciones y cambiar idioma');
+            // Solo español: el botón abre la guía (signo de pregunta, sin código de idioma)
+            const multi = (window.MenuI18n?.langs().length || 1) > 1;
+            if (!multi && typeof lucide !== 'undefined' && lucide.HelpCircle) {
+                const ic = lucide.createElement(lucide.HelpCircle); ic.setAttribute('width', 15); ic.setAttribute('height', 15); svg = ic.outerHTML;
+            }
+            btn.innerHTML = multi ? `${svg}<span>${cur.toUpperCase()}</span>` : svg;
+            btn.classList.toggle('icon-only', !multi);
+            const label = multi ? 'Ver instrucciones y cambiar idioma' : 'Ver instrucciones';
+            btn.setAttribute('aria-label', T(label));
+            btn.title = T(label);
         };
         paint();
         document.addEventListener('menulang', paint);
@@ -245,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Listener 3b: estilos ───────────────────────────────────
     restRef.collection('config').doc('styles').onSnapshot(doc => {
         stylesConfig = doc.exists ? doc.data() : {};
+        window.MenuI18n?.setAllowed(stylesConfig.menuLangs);   // idiomas que ofrece el restaurante
         applyStyles(stylesConfig);
         if (Object.keys(restData).length) renderHeader();
         updateShareMeta();

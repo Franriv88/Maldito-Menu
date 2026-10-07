@@ -1324,14 +1324,20 @@ exports.translateMenu = onRequest(
         if (memo && Date.now() - memo.at < 60000) { res.json({ map: memo.map }); return; }
 
         const restRef = db.collection("restaurants").doc(r);
-        const [restSnap, prods, titlesSnap, footerSnap, cacheSnap] = await Promise.all([
+        const [restSnap, prods, titlesSnap, footerSnap, cacheSnap, stylesSnap] = await Promise.all([
             restRef.get(),
             restRef.collection("productos").get(),
             restRef.collection("config").doc("categoryTitles").get(),
             restRef.collection("config").doc("footer").get(),
             restRef.collection("translations").doc(lang).get(),
+            restRef.collection("config").doc("styles").get(),
         ]);
         if (!restSnap.exists) { res.status(404).json({ error: "Restaurante no encontrado" }); return; }
+        // Solo los idiomas que el restaurante ofrece (styles.menuLangs; sin configurar: inglés)
+        const enabled = (stylesSnap.data() || {}).menuLangs;
+        if (!(Array.isArray(enabled) ? enabled : ["en"]).includes(lang)) {
+            res.status(403).json({ error: "Este menú no se ofrece en ese idioma." }); return;
+        }
 
         // Mismos textos que muestra Js/menu-viewers.js (la clave es el texto sin espacios de los bordes)
         const sources = new Set();

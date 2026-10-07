@@ -13,6 +13,7 @@ window.MenuI18n = (() => {
         { id: 'fr', label: 'Français', locale: 'fr-FR' },
     ];
     const LANG_KEY = 'menu_lang';
+    const DEFAULT_EXTRA = ['en'];   // mismo valor por defecto que functions (translateMenu)
 
     // [en, de, fr]
     const DICT = {
@@ -22,6 +23,7 @@ window.MenuI18n = (() => {
         'Entendido': ['Got it', 'Verstanden', 'Compris'],
         'Idioma': ['Language', 'Sprache', 'Langue'],
         'Ver instrucciones y cambiar idioma': ['Instructions and language', 'Anleitung und Sprache', 'Instructions et langue'],
+        'Ver instrucciones': ['Instructions', 'Anleitung', 'Instructions'],
         'Traduciendo el menú…': ['Translating the menu…', 'Speisekarte wird übersetzt…', 'Traduction de la carte…'],
         'Menú traducido automáticamente.': ['Menu translated automatically.', 'Speisekarte automatisch übersetzt.', 'Carte traduite automatiquement.'],
         'La traducción automática no está disponible ahora: el menú se muestra en español.': [
@@ -150,8 +152,12 @@ window.MenuI18n = (() => {
         const nav = (navigator.languages || [navigator.language || 'es']).map(x => String(x).slice(0, 2).toLowerCase());
         return nav.find(x => LANGS.some(l => l.id === x)) || 'es';
     }
-    let lang = initialLang();
-    document.documentElement.lang = lang;
+    // preferred: lo que eligió (o el idioma del celular); lang: lo que se muestra en ESTE menú, que solo
+    // puede ser un idioma habilitado por el restaurante (styles.menuLangs). Hasta saberlo, español:
+    // así no se pide (ni se gasta) ninguna traducción que el restaurante no ofrece.
+    let preferred = initialLang();
+    let lang = 'es';
+    let allowed = ['es'];
 
     // Texto fijo traducido; {var} se reemplaza con vars (los valores no se escapan: escaparlos antes)
     function t(es, vars) {
@@ -212,18 +218,27 @@ window.MenuI18n = (() => {
 
     function emit() { document.dispatchEvent(new CustomEvent('menulang', { detail: { lang, contentState } })); }
 
-    function setLang(next) {
-        if (!LANGS.some(l => l.id === next)) return;
-        lsSet(LANG_KEY, next);
-        if (next === lang) return;
+    function apply(next) {
+        if (next === lang) { emit(); return; }
         lang = next;
         document.documentElement.lang = lang;
         loadContent();
     }
+    function setLang(next) {
+        if (!allowed.includes(next)) return;
+        lsSet(LANG_KEY, next);
+        preferred = next;
+        apply(next);
+    }
+    // Idiomas que ofrece el restaurante además del español (sin configurar: inglés)
+    function setAllowed(list) {
+        const extra = Array.isArray(list) ? list : DEFAULT_EXTRA;
+        allowed = ['es', ...LANGS.map(l => l.id).filter(id => id !== 'es' && extra.includes(id))];
+        apply(allowed.includes(preferred) ? preferred : 'es');
+    }
 
     const locale = () => LANGS.find(l => l.id === lang).locale;
 
-    if (lang !== 'es') loadContent();
-
-    return { LANGS, t, tc, setLang, lang: () => lang, locale, contentState: () => contentState };
+    return { LANGS, langs: () => LANGS.filter(l => allowed.includes(l.id)), t, tc, setLang, setAllowed,
+             lang: () => lang, locale, contentState: () => contentState };
 })();

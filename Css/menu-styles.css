@@ -684,7 +684,10 @@ body.ordering-closed .to-banner { text-align: center; line-height: 1.45; padding
 .mg-lang.on { background: var(--to-accent, var(--title-color)); color: var(--to-surface, var(--primary-color)); border-color: transparent; }
 .mg-lang-note { min-height: 1em; margin: 0 0 12px; text-align: center; font-size: .72rem; opacity: .7; }
 .mg-lang-note.err { opacity: 1; color: #d9822b; }
+.mg-langs.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mg-langs.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 340px) { .mg-langs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mg-reopen.icon-only { width: 30px; padding: 0; justify-content: center; }
 
 /* Botón sutil para volver a ver la guía y cambiar el idioma (arriba a la derecha del menú) */
 .mg-reopen-wrap { position: relative; height: 0; z-index: 5; }
