@@ -161,7 +161,12 @@ supportGrants/{restaurantId}: { ownerId, restaurantName, codeHash, createdAt, ex
   (superadmin → "Entrar con código de soporte"; redeemSupportCode). Vale 24 h desde que se genera; revokeSupportCode lo corta.
   Lo exigen las reglas (supportActive) y registerDevice. admin.html sin código = solo lectura aunque la URL no diga readonly;
   con código = "modo soporte" con los beneficios del plan del dueño. Js/support-access.js (cliente).
-  Eliminar una cuenta desde el superadmin: function adminDeleteAccount (recursiveDelete de sus restaurantes y su usuario)
+**Bajas y eliminación segura** (function adminDeleteAccount { uid, action }): "preview" (finanzas: pagos del período,
+  parte no usada, arrepentimiento ≤ 10 días del primer pago), "cancelRenewal" (corta el débito en MP; queda en "Bajas" =
+  subscription.billing.status 'cancelled'), "delete" (corta el débito → devolución por MP opcional: none|proportional|full,
+  del pago más reciente hacia atrás → constancia en accountDeletions → recursiveDelete). Sin pedido del cliente exige
+  confirmEmail (segunda confirmación). Si MP falla, no se borra nada. billingSubs.accountDeleted: un débito tardío va a
+  unmatchedPayments (applyRecurringCharge nunca recrea un usuario borrado).
 
 ---
 

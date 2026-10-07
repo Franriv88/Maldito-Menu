@@ -124,7 +124,17 @@
         .sa-search::placeholder { color: rgba(200,184,154,.3); }
         .sa-search:focus { border-color: rgba(124,108,92,.45); }
 
-        .sa-filter-tabs { display: flex; gap: .3rem; }
+        .sa-filter-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
+        .del-box { text-align: left; font-size: .84rem; line-height: 1.5; }
+        .del-box p { margin: 0 0 10px; }
+        .del-money { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: rgba(200,184,154,.06); border: 1px solid rgba(200,184,154,.18); }
+        .del-flag { display: inline-block; margin-top: 6px; color: #e0a060; }
+        .del-q { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 0; }
+        .del-q label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .del-hint { margin: 4px 0 0; font-size: .76rem; color: rgba(200,184,154,.6); }
+        .sa-baja { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: .12rem .5rem; border-radius: 5px; font-size: .66rem;
+            background: rgba(220,140,60,.1); border: 1px solid rgba(220,140,60,.35); color: #e0a060; white-space: nowrap; }
+        body.light .sa-baja { color: #a0601c; }
         .sa-tab {
             background: none;
             border: 1px solid rgba(124,108,92,.2);
@@ -385,6 +395,7 @@
                     <button class="sa-tab" data-filter="active">Activos</button>
                     <button class="sa-tab" data-filter="unpaid">Impagos</button>
                     <button class="sa-tab" data-filter="blocked">Bloqueados</button>
+                    <button class="sa-tab" data-filter="bajas" title="Clientes que cancelaron la renovación automática">Bajas</button>
                 </div>
             </div>
         </div>
@@ -636,36 +647,131 @@ async function deletePlan(idx) {
     } catch(e) {}
 }
 
-async function deleteUser(uid, name) {
-    const userEntry = allUsers.find(u => u.uid === uid);
-    const restCount = userEntry?.restaurants?.length || 0;
-    const restNote  = restCount > 0
-        ? `También se eliminarán sus <b>${restCount}</b> restaurante${restCount > 1 ? 's' : ''}.<br>`
-        : '';
+// ── Eliminación segura de una cuenta (function adminDeleteAccount) ──────────
+// 1) Se ven las finanzas: plan, hasta cuándo pagó, pagos del período, parte no usada, arrepentimiento.
+// 2) ¿Lo pidió el cliente? Sí → una confirmación. No → dos (la segunda: escribir su email).
+// Siempre se corta el débito automático en Mercado Pago; la devolución (si se elige) sale por MP.
+const SWAL_DARK = { background: '#1a1a1a', color: '#c8b89a', cancelButtonColor: 'rgba(124,108,92,.3)' };
 
-    const { isConfirmed } = await Swal.fire({
-        title: `¿Eliminar a ${name}?`,
-        html: `${restNote}Se eliminarán sus datos, su suscripción y todo el contenido de sus restaurantes (menú, imágenes, mesas y pedidos).<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        background: '#1a1a1a',
-        color: '#c8b89a',
-        confirmButtonColor: '#c0392b',
-        cancelButtonColor: 'rgba(124,108,92,.3)',
+async function deleteUser(uid, name) {
+    Swal.fire({ title: 'Revisando la cuenta…', didOpen: () => Swal.showLoading(), allowOutsideClick: false, ...SWAL_DARK });
+    let fin;
+    try { fin = await SupportAccess.call('adminDeleteAccount', { uid, action: 'preview' }); }
+    catch (e) { Swal.fire({ icon: 'error', title: 'No se pudo revisar la cuenta', text: e.message, ...SWAL_DARK }); return; }
+
+    const periodLabel = PERIODS_DEFAULT[fin.period]?.label?.toLowerCase() || '';
+    const state = fin.trial ? `En prueba gratis hasta el ${fmtDay(fin.trialEndsAt)}`
+        : fin.paidActive ? `Plan ${esc(fin.plan || '')} ${periodLabel}, pagado hasta el <b>${fmtDay(fin.paidUntil)}</b>`
+        : fin.paidUntil ? `Plan vencido el ${fmtDay(fin.paidUntil)}` : 'Sin plan pago';
+    const debit = fin.autoDebit ? `<b>Débito automático activo</b>: se va a cancelar en Mercado Pago.`
+        : fin.renewalCancelled ? 'La renovación automática ya estaba cancelada.' : 'No tiene débito automático.';
+    const hasMoney = fin.paidActive && fin.paidInPeriod > 0;
+    const money = hasMoney ? `
+        <div class="del-money">
+            Pagó <b>${saMoney(fin.paidInPeriod)}</b> por el período del ${fmtDay(fin.periodStart)} al ${fmtDay(fin.paidUntil)}.
+            Le quedan <b>${fin.remainingDays}</b> de ${fin.periodDays} días: la parte no usada es <b>${saMoney(fin.proportionalRefund)}</b>.
+            ${fin.arrepentimiento ? '<br><span class="del-flag">Está dentro de los 10 días del primer pago: si pide la baja, corresponde devolverle todo (arrepentimiento).</span>' : ''}
+        </div>` : '';
+
+    const first = await Swal.fire({
+        title: `Eliminar a ${esc(name)}`,
+        width: 560,
+        html: `<div class="del-box">
+            <p>${state}.<br>${debit}<br>${fin.restaurants.length} restaurante${fin.restaurants.length === 1 ? '' : 's'}: se borra todo (menú, imágenes, mesas y pedidos).</p>
+            ${money}
+            <div class="del-q"><b>¿El cliente pidió la baja?</b>
+                <label><input type="radio" name="delReq" value="yes"> Sí, me lo pidió</label>
+                <label><input type="radio" name="delReq" value="no"> No, es decisión mía</label>
+            </div>
+            ${hasMoney ? `<div class="del-q"><b>Devolución por Mercado Pago</b>
+                <label><input type="radio" name="delRefund" value="none"> Sin devolución</label>
+                <label><input type="radio" name="delRefund" value="proportional"> Devolver la parte no usada (${saMoney(fin.proportionalRefund)})</label>
+                <label><input type="radio" name="delRefund" value="full"> Devolver todo el período (${saMoney(fin.fullRefund)})</label>
+                <p class="del-hint" id="delHint"></p>
+            </div>` : ''}
+            </div>`,
+        showCancelButton: true, showDenyButton: !!fin.autoDebit,
+        confirmButtonText: 'Continuar', denyButtonText: 'Solo cancelar la renovación', cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c0392b', denyButtonColor: '#8a6a2a', ...SWAL_DARK,
+        didOpen: el => {
+            Swal.hideLoading();   // viene de "Revisando la cuenta…": que el botón vuelva a ser "Continuar"
+            const hint = el.querySelector('#delHint');
+            const sync = () => {
+                const req = el.querySelector('input[name="delReq"]:checked')?.value;
+                if (!hasMoney || !req) return;
+                // Sugerencia según los Términos: pedido por el cliente → sin devolución (salvo arrepentimiento);
+                // decisión del superadmin → se devuelve lo no usado
+                const suggested = req === 'yes' ? (fin.arrepentimiento ? 'full' : 'none') : 'proportional';
+                el.querySelector(`input[name="delRefund"][value="${suggested}"]`).checked = true;
+                hint.textContent = req === 'yes'
+                    ? (fin.arrepentimiento ? 'Arrepentimiento: los Términos prometen devolver todo dentro de los 10 días del primer pago.'
+                                           : 'Según los Términos, si el cliente pide la baja no se devuelve el período ya empezado. Igual podés devolverle algo.')
+                    : 'Si lo eliminás sin que lo pida, lo justo es devolverle la parte que no va a usar.';
+            };
+            el.querySelectorAll('input[name="delReq"]').forEach(r => r.addEventListener('change', sync));
+        },
+        preConfirm: () => {
+            const req = Swal.getPopup().querySelector('input[name="delReq"]:checked')?.value;
+            if (!req) { Swal.showValidationMessage('Indicá si el cliente pidió la baja.'); return false; }
+            const refund = hasMoney ? Swal.getPopup().querySelector('input[name="delRefund"]:checked')?.value || 'none' : 'none';
+            return { requestedByClient: req === 'yes', refund };
+        },
     });
-    if (!isConfirmed) return;
+
+    if (first.isDenied) return cancelRenewal(uid, name, fin);
+    if (!first.isConfirmed) return;
+    const { requestedByClient, refund } = first.value;
+    const refundAmount = refund === 'full' ? fin.fullRefund : refund === 'proportional' ? fin.proportionalRefund : 0;
+    const summary = `Se cancela el débito automático, ${refundAmount ? `se devuelven <b>${saMoney(refundAmount)}</b> por Mercado Pago` : '<b>no</b> se devuelve dinero'}
+        y se borran sus datos y sus ${fin.restaurants.length} restaurante(s). No se puede deshacer.`;
+
+    let confirmEmail = '';
+    if (requestedByClient) {
+        const ok = await Swal.fire({ icon: 'warning', title: '¿Confirmás la eliminación?', html: `<span style="font-size:.88rem">${summary}</span>`,
+            showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Volver', confirmButtonColor: '#c0392b', ...SWAL_DARK });
+        if (!ok.isConfirmed) return;
+    } else {
+        // Segunda confirmación: no lo pidió el cliente
+        const second = await Swal.fire({
+            icon: 'warning', title: 'Confirmación final',
+            html: `<span style="font-size:.88rem">${esc(name)} <b>no pidió</b> la baja. ${summary}<br><br>Para confirmar, escribí su email:<br><b>${esc(fin.email || '')}</b></span>`,
+            input: 'text', inputPlaceholder: fin.email || '', inputAttributes: { autocomplete: 'off', spellcheck: 'false' },
+            showCancelButton: true, confirmButtonText: 'Eliminar definitivamente', cancelButtonText: 'Volver', confirmButtonColor: '#c0392b', ...SWAL_DARK,
+            preConfirm: v => {
+                if (String(v || '').trim().toLowerCase() !== String(fin.email || '').toLowerCase()) { Swal.showValidationMessage('El email no coincide.'); return false; }
+                return v.trim();
+            },
+        });
+        if (!second.isConfirmed) return;
+        confirmEmail = second.value;
+    }
+
+    Swal.fire({ title: 'Eliminando…', didOpen: () => Swal.showLoading(), allowOutsideClick: false, ...SWAL_DARK });
     try {
-        // El servidor borra sus restaurantes con todo su contenido (menú, imágenes, mesas, pedidos…),
-        // sus accesos de soporte y su usuario. Las reglas ya no dejan al superadmin borrar contenido ajeno.
-        await SupportAccess.call('adminDeleteAccount', { uid });
+        const r = await SupportAccess.call('adminDeleteAccount', { uid, action: 'delete', refund, requestedByClient, confirmEmail });
         allUsers = allUsers.filter(u => u.uid !== uid);
         renderStats(); renderCharts(); renderTable();
-        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Usuario eliminado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
-    } catch(err) {
-        console.error(err);
-        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al eliminar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+        Swal.fire({ icon: 'success', title: 'Cuenta eliminada',
+            html: `<span style="font-size:.88rem">${r.cancelled ? 'Se canceló el débito automático. ' : ''}${r.refunded ? `Se devolvieron ${saMoney(r.refunded)} por Mercado Pago.` : 'Sin devolución.'}</span>`, ...SWAL_DARK });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'No se completó', text: e.message, ...SWAL_DARK });
+    }
+}
+
+// Solo cortar el débito automático: el plan sigue hasta su vencimiento y la cuenta queda (aparece en "Bajas")
+async function cancelRenewal(uid, name, fin) {
+    const ok = await Swal.fire({ icon: 'question', title: `Cancelar la renovación de ${esc(name)}`,
+        html: `<span style="font-size:.88rem">Se cancela el débito automático en Mercado Pago. ${fin.paidActive ? `Su plan sigue hasta el <b>${fmtDay(fin.paidUntil)}</b>` : 'No se le vuelve a cobrar'}; después podés eliminarla desde "Bajas".</span>`,
+        showCancelButton: true, confirmButtonText: 'Cancelar renovación', cancelButtonText: 'Volver', confirmButtonColor: '#8a6a2a', ...SWAL_DARK });
+    if (!ok.isConfirmed) return;
+    try {
+        await SupportAccess.call('adminDeleteAccount', { uid, action: 'cancelRenewal' });
+        const u = allUsers.find(x => x.uid === uid);
+        if (u) u.subscription = { ...(u.subscription || {}), billing: { ...(u.subscription?.billing || {}), status: 'cancelled', cancelledBy: 'admin' } };
+        renderStats(); renderTable();
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Renovación cancelada', timer: 2500, showConfirmButton: false, ...SWAL_DARK });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'No se pudo cancelar', text: e.message, ...SWAL_DARK });
     }
 }
 
@@ -890,6 +996,10 @@ async function loadData() {
     }
 }
 
+// ── Bajas: el cliente (o el superadmin) canceló la renovación automática ──
+const isBaja = u => u.subscription?.billing?.status === 'cancelled';
+const fmtDay = ms => ms ? new Date(ms).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
 // ── Stats ─────────────────────────────────────────────────────
 
 function renderStats() {
@@ -898,6 +1008,7 @@ function renderStats() {
     const active    = allUsers.filter(u => effState(u) === 'active').length;
     const unpaid    = allUsers.filter(u => ['none', 'expired'].includes(effState(u))).length;
     const blocked   = allUsers.filter(u => u.subscription?.status === 'blocked').length;
+    const bajas     = allUsers.filter(isBaja).length;
     const totalRest = allUsers.reduce((acc, u) => acc + u.restaurants.length, 0);
 
     const cards = [
@@ -905,6 +1016,7 @@ function renderStats() {
         { icon: 'check-circle-2', num: active,   label: 'Suscripciones activas' },
         { icon: 'alert-triangle', num: unpaid,   label: 'Con deuda' },
         { icon: 'ban',            num: blocked,  label: 'Bloqueados' },
+        { icon: 'user-minus',     num: bajas,    label: 'Bajas (renovación cancelada)' },
         { icon: 'store',          num: totalRest, label: 'Restaurantes totales' },
     ];
 
@@ -1002,11 +1114,14 @@ function renderTable() {
     const term   = searchTerm.toLowerCase();
 
     const filtered = allUsers.filter(u => {
+        // Mismo estado que muestra la etiqueta de cada fila (un plan vencido cuenta como impago)
+        const eff = subscriptionInfo(u.subscription, { tiers: appPlans, periods: appPeriods }).state;
         const matchFilter =
             activeFilter === 'all'     ? true :
-            activeFilter === 'active'  ? u.subscription?.status === 'active' :
-            activeFilter === 'unpaid'  ? (!u.subscription?.status || u.subscription.status === 'unpaid') :
-            activeFilter === 'blocked' ? u.subscription?.status === 'blocked' : true;
+            activeFilter === 'active'  ? eff === 'active' :
+            activeFilter === 'unpaid'  ? ['none', 'expired'].includes(eff) :
+            activeFilter === 'blocked' ? u.subscription?.status === 'blocked' :
+            activeFilter === 'bajas'   ? isBaja(u) : true;
 
         const matchSearch = !term ||
             (u.displayName || '').toLowerCase().includes(term) ||
@@ -1086,9 +1201,10 @@ function renderTable() {
                 ${(() => {
                     const inf = subscriptionInfo(u.subscription, { tiers: appPlans, periods: appPeriods });
                     const chip = t => `<span style="background:rgba(200,184,154,.08);border:1px solid rgba(200,184,154,.18);border-radius:5px;padding:.15rem .5rem;font-size:.68rem">${t}</span>`;
-                    if (inf.state === 'trial') return chip(`Prueba · ${inf.daysLeft} d`);
-                    if (inf.tier) return chip(`${esc(inf.tier.label)} · ${appPeriods[inf.period]?.label.toLowerCase() || ''}`);
-                    return '<span style="color:rgba(200,184,154,.25);font-size:.7rem">—</span>';
+                    const baja = isBaja(u) ? `<br><span class="sa-baja" title="Canceló la renovación automática${u.subscription.billing.cancelledBy === 'admin' ? ' (la cancelaste vos)' : ''}">${licon('user-minus', 11)} Baja · ${inf.state === 'active' ? 'activo hasta ' + fmtDay(inf.until) : 'ya venció'}</span>` : '';
+                    if (inf.state === 'trial') return chip(`Prueba · ${inf.daysLeft} d`) + baja;
+                    if (inf.tier) return chip(`${esc(inf.tier.label)} · ${appPeriods[inf.period]?.label.toLowerCase() || ''}`) + baja;
+                    return '<span style="color:rgba(200,184,154,.25);font-size:.7rem">—</span>' + baja;
                 })()}
             </td>
             <td><span class="sa-badge ${badgeClass}">${badgeText}</span></td>

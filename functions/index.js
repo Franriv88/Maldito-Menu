@@ -518,12 +518,19 @@ async function applyRecurringCharge({ subId, preapprovalId, paymentId, amount })
         return { ok: false, reason: "debito_sin_suscripcion" };
     }
     const d = bs.data();
+    if (d.accountDeleted) {
+        await db.collection("unmatchedPayments").doc(String(paymentId)).set({
+            paymentId: String(paymentId), amount: amount ?? null, preapprovalId: preapprovalId || null, uid: d.uid,
+            reason: "cuenta_eliminada", createdAt: FieldValue.serverTimestamp() }, { merge: true });
+        return { ok: false, reason: "cuenta_eliminada" };
+    }
     const userRef = db.collection("users").doc(d.uid);
     const procRef = db.collection("processedPayments").doc(String(paymentId));
     const cfg = await getPlanConfig();
     return db.runTransaction(async tx => {
         const [proc, us] = await Promise.all([tx.get(procRef), tx.get(userRef)]);
         if (proc.exists) return { ok: true, already: true };
+        if (!us.exists) return { ok: false, reason: "usuario_inexistente" };
         const sub = us.data()?.subscription || {};
         const now = Date.now();
         const months = PERIODS_DEFAULT[d.period]?.months || 1;
@@ -1060,23 +1067,149 @@ exports.redeemSupportCode = onRequest(
     }
 );
 
-// El superadmin elimina una cuenta completa: restaurantes con TODO su contenido, accesos de soporte y el usuario
+// ══════════════════════════════════════════════════════════════
+//  BAJAS Y ELIMINACIÓN SEGURA DE CUENTAS (superadmin)
+//  Los planes se pagan por adelantado (1, 3, 12 o 24 meses): no queda nada por cobrar; al irse un
+//  cliente hay que CORTAR el débito automático y decidir qué pasa con lo pagado y no usado.
+//  adminDeleteAccount { uid, action }:
+//   - "preview":       finanzas de la cuenta (plan, vencimiento, pagos del período, parte no usada,
+//                      si corresponde arrepentimiento: primer pago hace ≤ 10 días)
+//   - "cancelRenewal": corta el débito automático en Mercado Pago (el plan sigue hasta su vencimiento)
+//   - "delete":        corta el débito, devuelve por MP lo elegido (refund: none | proportional | full),
+//                      borra restaurantes + usuario y deja constancia en accountDeletions (solo servidor)
+// ══════════════════════════════════════════════════════════════
+const ARREPENTIMIENTO_DAYS = 10;
+
+async function accountFinance(uid) {
+    const now = Date.now();
+    const [userSnap, cfg, procSnap, quoteSnap, rests] = await Promise.all([
+        db.collection("users").doc(uid).get(),
+        getPlanConfig(),
+        db.collection("processedPayments").where("uid", "==", uid).get(),
+        db.collection("paymentQuotes").where("uid", "==", uid).get(),
+        db.collection("restaurants").where("ownerId", "==", uid).get(),
+    ]);
+    const u = userSnap.data() || {};
+    const sub = u.subscription || {};
+    const e = effectiveSub(sub, now);
+    const tier = cfg.tiers.find(t => t.id === e.planType) || null;
+    const months = PERIODS_DEFAULT[e.period]?.months || 1;
+    const payments = [
+        ...procSnap.docs.map(d => ({ id: d.id, amount: Number(d.data().amount) || 0, at: tsMs(d.data().at), kind: "debito" })),
+        ...quoteSnap.docs.filter(d => d.data().paymentId).map(d => ({ id: String(d.data().paymentId), amount: Number(d.data().amount) || 0, at: tsMs(d.data().usedAt), kind: d.data().kind || "pago" })),
+    ].sort((a, b) => b.at - a.at);
+    const paidActive = sub.status === "active" && e.paidUntil > now;
+    const periodStart = paidActive ? addMonths(e.paidUntil, -months) : 0;
+    // Pagos que cubren el período en curso (con 2 días de margen por fechas de acreditación)
+    const inPeriod = paidActive ? payments.filter(p => p.at >= periodStart - 2 * DAY_MS && p.amount > 0) : [];
+    const paidInPeriod = inPeriod.reduce((n, p) => n + p.amount, 0);
+    const periodMs = paidActive ? e.paidUntil - periodStart : 0;
+    const remainingMs = paidActive ? e.paidUntil - now : 0;
+    const first = payments[payments.length - 1] || null;
+    const b = sub.billing || {};
+    return {
+        uid, email: u.email || null,
+        restaurants: rests.docs.map(d => ({ id: d.id, nombre: d.data().nombre || "" })),
+        status: sub.status || "unpaid", trial: e.trial, active: e.active, paidActive,
+        plan: tier?.label || null, period: e.period, paidUntil: e.paidUntil || null, trialEndsAt: e.trialEndsAt || null,
+        autoDebit: ["authorized", "pending", "paused"].includes(b.status) ? b.status : null,
+        renewalCancelled: b.status === "cancelled", cancelledAt: tsMs(b.cancelledAt) || null,
+        periodStart, remainingDays: Math.ceil(remainingMs / DAY_MS), periodDays: Math.round(periodMs / DAY_MS),
+        paidInPeriod,
+        proportionalRefund: periodMs > 0 ? Math.floor(paidInPeriod * remainingMs / periodMs) : 0,
+        fullRefund: paidInPeriod,
+        arrepentimiento: !!(paidActive && first && now - first.at <= ARREPENTIMIENTO_DAYS * DAY_MS),
+        payments: inPeriod.map(p => ({ id: p.id, amount: p.amount, at: p.at, kind: p.kind })),
+    };
+}
+
+// Corta TODOS los débitos automáticos del usuario en MP (el actual y uno nuevo pendiente por cambio de período)
+async function cancelAllPreapprovals(uid, { markDeleted = false } = {}) {
+    const subs = await db.collection("billingSubs").where("uid", "==", uid).get();
+    const cancelled = [];
+    for (const d of subs.docs) {
+        const pre = d.data().preapprovalId;
+        if (pre && !["cancelled", "finished"].includes(d.data().status)) {
+            await mpUpdatePreapproval(pre, { status: "cancelled" });
+            cancelled.push(pre);
+        }
+        await d.ref.set({ status: pre ? "cancelled" : d.data().status || "cancelled", ...(markDeleted ? { accountDeleted: true } : {}),
+            updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    }
+    return cancelled;
+}
+
+const mpRefund = async (paymentId, amount, key) => (await axios.post(
+    `${MP_API}/v1/payments/${encodeURIComponent(paymentId)}/refunds`, { amount },
+    { headers: { ...mpHeaders(), "X-Idempotency-Key": key } })).data;
+
 exports.adminDeleteAccount = onRequest(
-    { cors: true, invoker: "public", timeoutSeconds: 300 },
+    { cors: true, invoker: "public", timeoutSeconds: 300, secrets: ["MP_ACCESS_TOKEN"] },
     async (req, res) => {
         if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
         const user = await requireUser(req, res);
         if (!user) return;
         if (user.email !== SUPERADMIN_EMAIL) { res.status(403).json({ error: "Sin permiso" }); return; }
-        const uid = String(req.body?.uid || "");
-        if (!/^[\w-]{1,128}$/.test(uid) || uid === user.uid) { res.status(400).json({ error: "Usuario inválido" }); return; }
-        const rests = await db.collection("restaurants").where("ownerId", "==", uid).get();
-        for (const r of rests.docs) {
-            await db.recursiveDelete(r.ref);
+        const { uid, action = "preview", refund = "none", requestedByClient = false, confirmEmail } = req.body || {};
+        if (typeof uid !== "string" || !/^[\w-]{1,128}$/.test(uid) || uid === user.uid) { res.status(400).json({ error: "Usuario inválido" }); return; }
+        const fin = await accountFinance(uid);
+        if (action === "preview") { res.json(fin); return; }
+
+        if (action === "cancelRenewal") {
+            try { fin.cancelledPreapprovals = await cancelAllPreapprovals(uid); }
+            catch (err) {
+                console.error("adminDeleteAccount cancel:", err.response?.data || err.message);
+                res.status(502).json({ error: "Mercado Pago no respondió. No se canceló nada; probá de nuevo." }); return;
+            }
+            await db.collection("users").doc(uid).set({ subscription: { billing: { status: "cancelled", cancelledAt: FieldValue.serverTimestamp(), cancelledBy: "admin" },
+                scheduled: FieldValue.delete() } }, { merge: true });
+            res.json({ ok: true, cancelled: fin.cancelledPreapprovals.length }); return;
+        }
+
+        if (action !== "delete") { res.status(400).json({ error: "Acción inválida" }); return; }
+        // Sin pedido del cliente: segunda confirmación obligatoria (escribir su email)
+        if (!requestedByClient && String(confirmEmail || "").trim().toLowerCase() !== String(fin.email || "").toLowerCase()) {
+            res.status(400).json({ error: "Para eliminar una cuenta que no lo pidió, escribí su email exacto." }); return;
+        }
+        const refundAmount = refund === "full" ? fin.fullRefund : refund === "proportional" ? fin.proportionalRefund : 0;
+
+        // 1) Cortar el débito automático (si MP falla, no se borra nada)
+        try { fin.cancelledPreapprovals = await cancelAllPreapprovals(uid, { markDeleted: true }); }
+        catch (err) {
+            console.error("adminDeleteAccount cancel:", err.response?.data || err.message);
+            res.status(502).json({ error: "No se pudo cancelar el débito automático en Mercado Pago. No se eliminó nada; probá de nuevo." }); return;
+        }
+        // 2) Devolución por Mercado Pago, del pago más reciente hacia atrás (cada uno hasta su monto)
+        const refunds = [];
+        let left = refundAmount;
+        for (const p of fin.payments) {
+            if (left <= 0) break;
+            const amount = Math.min(left, p.amount);
+            try {
+                const r = await mpRefund(p.id, amount, `cubierto-del-${uid}-${p.id}-${amount}`);
+                refunds.push({ paymentId: p.id, amount, refundId: String(r.id || "") });
+                left -= amount;
+            } catch (err) {
+                console.error("adminDeleteAccount refund:", p.id, err.response?.data || err.message);
+                await db.collection("accountDeletions").add({ uid, email: fin.email, stage: "refund_failed", refunds, error: JSON.stringify(err.response?.data || err.message).slice(0, 500),
+                    at: FieldValue.serverTimestamp(), by: user.email });
+                res.status(502).json({ error: `Se canceló el débito automático, pero Mercado Pago rechazó la devolución${refunds.length ? " (una parte sí se devolvió)" : ""}. La cuenta NO se eliminó: revisá en Mercado Pago y volvé a intentar.`, refunds });
+                return;
+            }
+        }
+        // 3) Constancia (registros de pago que la ley obliga a conservar) y 4) borrado completo
+        await db.collection("accountDeletions").add({
+            uid, email: fin.email, restaurants: fin.restaurants, requestedByClient: !!requestedByClient,
+            plan: fin.plan, period: fin.period, paidUntil: fin.paidUntil, paidInPeriod: fin.paidInPeriod,
+            refundMode: refund, refunded: refundAmount - left, refunds, cancelledPreapprovals: fin.cancelledPreapprovals,
+            at: FieldValue.serverTimestamp(), by: user.email,
+        });
+        for (const r of fin.restaurants) {
+            await db.recursiveDelete(db.collection("restaurants").doc(r.id));
             await db.collection("supportGrants").doc(r.id).delete();
         }
         await db.recursiveDelete(db.collection("users").doc(uid));
-        res.json({ ok: true, restaurants: rests.size });
+        res.json({ ok: true, restaurants: fin.restaurants.length, refunded: refundAmount - left, refunds, cancelled: fin.cancelledPreapprovals.length });
     }
 );
 
