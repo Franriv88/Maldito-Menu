@@ -1253,6 +1253,52 @@ const MENU_LANGS = ["en", "de", "fr"];
 // Tope para no pagar nunca: Google regala 500 000 caracteres por mes (mes calendario en hora del
 // Pacífico) y cobra desde ahí. Contamos lo que mandamos en serverState/translationUsage (solo servidor)
 // y dejamos margen. Si se llega al tope, lo que falta se muestra en español hasta el mes/día siguiente.
+// Títulos de sección frecuentes: sin contexto, Google se equivoca ("Entradas" → "Tickets").
+// Tienen prioridad sobre Google y no gastan caracteres. Clave: minúsculas y sin tildes. [en, de, fr]
+const MENU_GLOSSARY = {
+    "entradas": ["Starters", "Vorspeisen", "Entrées"],
+    "entrantes": ["Starters", "Vorspeisen", "Entrées"],
+    "principales": ["Mains", "Hauptgerichte", "Plats principaux"],
+    "platos principales": ["Main courses", "Hauptgerichte", "Plats principaux"],
+    "platos": ["Dishes", "Gerichte", "Plats"],
+    "postres": ["Desserts", "Desserts", "Desserts"],
+    "bebidas": ["Drinks", "Getränke", "Boissons"],
+    "bebidas sin alcohol": ["Soft drinks", "Alkoholfreie Getränke", "Boissons sans alcool"],
+    "bebidas con alcohol": ["Alcoholic drinks", "Alkoholische Getränke", "Boissons alcoolisées"],
+    "tragos": ["Cocktails", "Cocktails", "Cocktails"],
+    "cocteles": ["Cocktails", "Cocktails", "Cocktails"],
+    "vinos": ["Wines", "Weine", "Vins"],
+    "cervezas": ["Beers", "Biere", "Bières"],
+    "guarniciones": ["Sides", "Beilagen", "Accompagnements"],
+    "acompanamientos": ["Sides", "Beilagen", "Accompagnements"],
+    "ensaladas": ["Salads", "Salate", "Salades"],
+    "sopas": ["Soups", "Suppen", "Soupes"],
+    "pastas": ["Pasta", "Pasta", "Pâtes"],
+    "pizzas": ["Pizzas", "Pizzen", "Pizzas"],
+    "minutas": ["Quick meals", "Schnelle Gerichte", "Plats rapides"],
+    "para compartir": ["To share", "Zum Teilen", "À partager"],
+    "picadas": ["Sharing boards", "Platten zum Teilen", "Planches à partager"],
+    "desayunos": ["Breakfast", "Frühstück", "Petit-déjeuner"],
+    "meriendas": ["Afternoon snacks", "Nachmittagssnacks", "Goûters"],
+    "salados": ["Savory", "Herzhaftes", "Salé"],
+    "dulces": ["Sweets", "Süßes", "Sucré"],
+    "extras": ["Extras", "Extras", "Suppléments"],
+    "adicionales": ["Add-ons", "Extras", "Suppléments"],
+    "menu infantil": ["Kids menu", "Kindermenü", "Menu enfant"],
+    "menu del dia": ["Today's menu", "Tagesmenü", "Menu du jour"],
+    "sin alcohol": ["Non-alcoholic", "Alkoholfrei", "Sans alcool"],
+    "cafeteria": ["Coffee", "Kaffee", "Café"],
+    "cafe de especialidad": ["Specialty coffee", "Spezialitätenkaffee", "Café de spécialité"],
+    "cafe frio": ["Iced coffee", "Eiskaffee", "Café glacé"],
+};
+function glossaryTranslation(text, lang) {
+    const key = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+    const hit = MENU_GLOSSARY[key];
+    if (!hit) return null;
+    const out = hit[{ en: 0, de: 1, fr: 2 }[lang]];
+    return text === text.toUpperCase() ? out.toUpperCase() : out;   // "ENTRADAS" → "STARTERS"
+}
+
 const TR_MONTH_CAP = 400000;
 const TR_DAY_CAP   = 25000;
 
@@ -1356,6 +1402,11 @@ exports.translateMenu = onRequest(
         const hash = s => crypto.createHash("sha1").update(s).digest("hex").slice(0, 24);
         const cached = (cacheSnap.data() || {}).t || {};
         const list = [...sources];
+        // El glosario manda (también sobre traducciones viejas guardadas); se aplica en cada pedido
+        for (const s of list) {
+            const g = glossaryTranslation(s, lang);
+            if (g) cached[hash(s)] = g;
+        }
         let missing = list.filter(s => typeof cached[hash(s)] !== "string");
         let capped = false;
         if (missing.length) {
