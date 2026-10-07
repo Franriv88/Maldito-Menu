@@ -517,7 +517,7 @@ function initTablesTab() {
     document.querySelector('#nfcPhoneLink span').textContent = onPhone ? 'Abrir la página para grabar' : 'Abrir en este dispositivo';
 
     document.getElementById('nfcHelp').innerHTML = 'NDEFReader' in window
-        ? `${licon('nfc', 13)} Este dispositivo puede grabar stickers NFC: tocá "Grabar NFC" y apoyá el sticker en la parte de atrás del celular. Al terminar te ofrece bloquearlo para que nadie pueda cambiarle el link.`
+        ? `${licon('nfc', 13)} Este dispositivo puede grabar stickers NFC: tocá "Grabar NFC" en una mesa. Si el sticker ya tiene algo grabado, te lo muestra y te pregunta antes de reescribirlo.`
         : `${licon('info', 13)} Para grabar los stickers usá el código QR de arriba con tu celular. Los iPhone y Android leen el sticker sin instalar nada.`;
 }
 
@@ -591,69 +591,10 @@ async function onTableClick(e) {
             if (r.isConfirmed) await saveTables((orderingCfg.tables || []).filter(t => t.id !== id));
             break;
         }
-        case 'nfc': {
-            // "Cancelar" (o salir de la página) tiene que liberar el NFC: mientras Chrome espera
-            // un sticker, Android no deja leer NFC en el resto del celular
-            const ctrl = nfcOperation();
-            let written = false;
-            try {
-                const ndef = new NDEFReader();
-                Swal.fire({ title: 'Acercá el sticker NFC', text: `Apoyalo en la parte de atrás del celular para grabar ${table.label}.`, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' })
-                    .then(r => { if (r.isDismissed && !written) ctrl.abort(); });
-                await ndef.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal });
-                written = true;
-                releaseNfc(ctrl);
-                await offerNfcLock(ndef, table.label);
-            } catch (err) {
-                if (err.name !== 'AbortError') Swal.fire({ icon: 'error', title: 'No se pudo grabar', text: err.message });
-            } finally {
-                releaseNfc(ctrl);
-            }
+        case 'nfc':
+            // La grabación (con aviso si el sticker ya tiene algo, y protección) está en nfc.html
+            window.open(`${location.origin}/nfc.html?r=${restaurantId}&mesa=${encodeURIComponent(id)}`, '_blank', 'noopener');
             break;
-        }
-    }
-}
-
-// Después de grabar: ofrecer bloquear el sticker (solo lectura) para que nadie lo reescriba con
-// otro link. Es permanente. Web NFC makeReadOnly(): Chrome 100+ en Android.
-// Una sola operación NFC a la vez; se libera al terminar, al cancelar o al ocultarse la página
-let activeNfc = null;
-function nfcOperation() { releaseNfc(); activeNfc = new AbortController(); return activeNfc; }
-function releaseNfc(ctrl = activeNfc) {
-    if (!ctrl) return;
-    try { ctrl.abort(); } catch { /* ya liberado */ }
-    if (activeNfc === ctrl) activeNfc = null;
-}
-document.addEventListener('visibilitychange', () => { if (document.hidden && activeNfc) { releaseNfc(); Swal.close(); } });
-window.addEventListener('pagehide', () => releaseNfc());
-
-async function offerNfcLock(ndef, label) {
-    if (!('makeReadOnly' in NDEFReader.prototype)) {
-        Swal.fire({ icon: 'success', title: `${label} grabada`, timer: 1800, showConfirmButton: false });
-        return;
-    }
-    const r = await Swal.fire({
-        icon: 'success',
-        title: `${label} grabada`,
-        html: `¿Querés <b>bloquear</b> este sticker?<br><br>
-               <small>Así nadie puede cambiarle el link (por ejemplo, un cliente con una app de NFC).
-               <b>Es permanente</b>: ni vos vas a poder volver a grabarlo. Recomendado para los stickers ya pegados en las mesas.</small>`,
-        showCancelButton: true, confirmButtonText: 'Bloquear sticker', cancelButtonText: 'Ahora no',
-    });
-    if (!r.isConfirmed) return;
-    const ctrl = nfcOperation();   // operación aparte: "Cancelar" libera el NFC
-    let done = false;
-    try {
-        Swal.fire({ title: 'Acercá el sticker otra vez', text: 'Apoyalo en la parte de atrás del celular para bloquearlo.',
-                    showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cancelar' })
-            .then(x => { if (x.isDismissed && !done) ctrl.abort(); });
-        await ndef.makeReadOnly({ signal: ctrl.signal });
-        done = true;
-        Swal.fire({ icon: 'success', title: 'Sticker bloqueado', text: `${label} ya no se puede reescribir.`, timer: 2200, showConfirmButton: false });
-    } catch (err) {
-        if (err.name !== 'AbortError') Swal.fire({ icon: 'error', title: 'No se pudo bloquear', text: `${err.message} — El sticker quedó grabado pero sin bloquear; podés intentarlo de nuevo con "Grabar NFC".` });
-    } finally {
-        releaseNfc(ctrl);
     }
 }
 

@@ -52,6 +52,14 @@
         .qr-box { width: 180px; height: 180px; flex-shrink: 0; background: #fff; border-radius: 12px; padding: 8px; }
         .qr-box svg { width: 100%; height: 100%; display: block; }
         @media (max-width: 480px) { .qr-card { flex-direction: column; align-items: flex-start; } }
+        .tip { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+        .tip summary { cursor: pointer; }
+        .tip p { margin: 8px 0; font-size: .9rem; }
+        .tip a { color: var(--accent); }
+        .tag { font-size: .7rem; padding: 1px 7px; border-radius: 999px; background: var(--ok); color: var(--bg); margin-left: 4px; }
+        .muted { color: var(--muted); font-size: .82rem !important; }
+        .row.focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+        .existing { display: block; margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: rgba(127,127,127,.15); font-size: .85rem; word-break: break-all; text-align: left; }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -67,12 +75,24 @@
 
     <!-- Android con Chrome: graba y bloquea desde acá -->
     <div id="androidMode" hidden>
-        <div class="card">
-            <label class="switch">
-                <input type="checkbox" id="lockAfter" checked>
-                <span><b>Bloquear cada sticker al grabarlo</b>
-                    <small>Recomendado: así nadie puede cambiarle el link. Es permanente (después no se puede volver a grabar).</small></span>
-            </label>
+        <div class="card" id="protectCard">
+            <h2><i data-lucide="shield" style="width:18px;height:18px"></i> Protección del sticker</h2>
+            <label class="switch"><input type="radio" name="protect" value="none" checked>
+                <span><b>Sin bloquear</b> <small>Lo podés volver a grabar cuando quieras. Para que nadie más pueda cambiarlo, protegelo con una clave (abajo).</small></span></label>
+            <label class="switch" style="margin-top:10px"><input type="radio" name="protect" value="lock">
+                <span><b>Bloqueo permanente</b> <small>Nadie puede cambiarle el link nunca más, <b>ni vos</b>: si la mesa cambia, hay que usar un sticker nuevo.</small></span></label>
+            <details class="tip">
+                <summary><b>Proteger con una clave</b> (se puede desbloquear) <span class="tag">recomendado</span></summary>
+                <p>Después de grabarlo acá, con la app gratuita <b>NFC Tools</b>
+                    (<a href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" rel="noopener">Android</a> ·
+                    <a href="https://apps.apple.com/app/nfc-tools/id1252962749" target="_blank" rel="noopener">iPhone</a>):</p>
+                <ol class="steps">
+                    <li><b>Otros → Establecer contraseña</b>, escribí una clave y acercá el sticker.</li>
+                    <li>Guardá la clave: solo el personal la conoce.</li>
+                    <li>Para volver a grabarlo: <b>Otros → Quitar contraseña</b> con esa clave, y después grabalo desde acá.</li>
+                </ol>
+                <p class="muted">La clave la maneja la app porque Chrome no permite usar esa función de los stickers desde una página web.</p>
+            </details>
         </div>
         <button class="btn primary block" id="writeAllBtn" style="margin-bottom:14px"><i data-lucide="nfc" style="width:20px;height:20px"></i> <span id="writeAllLabel">Grabar todas, una por una</span></button>
     </div>
@@ -87,7 +107,7 @@
                 <li>Acá abajo tocá <b>Copiar link</b> en <span id="itemWord">la mesa</span>.</li>
                 <li>En NFC Tools: <b>Escribir → Agregar un registro → URL / URI</b>, pegá el link y tocá <b>Escribir</b>.</li>
                 <li>Acercá el sticker a la parte de arriba del celular hasta que confirme.</li>
-                <li>Para bloquearlo (recomendado, es permanente): <b>Otros → Bloquear etiqueta</b> y acercalo de nuevo.</li>
+                <li>Para protegerlo con una clave (recomendado): <b>Otros → Establecer contraseña</b>. Para volver a grabarlo: <b>Otros → Quitar contraseña</b>. (También existe <b>Otros → Bloquear etiqueta</b>, pero es permanente.)</li>
             </ol>
         </div>
     </div>
@@ -113,6 +133,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
-<script src="./Js/nfc.js?v=3"></script>
+<script src="./Js/nfc.js?v=4"></script>
 </body>
 </html>

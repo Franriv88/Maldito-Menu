@@ -38,6 +38,9 @@ Js/firebase-config.js Config de Firebase (compartida)
 pedidos.html        Pedidos en mesa (restaurante): tablero/comandera, mesas QR/NFC, config
 Js/pedidos.js       Lógica de pedidos.html (impresión desde navegador, QR, Web NFC)
 Js/table-ordering.js Carrito del comensal en menu.html (se activa con ?mesa=)
+nfc.html + Js/nfc.js Grabar stickers NFC desde el celular (QR desde Pedidos → Mesas; sin login). Web NFC:
+                    graba con overwrite:false y, si ya tiene algo, lo muestra y pregunta; bloqueo permanente opcional;
+                    la clave (NTAG PWD) solo con la app NFC Tools. Siempre libera el NFC (si no, Android no lee otros tags)
 functions/index.js  Cloud Functions: OTP, pagos MP, cupones, placeOrder, printerPoll
 ```
 
