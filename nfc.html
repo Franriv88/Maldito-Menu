@@ -48,6 +48,10 @@
         .notice { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); font-size: .9rem; }
         .notice svg { flex-shrink: 0; margin-top: 2px; color: var(--warn); }
         .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
+        .qr-card { display: flex; gap: 18px; align-items: center; }
+        .qr-box { width: 180px; height: 180px; flex-shrink: 0; background: #fff; border-radius: 12px; padding: 8px; }
+        .qr-box svg { width: 100%; height: 100%; display: block; }
+        @media (max-width: 480px) { .qr-card { flex-direction: column; align-items: flex-start; } }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -90,8 +94,13 @@
 
     <!-- Computadora: hay que abrirla desde el celular -->
     <div id="desktopMode" hidden>
-        <div class="card notice"><i data-lucide="smartphone" style="width:18px;height:18px"></i>
-            <span>Esta página es para abrirla desde el celular con el que vas a grabar los stickers. Escaneá el QR que aparece en Pedidos → Mesas.</span></div>
+        <div class="card qr-card">
+            <div class="qr-box" id="phoneQr"></div>
+            <div>
+                <h2><i data-lucide="smartphone-nfc" style="width:18px;height:18px"></i> Escaneá este código con tu celular</h2>
+                <p class="sub" style="margin:0">Se abre esta misma página en el teléfono (Android o iPhone) para grabar y bloquear los stickers. No hace falta iniciar sesión.</p>
+            </div>
+        </div>
     </div>
 
     <div class="list" id="tableList"></div>
@@ -99,10 +108,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.309.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
-<script src="./Js/nfc.js?v=1"></script>
+<script src="./Js/nfc.js?v=2"></script>
 </body>
 </html>

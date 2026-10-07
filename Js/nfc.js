@@ -47,7 +47,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? 'https://apps.apple.com/app/nfc-tools/id1252962749'
             : 'https://play.google.com/store/apps/details?id=com.wakdev.wdnfc';
     } else {
+        // Computadora: QR de esta misma página para abrirla en el celular
         document.getElementById('desktopMode').hidden = false;
+        if (typeof qrcode === 'function') {
+            const qr = qrcode(0, 'M');
+            qr.addData(location.href);
+            qr.make();
+            document.getElementById('phoneQr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+        }
     }
     render();
     lucide.createIcons();
