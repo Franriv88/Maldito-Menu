@@ -30,6 +30,8 @@
     save(localStorage, ORDERS_KEY, myOrders);
     const NAME_KEY = `diner_name_${restaurantId}`;         // nombre del comensal (obligatorio), recordado para el próximo pedido
     let ordersTab = 'mine', tableData = null, tablePoll = null;
+    // "Pedidos" solo aparece si hay algo para mostrar: pedidos de este celular o de la mesa
+    let tableHasOrders = false, tableCheck = null;
     const orderUnsubs = {};
     const orderState  = {};
 
@@ -188,6 +190,12 @@
         bar.className = 'to-bar';
         document.body.appendChild(bar);
 
+        // ¿La mesa ya tiene pedidos (de otros comensales)? Se consulta al abrir y cada minuto
+        // mientras todavía no haya ninguno
+        fetchTableOrders();
+        clearInterval(tableCheck);
+        tableCheck = setInterval(() => { if (!tableHasOrders && !document.hidden) fetchTableOrders(); }, 60000);
+
         const sheet = document.createElement('div');
         sheet.id = 'toSheet';
         sheet.className = 'to-sheet-backdrop';
@@ -206,6 +214,7 @@
 
     function unmountUI() {
         document.body.classList.remove('ordering-on');
+        clearInterval(tableCheck);
         ['toBanner', 'toBar', 'toSheet', 'toToast'].forEach(id => document.getElementById(id)?.remove());
         document.querySelectorAll('.to-add, .to-sub, .to-qty-badge').forEach(el => el.remove());
     }
@@ -260,8 +269,9 @@
         }
         const n = cartCount();
         const live = myOrders.filter(o => !['entregado', 'rechazado'].includes(orderState[o.id]?.status));
+        const hasOrders = myOrders.some(isFresh) || tableHasOrders;
         bar.innerHTML = `
-            <button class="to-bar-orders" type="button">Pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>
+            ${hasOrders ? `<button class="to-bar-orders" type="button">Pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>` : ''}
             <button class="to-bar-cart" type="button" ${n && !closed ? '' : 'disabled'}>
                 ${closed ? 'Pedidos cerrados por ahora'
                     : n ? `Ver pedido · ${n} ${n === 1 ? 'producto' : 'productos'}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : 'Agregá productos con +'}
@@ -508,6 +518,11 @@
             });
             const data = await r.json().catch(() => ({}));
             tableData = r.ok ? { orders: data.orders || [] } : { error: data.error || 'No se pudieron cargar los pedidos.' };
+            if (r.ok) {
+                const had = tableHasOrders;
+                tableHasOrders = (data.orders || []).length > 0;
+                if (had !== tableHasOrders && active) renderBar();
+            }
         } catch {
             tableData = tableData || { error: 'Sin conexión. Reintentando…' };
         }
