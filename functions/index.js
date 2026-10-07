@@ -15,6 +15,11 @@ const db   = getFirestore();
 const auth = getAuth();
 
 const SUPERADMIN_EMAIL = "frivasv2388@gmail.com";
+
+// Secretos de Mercado Pago sin espacios ni saltos de línea en los bordes: al cargarlos desde la terminal
+// de Windows quedaban con un salto de línea (CR LF) al final (firma del webhook inválida y header Authorization inválido)
+const mpToken  = () => String(process.env.MP_ACCESS_TOKEN || "").trim();
+const mpSecret = () => String(process.env.MP_WEBHOOK_SECRET || "").trim();
 const APP_URL          = "https://cubierto.menu";
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -340,7 +345,7 @@ async function activateFromPayment(payment) {
 async function fetchMpPayment(paymentId) {
     const { data } = await axios.get(
         `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
-        { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+        { headers: { Authorization: `Bearer ${mpToken()}` } }
     );
     return data;
 }
@@ -406,7 +411,7 @@ exports.createPayment = onRequest(
                     auto_return: "approved",
                     statement_descriptor: "CUBIERTO",
                 },
-                { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+                { headers: { Authorization: `Bearer ${mpToken()}` } }
             );
 
             await userRef.set({ subscription: { paymentInitiated: FieldValue.serverTimestamp() } }, { merge: true });
@@ -430,7 +435,7 @@ exports.createPayment = onRequest(
 //    se cancela la anterior.
 // ══════════════════════════════════════════════════════════════
 const MP_API    = "https://api.mercadopago.com";
-const mpHeaders = () => ({ Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` });
+const mpHeaders = () => ({ Authorization: `Bearer ${mpToken()}` });
 const tsMs      = v => v?.toMillis?.() || 0;
 
 const mpGetPreapproval    = async id => (await axios.get(`${MP_API}/preapproval/${encodeURIComponent(id)}`, { headers: mpHeaders() })).data;
@@ -757,7 +762,7 @@ exports.mpWebhook = onRequest(
     async (req, res) => {
         try {
             // Verificar firma de MP: si hay secreto configurado, la firma es obligatoria
-            const secret = process.env.MP_WEBHOOK_SECRET;
+            const secret = mpSecret();
             const dataId = String(req.query?.["data.id"] || req.body?.data?.id || "");
             if (secret) {
                 const xSignature = req.headers["x-signature"] || "";
