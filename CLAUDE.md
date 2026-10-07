@@ -111,6 +111,9 @@ restaurants/{restaurantId}/
 
   translations/{en|de|fr}: { t: { sha1(texto): traducción }, updatedAt }  ← caché de la function translateMenu
 
+serverState/translationUsage: { month, day, monthChars, dayChars }  ← solo servidor. Tope para no pagar Cloud Translation:
+  400 000 caracteres/mes (Google regala 500 000) y 25 000/día (TR_MONTH_CAP / TR_DAY_CAP); al llegar, lo que falta queda en español
+
 users/{uid}/
   { email, displayName, lastLogin, createdAt,
     subscription: { status: trial|active|unpaid|pending_payment|blocked, planType (id de nivel), period,

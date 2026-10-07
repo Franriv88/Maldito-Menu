@@ -1250,6 +1250,38 @@ exports.tableOrders = onRequest(
 // Translation y se guardan en restaurants/{r}/translations/{lang} ({ t: { sha1: texto } }):
 // cada texto se traduce una sola vez y de nuevo solo si el restaurante lo cambia.
 const MENU_LANGS = ["en", "de", "fr"];
+// Tope para no pagar nunca: Google regala 500 000 caracteres por mes (mes calendario en hora del
+// Pacífico) y cobra desde ahí. Contamos lo que mandamos en serverState/translationUsage (solo servidor)
+// y dejamos margen. Si se llega al tope, lo que falta se muestra en español hasta el mes/día siguiente.
+const TR_MONTH_CAP = 400000;
+const TR_DAY_CAP   = 25000;
+
+// Reserva hasta `wanted` caracteres dentro del tope; devuelve cuántos se pueden usar
+async function reserveTranslationChars(wanted) {
+    const ref = db.collection("serverState").doc("translationUsage");
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles",
+        year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map(x => [x.type, x.value]));
+    const month = `${parts.year}-${parts.month}`, day = `${month}-${parts.day}`;
+    return db.runTransaction(async tx => {
+        const u = (await tx.get(ref)).data() || {};
+        const monthChars = u.month === month ? u.monthChars || 0 : 0;
+        const dayChars   = u.day === day ? u.dayChars || 0 : 0;
+        const allowed = Math.max(0, Math.min(wanted, TR_MONTH_CAP - monthChars, TR_DAY_CAP - dayChars));
+        if (allowed > 0) tx.set(ref, { month, day, monthChars: monthChars + allowed, dayChars: dayChars + allowed,
+            updatedAt: FieldValue.serverTimestamp() });
+        return { allowed, month, day };
+    });
+}
+async function refundTranslationChars({ month, day }, n) {
+    if (!n) return;
+    const ref = db.collection("serverState").doc("translationUsage");
+    await db.runTransaction(async tx => {
+        const u = (await tx.get(ref)).data() || {};
+        if (u.month !== month) return;
+        tx.set(ref, { monthChars: Math.max(0, (u.monthChars || 0) - n),
+            ...(u.day === day ? { dayChars: Math.max(0, (u.dayChars || 0) - n) } : {}) }, { merge: true });
+    }).catch(() => {});
+}
 const menuTrMemo = new Map();   // `${r}|${lang}` → { at, map } (instancia caliente, 60 s)
 let gcpTokenCache = null;
 
@@ -1318,23 +1350,41 @@ exports.translateMenu = onRequest(
         const hash = s => crypto.createHash("sha1").update(s).digest("hex").slice(0, 24);
         const cached = (cacheSnap.data() || {}).t || {};
         const list = [...sources];
-        const missing = list.filter(s => typeof cached[hash(s)] !== "string");
+        let missing = list.filter(s => typeof cached[hash(s)] !== "string");
+        let capped = false;
+        if (missing.length) {
+            // Solo lo que entra en el tope gratuito (el resto queda en español por ahora)
+            const wanted = missing.reduce((n, s) => n + s.length, 0);
+            const quota = await reserveTranslationChars(wanted);
+            if (quota.allowed < wanted) {
+                capped = true;
+                let room = quota.allowed;
+                missing = missing.filter(s => (room >= s.length ? ((room -= s.length), true) : false));
+                await refundTranslationChars(quota, room);   // lo reservado que no se usó
+                console.warn(`translateMenu: tope gratuito alcanzado (${r}/${lang}); se traducen ${missing.length} textos`);
+            }
+        }
         if (missing.length) {
             let translated;
             try {
                 translated = await googleTranslate(missing, lang);
             } catch (err) {
                 console.error("translateMenu:", err.response?.status, JSON.stringify(err.response?.data || err.message).slice(0, 500));
+                // Si Google no tradujo, no cobra: se devuelve lo reservado
+                const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles",
+                    year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map(x => [x.type, x.value]));
+                await refundTranslationChars({ month: `${parts.year}-${parts.month}`, day: `${parts.year}-${parts.month}-${parts.day}` },
+                    missing.reduce((n, s) => n + s.length, 0));
                 res.status(503).json({ error: "La traducción no está disponible en este momento." }); return;
             }
             missing.forEach((s, i) => { cached[hash(s)] = translated[i]; });
             // Solo se guardan los textos actuales (los que el restaurante borró o cambió se descartan)
-            const t = Object.fromEntries(list.map(s => [hash(s), cached[hash(s)]]));
+            const t = Object.fromEntries(list.filter(s => typeof cached[hash(s)] === "string").map(s => [hash(s), cached[hash(s)]]));
             await restRef.collection("translations").doc(lang).set({ t, updatedAt: FieldValue.serverTimestamp() });
         }
-        const map = Object.fromEntries(list.map(s => [s, cached[hash(s)]]));
-        menuTrMemo.set(memoKey, { at: Date.now(), map });
-        res.json({ map });
+        const map = Object.fromEntries(list.filter(s => typeof cached[hash(s)] === "string").map(s => [s, cached[hash(s)]]));
+        if (!capped) menuTrMemo.set(memoKey, { at: Date.now(), map });
+        res.json({ map, ...(capped ? { partial: true } : {}) });
     }
 );
 
