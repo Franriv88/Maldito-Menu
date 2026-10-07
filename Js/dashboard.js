@@ -300,17 +300,25 @@ async function createRestaurant() {
 // ── Eliminar restaurante ───────────────────────────────────────
 
 async function deleteRestaurant(id, nombre) {
-    if (!confirm(`¿Eliminar "${nombre}"? Se borrarán todos sus productos e imágenes. Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar "${nombre}"? Se borrarán su menú, imágenes, mesas y pedidos. Esta acción no se puede deshacer.`)) return;
 
     try {
-        // Borrar subcollections productos y config
-        const batch = db.batch();
-        const prods  = await db.collection('restaurants').doc(id).collection('productos').get();
-        const config = await db.collection('restaurants').doc(id).collection('config').get();
-        prods.forEach(d  => batch.delete(d.ref));
-        config.forEach(d => batch.delete(d.ref));
-        batch.delete(db.collection('restaurants').doc(id));
-        await batch.commit();
+        // Se borra TODO lo del restaurante (lo promete la política de privacidad): menú, configuración,
+        // imágenes, mesas, pedidos (con los nombres de los comensales), traducciones y datos privados.
+        // Firestore no borra subcolecciones solas; lotes de hasta 450 operaciones.
+        const restRef = db.collection('restaurants').doc(id);
+        const SUBS = ['productos', 'config', 'imageData', 'mesas', 'pedidos', 'translations', 'private'];
+        const refs = [];
+        for (const sub of SUBS) {
+            const snap = await restRef.collection(sub).get();
+            snap.forEach(d => refs.push(d.ref));
+        }
+        for (let i = 0; i < refs.length; i += 450) {
+            const batch = db.batch();
+            refs.slice(i, i + 450).forEach(r => batch.delete(r));
+            await batch.commit();
+        }
+        await restRef.delete();
 
         // Recargar
         const uid = auth.currentUser.uid;

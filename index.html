@@ -474,6 +474,15 @@ body.light .feat-icon{background:rgba(80,55,25,.07);border-color:rgba(80,55,25,.
 .rot-btn:hover{background:rgba(200,184,154,.15)}
 
 /* ── NAV BUTTONS (Sign In / Sign Up) ───────────────────────── */
+/* Links legales (Google pide la política de privacidad enlazada desde la página de inicio) */
+#legalLinks{
+    position:fixed;bottom:.8rem;right:1.2rem;z-index:300;display:flex;gap:.9rem;
+    font:400 .68rem 'Inter',sans-serif;
+}
+#legalLinks a{color:rgba(200,184,154,.45);text-decoration:none;transition:color .2s}
+#legalLinks a:hover{color:rgba(200,184,154,.9);text-decoration:underline}
+body.light #legalLinks a{color:rgba(80,55,25,.5)}
+body.light #legalLinks a:hover{color:#6b5135}
 #landingNav{
     position:fixed;top:1.1rem;right:1.8rem;z-index:300;
     display:flex;align-items:center;gap:.7rem;
@@ -1017,6 +1026,12 @@ body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
     <a class="btn-signin" href="./login.html">Iniciar sesión</a>
     <button class="btn-signup" id="signUpBtn">Crear cuenta</button>
 </div>
+
+<nav id="legalLinks" aria-label="Información legal y ayuda">
+    <a href="./ayuda.html">Ayuda</a>
+    <a href="./terminos.html">Términos</a>
+    <a href="./privacidad.html">Privacidad</a>
+</nav>
 
 <!-- ── ROTATE OVERLAY ── -->
 <div id="rotateOverlay">

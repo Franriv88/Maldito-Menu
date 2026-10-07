@@ -45,6 +45,11 @@ Js/menu-i18n.js     Idioma del menú público (es/en/de/fr): textos fijos con di
 nfc.html + Js/nfc.js Grabar stickers NFC desde el celular (QR desde Pedidos → Mesas; sin login). Web NFC:
                     graba con overwrite:false y, si ya tiene algo, lo muestra y pregunta; bloqueo permanente opcional;
                     la clave (NTAG PWD) solo con la app NFC Tools. Siempre libera el NFC (si no, Android no lee otros tags)
+ayuda.html          Preguntas frecuentes (buscador; #id abre la pregunta, ej. ayuda.html#subir-plan)
+terminos.html       Términos y condiciones · privacidad.html  Política de privacidad (Ley 25.326)
+                    ← estilos Css/docs.css; Js/docs.js completa el contacto desde appConfig/support.
+                    Si cambia cómo funcionan planes, cobros, datos guardados o pedidos, actualizar estos textos.
+                    Enlazados desde index (abajo a la derecha), login, checkout y el modal de soporte del dashboard
 functions/index.js  Cloud Functions: OTP, pagos MP, cupones, placeOrder, printerPoll
 ```
 

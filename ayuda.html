@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <script>/* Dominio oficial: los dominios técnicos de Firebase redirigen a cubierto.menu */if(/\.(web\.app|firebaseapp\.com)$/.test(location.hostname))location.replace('https://cubierto.menu'+location.pathname+location.search+location.hash);</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preguntas frecuentes — Cubierto</title>
+    <meta name="description" content="Cómo usar Cubierto: tu panel, el editor del menú, pedidos desde la mesa, planes y pagos.">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./Css/docs.css?v=2">
+</head>
+<body>
+<header class="doc-top">
+    <a class="doc-brand" href="./index.html">Cubierto</a>
+    <nav class="doc-nav">
+        <a href="./ayuda.html" aria-current="page">Ayuda</a>
+        <a href="./terminos.html">Términos</a>
+        <a href="./privacidad.html">Privacidad</a>
+        <a href="./dashboard.html">Mi panel</a>
+    </nav>
+</header>
+
+<main class="doc">
+    <h1>Preguntas frecuentes</h1>
+    <p class="doc-lead">Todo lo que necesitás para manejar tu menú digital, los pedidos desde la mesa y tu plan.
+        ¿No encontrás lo que buscás? Escribinos a <span data-contact-email></span> o desde <b>Contactar soporte</b> en tu panel.</p>
+
+    <input id="faqSearch" class="faq-search" type="search" placeholder="Buscar: plan, QR, imagen, impresora…" aria-label="Buscar en las preguntas frecuentes">
+    <p id="faqEmpty" class="faq-empty" hidden>No encontramos preguntas con esa palabra. Probá con otra o escribinos.</p>
+
+    <div class="faq">
+
+    <section class="faq-group">
+        <h2>Primeros pasos</h2>
+        <details id="que-es"><summary>¿Qué es Cubierto?</summary><div class="faq-a">
+            <p>Es una herramienta para crear el menú digital de tu restaurante, bar, café o catering. Tus clientes lo abren
+            escaneando un QR o acercando el celular a un sticker NFC, sin instalar nada. Cada cambio que hacés se ve al instante.</p>
+            <p>Según tu plan, también podés recibir <b>pedidos desde la mesa</b>, que llegan a una pantalla de cocina y a tu impresora de comandas.</p>
+        </div></details>
+        <details id="crear-cuenta"><summary>¿Cómo creo mi cuenta?</summary><div class="faq-a">
+            <p>Entrá a <a href="./login.html">cubierto.menu</a> y tocá <b>Continuar con Google</b>. No hace falta crear una contraseña:
+            usás tu cuenta de Google de siempre.</p>
+        </div></details>
+        <details id="prueba-gratis" data-k="prueba gratis demo trial 14 días"><summary>¿Hay una prueba gratis?</summary><div class="faq-a">
+            <p>Sí. Al crear tu cuenta tenés <b>14 días gratis con todo incluido</b>, sin cargar ninguna tarjeta.
+            Podés elegir un plan cuando quieras durante la prueba: el primer cobro es recién el día en que termina.</p>
+            <p>Si la prueba termina y no elegiste un plan, tu menú sigue visible para tus clientes, pero no vas a poder editarlo hasta elegir uno.</p>
+        </div></details>
+        <details id="primer-menu"><summary>¿Cómo armo mi primer menú?</summary><div class="faq-a">
+            <ol>
+                <li>En tu panel, tocá <b>+ Nuevo restaurante</b> y ponele nombre.</li>
+                <li>Tocá <b>Editar menú</b>. Escribí los títulos (por ejemplo, “Entradas”), los productos, sus precios y, si querés, una descripción.</li>
+                <li>Subí tu logo, elegí tipografías y colores en el panel de la derecha.</li>
+                <li>Tocá <b>Guardar menú</b>.</li>
+                <li>Volvé al panel y tocá <b>QR / Link</b> para descargar el QR e imprimirlo.</li>
+            </ol>
+        </div></details>
+    </section>
+
+    <section class="faq-group">
+        <h2>Tu panel</h2>
+        <details id="panel"><summary>¿Qué puedo hacer desde “Mis restaurantes”?</summary><div class="faq-a">
+            <p>Cada restaurante tiene su tarjeta con estos botones:</p>
+            <ul>
+                <li><b>Editar menú</b>: productos, precios, imágenes, tipografías y colores.</li>
+                <li><b>Pedidos</b>: la pantalla de pedidos desde la mesa, las mesas con su QR y la configuración.</li>
+                <li><b>Ver menú</b>: abre el menú tal como lo ven tus clientes.</li>
+                <li><b>QR / Link</b>: el link para compartir y el QR para descargar.</li>
+                <li>El <b>lápiz</b> junto al nombre lo renombra, y <b>Eliminar</b> lo borra.</li>
+            </ul>
+            <p>Arriba ves siempre <b>tu plan</b>: cuál es, hasta cuándo está pago y si tiene débito automático.</p>
+        </div></details>
+        <details id="varios-restaurantes"><summary>¿Puedo tener más de un restaurante?</summary><div class="faq-a">
+            <p>Sí. La cantidad depende de tu plan; la ves en la pantalla de planes. Cada restaurante tiene su propio menú, su QR y sus pedidos.</p>
+        </div></details>
+        <details id="compartir" data-k="compartir qr link código instagram whatsapp"><summary>¿Cómo comparto mi menú?</summary><div class="faq-a">
+            <p>Tocá <b>QR / Link</b> en la tarjeta del restaurante. Podés copiar el link (para Instagram, WhatsApp o Google Maps)
+            o descargar el QR para imprimirlo. El QR no cambia nunca: aunque edites el menú, el mismo QR sigue sirviendo.</p>
+        </div></details>
+        <details id="soporte" data-k="soporte ayuda contacto whatsapp email"><summary>¿Cómo contacto a soporte?</summary><div class="faq-a">
+            <p>En tu panel, tocá <b>Contactar soporte</b> para escribirnos por WhatsApp o email. También podés escribir a <span data-contact-email></span>.</p>
+        </div></details>
+    </section>
+
+    <section class="faq-group">
+        <h2>El editor del menú</h2>
+        <details id="guardar" data-k="guardar publicar cambios"><summary>¿Cuándo se publican mis cambios?</summary><div class="faq-a">
+            <p>Los productos, precios, descripciones y títulos se publican al tocar <b>Guardar menú</b>.
+            Las tipografías, los colores, el logo y las imágenes se guardan solos apenas los cambiás. En los dos casos,
+            tus clientes ven el cambio en segundos, sin volver a escanear el QR.</p>
+        </div></details>
+        <details id="secciones"><summary>¿Cómo agrego títulos, productos y secciones?</summary><div class="faq-a">
+            <ul>
+                <li><b>+ Agregar</b>, debajo de cada título, suma un producto.</li>
+                <li><b>Agregar nuevo título y sus productos</b> suma otro título dentro de la misma sección.</li>
+                <li>El botón redondo <b>+</b> al final del menú agrega una sección nueva, con su propia imagen.</li>
+                <li>Las flechas de cada sección la suben o la bajan, y el tacho la elimina.</li>
+            </ul>
+            <p>En la descripción de un producto, cada línea que empieza con “-” se muestra como una lista.</p>
+        </div></details>
+        <details id="imagenes" data-k="imagen foto subir fondo quitar recortar zoom"><summary>¿Cómo subo y acomodo las imágenes?</summary><div class="faq-a">
+            <p>Hacé clic en el recuadro de imagen de una sección y elegí la foto. Después podés:</p>
+            <ul>
+                <li><b>Arrastrarla</b> para encuadrarla.</li>
+                <li>Usar los controles de <b>zoom</b>, <b>alto</b> y <b>ancho</b>. Con el ancho, la imagen ocupa más lugar y se acerca a los textos.</li>
+                <li><b>Voltearla</b>, <b>Quitar fondo</b> (deja solo el plato) o <b>Eliminar</b>.</li>
+            </ul>
+            <p>Con el botón <b>Diseño</b> de cada sección elegís qué va de cada lado: texto e imagen, dos columnas de texto o
+            una imagen a lo ancho. Algunos diseños dependen de tu plan.</p>
+        </div></details>
+        <details id="estilo" data-k="fuente tipografía color logo fondo"><summary>¿Cómo cambio tipografías, colores, logo y fondo?</summary><div class="faq-a">
+            <p>En el panel de la derecha del editor elegís la fuente de los títulos y la de los productos (con negrita y cursiva),
+            sus tamaños, los colores, el logo y las imágenes de fondo. Las tipografías marcadas con ✦ y las imágenes de fondo
+            están incluidas en los planes avanzados.</p>
+        </div></details>
+        <details id="sin-precios"><summary>¿Puedo mostrar el menú sin precios?</summary><div class="faq-a">
+            <p>Sí: marcá <b>Publicar el menú sin precios</b> en el editor. Los precios que cargaste se guardan y los podés volver a mostrar cuando quieras.</p>
+        </div></details>
+        <details id="idiomas" data-k="idioma inglés traducir traducción"><summary>¿Mi menú se puede leer en otros idiomas?</summary><div class="faq-a">
+            <p>Sí. Escribís el menú en español y se traduce solo. En <b>Idiomas del menú</b>, en el editor, elegís en cuáles
+            lo ofrecés: inglés, alemán o francés. Por defecto se ofrece en inglés.</p>
+            <p>El menú se abre en el idioma del celular de cada cliente, si lo ofrecés, y se puede cambiar desde la pestañita del costado del menú.
+            La traducción es automática: revisá cómo quedan los nombres de tus platos.</p>
+        </div></details>
+    </section>
+
+    <section class="faq-group">
+        <h2>Pedidos desde la mesa</h2>
+        <details id="pedidos-como"><summary>¿Cómo funcionan los pedidos desde la mesa?</summary><div class="faq-a">
+            <p>Cada mesa tiene su propio QR (y, si querés, un sticker NFC). El cliente lo escanea, elige productos con <b>+</b>,
+            escribe su nombre y envía el pedido. El pedido aparece en la pantalla <b>Pedidos</b> y se puede imprimir en tu comandera.</p>
+            <p>El pago sigue siendo el de siempre, en el local: Cubierto no cobra a tus clientes.
+            Esta función depende de tu plan.</p>
+        </div></details>
+        <details id="pedidos-activar"><summary>¿Cómo los activo?</summary><div class="faq-a">
+            <ol>
+                <li>En tu panel, tocá <b>Pedidos</b> y entrá a <b>Configuración</b>.</li>
+                <li>Marcá <b>Recibir pedidos desde el menú</b> y elegí cómo querés recibirlos.</li>
+                <li>En <b>Mesas, QR y NFC</b>, creá tus mesas. Tocá el nombre de una mesa para cambiarlo.</li>
+                <li>Imprimí el QR de cada mesa o grabá su sticker NFC.</li>
+            </ol>
+        </div></details>
+        <details id="pedidos-aprobar"><summary>¿Los pedidos van directo a cocina?</summary><div class="faq-a">
+            <p>Vos elegís. Lo más simple: el <b>primer pedido de cada mesa lo acepta el mozo</b>. Al aceptarlo, la mesa queda
+            <b>abierta</b> y los siguientes pedidos de esa mesa van directo a cocina. Cuando la mesa paga, tocala arriba del
+            tablero y elegí <b>Cerrar mesa (cobrada)</b>. Si nadie pide durante 6 horas, se cierra sola.</p>
+        </div></details>
+        <details id="pedidos-presencia" data-k="gps ubicación wifi wi-fi verificar falso"><summary>¿Necesito activar el GPS o el Wi-Fi del local?</summary><div class="faq-a">
+            <p>No. Son opciones para evitar pedidos de alguien que se llevó una foto del QR y pide desde su casa. Con el mozo
+            aprobando el primer pedido de cada mesa ya alcanza.</p>
+            <ul>
+                <li><b>Wi-Fi del local</b>: si el cliente está conectado al mismo Wi-Fi que tu pantalla de pedidos, su pedido se da
+                por verificado. El cliente no ve nada distinto.</li>
+                <li><b>GPS</b> (apagado por defecto): el celular del cliente le pide permiso de ubicación. Úsalo solo si recibís pedidos falsos.</li>
+            </ul>
+        </div></details>
+        <details id="nfc" data-k="nfc sticker etiqueta grabar"><summary>¿Cómo grabo los stickers NFC?</summary><div class="faq-a">
+            <p>Necesitás stickers NFC (NTAG213 o NTAG215) y un celular Android con Chrome. En <b>Mesas, QR y NFC</b>, escaneá
+            con el celular el QR que aparece en la pantalla para abrir la página de grabado. Ahí tocá <b>Grabar</b> en cada mesa y
+            apoyá el sticker. Si el sticker ya tenía algo grabado, te lo muestra y te pregunta antes de reescribirlo.</p>
+            <p>En iPhone no se pueden grabar desde el navegador: usá la app gratuita NFC Tools con los pasos que te mostramos.</p>
+        </div></details>
+        <details id="impresora" data-k="impresora comandera ticket imprimir epson star pos"><summary>¿Puedo imprimir las comandas?</summary><div class="faq-a">
+            <p>Sí. En <b>Configuración → Comandera</b> elegís entre:</p>
+            <ul>
+                <li>Imprimir desde el navegador, con cualquier impresora conectada a la computadora.</li>
+                <li>Impresoras térmicas en red <b>Epson</b> o <b>Star</b>.</li>
+                <li>Enviar los pedidos a tu sistema de gestión (POS).</li>
+            </ul>
+            <p>Con <b>Imprimir ticket de prueba</b> verificás que salga bien.</p>
+        </div></details>
+        <details id="catering"><summary>Hago catering o viandas: ¿me sirve?</summary><div class="faq-a">
+            <p>Sí. En <b>Configuración → Tipo de negocio</b> elegí <b>Catering</b>: en vez de mesas tenés clientes (“Pedido de Marcela”),
+            cada uno con su link. Podés poner un <b>límite de pedidos</b> por día, por semana o cada tantas horas, y <b>pausar</b> los pedidos
+            hasta una fecha con un mensaje para tus clientes.</p>
+        </div></details>
+        <details id="historial"><summary>¿Dónde veo los pedidos ya entregados?</summary><div class="faq-a">
+            <p>Abajo del tablero, en <b>Entregados y rechazados hoy</b>: cada pedido con la hora, la mesa o el cliente, quién lo pidió,
+            los productos y el total.</p>
+        </div></details>
+    </section>
+
+    <section class="faq-group">
+        <h2>Planes y pagos</h2>
+        <details id="pagar" data-k="pagar pago tarjeta mercado pago débito automático precio"><summary>¿Cómo pago?</summary><div class="faq-a">
+            <p>Con <b>Mercado Pago</b>: tarjeta de crédito, débito o dinero en tu cuenta. Elegís el plan y cada cuánto pagar:
+            mensual, trimestral, anual o cada dos años. Cuanto más largo el período, mayor el descuento.</p>
+            <p>El plan se renueva solo con <b>débito automático</b> al final de cada período, así no tenés que acordarte. Cubierto no ve ni guarda los datos de tu tarjeta.</p>
+        </div></details>
+        <details id="subir-plan" data-k="subir mejorar upgrade aumentar plan más completo"><summary>¿Cómo subo de plan?</summary><div class="faq-a">
+            <p>En tu panel, tocá el botón del aviso <b>Tu plan</b> y elegí uno más completo. El cambio es <b>inmediato</b>:
+            pagás solo la <b>diferencia proporcional</b> a los días que te quedan del período actual, y la fecha de vencimiento no cambia.
+            Desde ahí, los débitos siguientes se hacen con el precio del plan nuevo.</p>
+        </div></details>
+        <details id="bajar-plan" data-k="bajar downgrade reducir plan más barato cambiar período mensual anual"><summary>¿Cómo bajo de plan o cambio cada cuánto pago?</summary><div class="faq-a">
+            <p>Igual que para subir: elegí el plan o el período nuevo. Como ya pagaste el período actual, <b>seguís con tu plan
+            hasta que termine</b>, y el cambio empieza a regir en el período siguiente.</p>
+            <p>Por ejemplo: si pagás por mes, el cambio rige desde el mes siguiente; si pagás por año, desde el próximo año.</p>
+        </div></details>
+        <details id="cancelar" data-k="cancelar dar de baja desuscribir devolución reembolso"><summary>¿Cómo cancelo?</summary><div class="faq-a">
+            <p>En la pantalla de planes tocá <b>Cancelar renovación automática</b>. No se te vuelve a cobrar, y tu plan sigue funcionando
+            hasta la fecha que ya pagaste. Podés volver a activarlo cuando quieras eligiendo un plan.</p>
+            <p>Si contrataste por primera vez y te arrepentiste, tenés <b>10 días corridos</b> para pedirnos la devolución; ver los
+            <a href="./terminos.html#arrepentimiento">Términos</a>.</p>
+        </div></details>
+        <details id="vencido" data-k="vencido no pagué tarjeta rechazada bloqueado gracia"><summary>¿Qué pasa si no se pudo cobrar o se venció mi plan?</summary><div class="faq-a">
+            <p>Si el débito automático falla (por ejemplo, por una tarjeta vencida), tenés <b>5 días de gracia</b> para actualizarla en
+            Mercado Pago sin perder nada. Si pasado ese plazo sigue sin pagarse, tu menú <b>sigue visible para tus clientes</b>,
+            pero no vas a poder editarlo hasta regularizar el pago.</p>
+        </div></details>
+        <details id="cupon"><summary>Tengo un cupón, ¿dónde lo uso?</summary><div class="faq-a">
+            <p>En la pantalla de planes, tocá <b>Tengo un cupón de acceso</b>, escribí el código y tocá <b>Canjear</b>.</p>
+        </div></details>
+    </section>
+
+    <section class="faq-group">
+        <h2>Tu cuenta y tus datos</h2>
+        <details id="eliminar" data-k="eliminar borrar cuenta restaurante"><summary>¿Cómo elimino un restaurante o mi cuenta?</summary><div class="faq-a">
+            <p>Un restaurante se elimina con el botón <b>Eliminar</b> de su tarjeta: se borran su menú, sus imágenes, sus mesas y sus pedidos,
+            y no se puede deshacer. Para eliminar tu cuenta completa, escribinos a <span data-contact-email></span>.</p>
+        </div></details>
+        <details id="datos-clientes"><summary>¿Qué datos guardan de mis clientes?</summary><div class="faq-a">
+            <p>Solo lo necesario para el pedido: el nombre que escriben, lo que piden y sus aclaraciones. No guardamos su ubicación ni su
+            dirección de internet. El detalle está en la <a href="./privacidad.html">Política de privacidad</a>.</p>
+        </div></details>
+    </section>
+    </div>
+</main>
+
+<footer class="doc-foot">
+    <span>Cubierto</span>
+    <a href="./terminos.html">Términos y condiciones</a>
+    <a href="./privacidad.html">Política de privacidad</a>
+    <span>Contacto: <span data-contact-email></span></span>
+</footer>
+
+<script src="./Js/theme.js"></script>
+<script src="./Js/docs.js?v=2"></script>
+</body>
+</html>

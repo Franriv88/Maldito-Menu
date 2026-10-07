@@ -1,0 +1,122 @@
+/* docs.css — páginas de texto de Cubierto: Términos, Privacidad y Preguntas frecuentes.
+   Misma paleta y tipografías que la presentación (index.html); modo claro con body.light (Js/theme.js). */
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+    --gold: #ddd0bb;
+    --gold-dim: rgba(220, 208, 187, .65);
+    --gold-faint: rgba(220, 208, 187, .12);
+    --bg: #0b0b0b;
+    --card: #151515;
+    --line: rgba(220, 208, 187, .14);
+    --text: #ede4d8;
+    --muted: rgba(230, 215, 195, .72);
+    --serif: 'Cormorant Garamond', serif;
+    --sans: 'Inter', system-ui, sans-serif;
+}
+body.light {
+    --gold: #6b5135;
+    --gold-dim: rgba(80, 55, 25, .6);
+    --gold-faint: rgba(80, 55, 25, .07);
+    --bg: #f2ede6;
+    --card: #fbf8f3;
+    --line: rgba(80, 55, 25, .15);
+    --text: #1e160c;
+    --muted: rgba(60, 42, 20, .72);
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 15px/1.7 var(--sans); -webkit-font-smoothing: antialiased;
+}
+a { color: var(--gold); text-underline-offset: 3px; }
+
+/* Barra superior */
+.doc-top {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+}
+.doc-brand { font: 600 1.35rem var(--serif); color: var(--gold); text-decoration: none; letter-spacing: .5px; }
+.doc-nav { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.doc-nav a {
+    padding: 6px 10px; border-radius: 8px; font-size: .78rem; color: var(--muted); text-decoration: none;
+}
+.doc-nav a:hover { color: var(--text); background: var(--gold-faint); }
+.doc-nav a[aria-current="page"] { color: var(--gold); background: var(--gold-faint); }
+
+/* Contenido */
+.doc {
+    max-width: 760px; margin: 0 auto; padding: 40px 20px 80px;
+}
+.doc h1 {
+    margin: 0 0 6px; font: 400 clamp(2rem, 6vw, 2.8rem)/1.1 var(--serif); color: var(--gold);
+}
+.doc .doc-meta { margin: 0 0 28px; font-size: .8rem; color: var(--muted); }
+.doc .doc-lead { font-size: 1.02rem; color: var(--muted); margin: 0 0 28px; }
+.doc h2 {
+    margin: 40px 0 10px; padding-top: 18px; border-top: 1px solid var(--line);
+    font: 600 1.45rem/1.25 var(--serif); color: var(--gold);
+}
+.doc h3 { margin: 22px 0 6px; font-size: .98rem; font-weight: 600; }
+.doc p, .doc li { color: var(--text); }
+.doc ul, .doc ol { padding-left: 1.3em; }
+.doc li { margin: 4px 0; }
+.doc .note {
+    padding: 12px 14px; border-radius: 10px; background: var(--gold-faint); border: 1px solid var(--line);
+    font-size: .88rem; color: var(--muted);
+}
+.doc .note b { color: var(--text); }
+
+/* Índice */
+.doc-toc {
+    padding: 14px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    margin: 0 0 8px; font-size: .86rem;
+}
+.doc-toc b { display: block; margin-bottom: 6px; font-size: .7rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.doc-toc ol { margin: 0; columns: 2 220px; column-gap: 24px; }
+.doc-toc a { color: var(--text); text-decoration: none; }
+.doc-toc a:hover { color: var(--gold); text-decoration: underline; }
+
+/* Preguntas frecuentes */
+.faq-search {
+    width: 100%; margin: 0 0 8px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit;
+}
+.faq-search:focus { outline: 2px solid var(--gold-dim); outline-offset: 1px; }
+.faq-empty { color: var(--muted); font-size: .9rem; }
+.faq-group h2 { display: flex; align-items: center; gap: 10px; }
+.faq details {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin: 8px 0;
+}
+.faq summary {
+    cursor: pointer; list-style: none; padding: 13px 44px 13px 16px; position: relative; font-weight: 500;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+    content: '+'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 1.2rem; color: var(--gold); transition: transform .2s;
+}
+.faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+.faq .faq-a { padding: 0 16px 14px; color: var(--muted); }
+.faq .faq-a p, .faq .faq-a li { color: var(--muted); }
+.faq .faq-a b { color: var(--text); font-weight: 600; }
+.faq .faq-a p:first-child { margin-top: 0; }
+
+/* Pie */
+.doc-foot {
+    max-width: 760px; margin: 0 auto; padding: 22px 20px 40px; border-top: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .8rem; color: var(--muted);
+}
+.doc-foot a { color: var(--muted); }
+
+@media (max-width: 520px) {
+    body { font-size: 14.5px; }
+    .doc { padding-top: 28px; }
+    .doc-top { padding: 10px 14px; }
+    .doc-nav { flex-wrap: nowrap; gap: 0; }
+    .doc-nav a { padding: 5px 6px; font-size: .72rem; white-space: nowrap; }
+    .doc-brand { font-size: 1.2rem; }
+}

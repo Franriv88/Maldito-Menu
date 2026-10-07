@@ -121,6 +121,10 @@ body {
     margin-top: 1.5rem;
     letter-spacing: 0.2px;
 }
+.login-legal { font-size: 0.7rem; line-height: 1.5; opacity: 0.55; margin: 0.6rem auto 0; max-width: 300px; }
+.login-legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.support-faq { display: block; margin-top: 12px; font-size: .8rem; text-align: center; color: #c8b89a; }
+body.light .support-faq { color: #6b5135; }
 
 /* ── DASHBOARD ──────────────────────────────────────────────── */
 
