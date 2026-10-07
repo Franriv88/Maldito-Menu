@@ -1179,6 +1179,7 @@ function renderTable() {
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">${licon('ban',12)} Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">${licon('trash-2',12)} Eliminar</button>`
             : `${viewBtn}
+               ${status === 'trial' ? `<button class="sa-btn sa-btn-block" onclick="endTrial('${u.uid}','${safeName}')" title="Termina la prueba gratis ahora: el cliente tiene que elegir un plan para seguir editando">${licon('hourglass',12)} Terminar prueba</button>` : ''}
                <button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">${licon('credit-card',12)} Marcar pagado</button>
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">${licon('ban',12)} Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">${licon('trash-2',12)} Eliminar</button>`;
@@ -1216,6 +1217,30 @@ function renderTable() {
 }
 
 // ── Actions ───────────────────────────────────────────────────
+
+// Terminar la prueba gratis antes de tiempo (soporte, abusos o pruebas de cobro): no se puede volver a pedir
+async function endTrial(uid, name) {
+    const u = allUsers.find(x => x.uid === uid);
+    const hasDebit = ['authorized', 'pending'].includes(u?.subscription?.billing?.status);
+    const { isConfirmed } = await Swal.fire({
+        title: `¿Terminar la prueba de ${esc(name)}?`,
+        html: `<span style="font-size:.88rem">Pasa a <b>Impago</b> ahora: su menú sigue visible, pero para editarlo tiene que elegir un plan. No puede volver a pedir la prueba.`
+            + (hasDebit ? `<br><br>Ya había elegido un plan con débito automático: Mercado Pago lo va a cobrar en la fecha original (cuando terminaba la prueba).` : '') + `</span>`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Terminar prueba', cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a', confirmButtonColor: '#8a6a2a', cancelButtonColor: 'rgba(124,108,92,.3)',
+    });
+    if (!isConfirmed) return;
+    try {
+        const sub = { status: 'unpaid', trialUsed: true, trialEndsAt: firebase.firestore.Timestamp.fromDate(new Date()) };
+        await db.collection('users').doc(uid).set({ subscription: sub }, { merge: true });
+        if (u) u.subscription = { ...u.subscription, ...sub };
+        renderStats(); renderCharts(); renderTable();
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Prueba terminada', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    } catch (err) {
+        console.error(err);
+        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
+    }
+}
 
 async function setStatus(uid, status) {
     const labels = { active: 'Activo', unpaid: 'Impago', blocked: 'Bloqueado' };
