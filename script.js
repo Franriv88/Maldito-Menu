@@ -406,12 +406,13 @@ function buildSectionHTML(sec, { imageConfig, sectionImage, catTitles, byCategor
             const { posX, posY, zoom, shiftX, shiftY } = imageFrame(imageConfig, key);
             const mode = SECTION_MODES.includes(imageConfig[`${key}_mode`]) ? imageConfig[`${key}_mode`] : 'text-image';
             const refW = mode === 'image-wide' ? IMG_REF_WIDE : IMG_REF_WIDTH;
+            const widthVal = imgWidth(imageConfig, key);
 
             const contentHTML = sec.cats.map(cat =>
                 catBlockHTML(cat, categoryTitle(cat, catTitles, byCategory), byCategory[cat] || [])).join('');
 
             return `
-            <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${key}" data-mode="${mode}" style="position:relative">
+            <div class="menu-section ${layoutClass} mode-${mode}" data-img-key="${key}" data-mode="${mode}" style="position:relative;--img-w:${widthVal}%">
                 <div class="section-toolbar">
                     <button class="sec-move" type="button" data-dir="up" title="Subir la sección completa">${licon('chevron-up', 15)}</button>
                     <button class="sec-move" type="button" data-dir="down" title="Bajar la sección completa">${licon('chevron-down', 15)}</button>
@@ -434,9 +435,11 @@ function buildSectionHTML(sec, { imageConfig, sectionImage, catTitles, byCategor
                             <label class="ctrl-cell" title="Subir o bajar la imagen (hacia la derecha sube)">${licon('move-vertical', 13)}
                                 <input type="range" class="posy-slider" min="-100" max="100" value="${-shiftY}" aria-label="Posición vertical"></label>
                             <label class="ctrl-cell" title="Zoom: hacia la izquierda achica, hacia la derecha agranda">${licon('zoom-in', 13)}
-                                <input type="range" class="zoom-slider" min="20" max="300" value="${zoom}" aria-label="Zoom"></label>
+                                <input type="range" class="zoom-slider" min="20" max="500" value="${zoom}" aria-label="Zoom"></label>
                             <label class="ctrl-cell" title="Alto del recuadro">${licon('unfold-vertical', 13)}
-                                <input type="range" class="height-slider" min="150" max="600" value="${heightVal}" aria-label="Alto del recuadro"></label>
+                                <input type="range" class="height-slider" min="150" max="900" value="${heightVal}" aria-label="Alto del recuadro"></label>
+                            <label class="ctrl-cell ctrl-wide width-cell" title="Ancho de la imagen: hacia la derecha ocupa más lugar y se acerca a los textos">${licon('move-horizontal', 13)}<small>Ancho</small>
+                                <input type="range" class="width-slider" min="${IMG_W_MIN}" max="${IMG_W_MAX}" value="${widthVal}" aria-label="Ancho de la imagen"></label>
                         </div>
                         <div class="ctrl-row">
                             <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
@@ -684,6 +687,23 @@ function initDropZones() {
             shiftX: parseInt(zone.querySelector('.pos-slider').value),
             shiftY: -parseInt(zone.querySelector('.posy-slider').value),
         }));
+
+        const widthSlider = zone.querySelector('.width-slider');
+        if (widthSlider) {
+            widthSlider.addEventListener('input', e => {
+                e.stopPropagation();
+                zone.closest('.menu-section')?.style.setProperty('--img-w', widthSlider.value + '%');
+                updateResolutionWarning(zone);
+            });
+            widthSlider.addEventListener('change', async e => {
+                e.stopPropagation();
+                try {
+                    await restRef().collection('config').doc('images').set(
+                        { [`${zone.dataset.imgKey}_width`]: parseInt(widthSlider.value) }, { merge: true }
+                    );
+                } catch (err) { console.error('Error guardando ancho:', err); }
+            });
+        }
 
         const heightSlider = zone.querySelector('.height-slider');
         if (heightSlider) {
@@ -1006,6 +1026,13 @@ document.addEventListener('click', e => {
 const IMG_REF_WIDTH = 344;
 const IMG_REF_WIDE  = 860; // "Imagen a lo ancho": referencia = ancho completo del menú
 const clamp01 = v => Math.max(0, Math.min(100, v));
+// - img_width: ancho de la columna de imagen en % de la sección (Texto + Imagen). Al agrandarla,
+//   el recuadro crece en ancho y alto (mantiene la proporción) y se acerca a los textos.
+const IMG_W_MIN = 25, IMG_W_MAX = 70, IMG_W_DEFAULT = 40;
+const imgWidth = (imageConfig, key) => {
+    const v = imageConfig[`${key}_width`];
+    return typeof v === 'number' ? Math.max(IMG_W_MIN, Math.min(IMG_W_MAX, v)) : IMG_W_DEFAULT;
+};
 
 function imageFrame(imageConfig, key) {
     const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${key}_vAlign`]] ?? 50;
@@ -1037,7 +1064,7 @@ function updateResolutionWarning(zone) {
     const bg = zone.querySelector('.image-bg');
     if (!warn || !bg) return;
     const url = (bg.style.backgroundImage.match(/^url\((["']?)(.*)\1\)$/) || [])[2];
-    if (!url) { warn.hidden = true; return; }
+    if (!url || url === IMG_PLACEHOLDER) { warn.hidden = true; return; }   // el dibujo de "sin imagen" no cuenta
     if (zone._natUrl !== url) {
         zone._natUrl = url; zone._natH = null;
         const img = new Image();
@@ -1351,6 +1378,8 @@ async function guardarMenu() {
         if (zone.dataset.posY !== undefined) imageConfigActual[`${key}_posY`] = parseInt(zone.dataset.posY);
         if (zoomSlider)   imageConfigActual[`${key}_zoom`]   = parseInt(zoomSlider.value);
         if (heightSlider) imageConfigActual[`${key}_height`] = parseInt(heightSlider.value);
+        const widthSlider = zone.querySelector('.width-slider');
+        if (widthSlider)  imageConfigActual[`${key}_width`]  = parseInt(widthSlider.value);
         if (flipBtn)      imageConfigActual[`${key}_flipH`]  = flipBtn.classList.contains('active');
     });
     document.querySelectorAll('.menu-section[data-img-key]').forEach(section => {

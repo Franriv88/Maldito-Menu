@@ -38,6 +38,9 @@ Js/firebase-config.js Config de Firebase (compartida)
 pedidos.html        Pedidos en mesa (restaurante): tablero/comandera, mesas QR/NFC, config
 Js/pedidos.js       Lógica de pedidos.html (impresión desde navegador, QR, Web NFC)
 Js/table-ordering.js Carrito del comensal en menu.html (se activa con ?mesa=)
+Js/menu-i18n.js     Idioma del menú público (es/en/de/fr): textos fijos con diccionario (t), textos del
+                    restaurante traducidos solos por la function translateMenu (Cloud Translation) (tc).
+                    Se elige en la guía de bienvenida; botón sutil arriba a la derecha para volver a abrirla
 nfc.html + Js/nfc.js Grabar stickers NFC desde el celular (QR desde Pedidos → Mesas; sin login). Web NFC:
                     graba con overwrite:false y, si ya tiene algo, lo muestra y pregunta; bloqueo permanente opcional;
                     la clave (NTAG PWD) solo con la app NFC Tools. Siempre libera el NFC (si no, Android no lee otros tags)
@@ -94,7 +97,8 @@ restaurants/{restaurantId}/
                    img1_layout, img1_height, img1_flipH,
                    encuadre: img1_pos / img1_posY (anclaje 0–100 = centro del zoom),
                    img1_shiftX / img1_shiftY (desplazamiento en % del recuadro),
-                   img1_zoom (20–300, % del alto del recuadro),
+                   img1_zoom (20–500, % del alto del recuadro), img1_height (150–900),
+                   img1_width (25–70, % de la sección que ocupa la imagen en Texto + Imagen; por defecto 40),
                    img1_mode: text-image | text-text (2 columnas) | image-wide (SOLO imagen a lo ancho; sus productos no se muestran) }
                  ← text-text / image-wide requieren el beneficio opt-in "section_layouts" del plan
     images.sections: [{ key: 'img1', cats: ['CAFÉ DE ESPECIALIDAD'] }, { key: 'img5', cats: ['c_lx2k9a', …] }, …]
@@ -104,6 +108,8 @@ restaurants/{restaurantId}/
                  ← imágenes de sección en Storage: restaurants/{id}/section-imgN-{ts}.webp (≤1600 px)
     footer:      { notice, address, socials: [{network, url, color}] }
     categoryTitles: { 'CAFÉ DE ESPECIALIDAD': 'Entradas', c_lx2k9a: 'Pastas', c_x: '' }  ← '' = sin encabezado
+
+  translations/{en|de|fr}: { t: { sha1(texto): traducción }, updatedAt }  ← caché de la function translateMenu
 
 users/{uid}/
   { email, displayName, lastLogin, createdAt,

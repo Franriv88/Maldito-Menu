@@ -1182,6 +1182,9 @@ body.light .cm-confirm { color: #fff !important; }
 .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
 .ctrl-cell { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,.7); cursor: default; min-width: 0; }
 .ctrl-cell svg { flex-shrink: 0; }
+.ctrl-cell.ctrl-wide { grid-column: 1 / -1; }
+.ctrl-cell small { font-size: .68rem; opacity: .8; }
+.menu-section.mode-image-wide .width-cell { display: none; }
 .posy-slider, .zoom-slider {
     -webkit-appearance: none; appearance: none;
     flex: 1; min-width: 0; height: 3px;

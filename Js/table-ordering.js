@@ -9,6 +9,8 @@
     if (!restaurantId || !mesaId) return;
 
     const FUNCTIONS_BASE = 'https://us-central1-maldito-cafe.cloudfunctions.net';
+    // Textos en el idioma elegido en la guía (Js/menu-i18n.js); la clave es el texto en español
+    const T = (es, v) => window.MenuI18n ? MenuI18n.t(es, v) : (v ? es.replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m) : es);
     const CART_KEY   = `cart_${restaurantId}_${mesaId}`;
     const ORDERS_KEY = `orders_${restaurantId}`;
 
@@ -23,10 +25,10 @@
     let cfg = null, table = null, hidePrices = false, active = false, tableOpen = false;
     let cart = load(sessionStorage, CART_KEY, {});        // { productId: { qty, name, price } }
     const restrictions = new Set();                       // ids de RESTRICTIONS marcados en el pedido actual
-    // "Mis pedidos" vive en el celular y se limpia solo a las 6 h (cada visita empieza vacía)
+    // "Mis pedidos" vive en el celular: se limpia cuando el mozo cierra la mesa o, como máximo, a las 6 h
     const MY_ORDERS_TTL = 6 * 3600 * 1000;
     const isFresh = o => Date.now() - (o.at || 0) < MY_ORDERS_TTL;
-    let myOrders = load(localStorage, ORDERS_KEY, []).filter(isFresh);   // [{ id, number, at }]
+    let myOrders = load(localStorage, ORDERS_KEY, []).filter(isFresh);   // [{ id, number, at, mesa }]
     save(localStorage, ORDERS_KEY, myOrders);
     const NAME_KEY = `diner_name_${restaurantId}`;         // nombre del comensal (obligatorio), recordado para el próximo pedido
     let ordersTab = 'mine', tableData = null, tablePoll = null;
@@ -54,7 +56,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'to-add';
                 btn.type = 'button';
-                btn.setAttribute('aria-label', 'Agregar al pedido');
+                btn.setAttribute('aria-label', T('Agregar al pedido'));
                 btn.textContent = '+';
                 btn.addEventListener('click', e => {
                     e.stopPropagation(); // no abrir el acordeón
@@ -66,7 +68,7 @@
                 sub.className = 'to-add to-sub';
                 sub.type = 'button';
                 sub.hidden = true;
-                sub.setAttribute('aria-label', 'Quitar uno del pedido');
+                sub.setAttribute('aria-label', T('Quitar uno del pedido'));
                 sub.textContent = '−';
                 sub.addEventListener('click', e => {
                     e.stopPropagation();
@@ -106,6 +108,14 @@
             const m = doc.data();
             const last = m?.lastActivityAt?.toMillis?.() || m?.openedAt?.toMillis?.() || 0;
             tableOpen = !!m?.open && Date.now() - last < 6 * 3600 * 1000;
+            // Mesa cerrada por el mozo: los pedidos anteriores de este celular ya no se muestran
+            const closedAt = m?.closedAt?.toMillis?.() || 0;
+            const stale = o => (o.mesa || mesaId) === mesaId && (o.at || 0) < closedAt;
+            if (closedAt && myOrders.some(stale)) {
+                myOrders = myOrders.filter(o => !stale(o));
+                save(localStorage, ORDERS_KEY, myOrders);
+                tableHasOrders = false;
+            }
             if (active) renderBar();
         }, () => {});
 
@@ -116,6 +126,21 @@
         }, () => {});
 
         myOrders.forEach(o => watchOrder(o.id));
+    });
+
+    document.addEventListener('menulang', () => {
+        if (!active) return;
+        renderBar();
+        document.querySelectorAll('.to-add:not(.to-sub)').forEach(b => b.setAttribute('aria-label', T('Agregar al pedido')));
+        document.querySelectorAll('.to-sub').forEach(b => b.setAttribute('aria-label', T('Quitar uno del pedido')));
+        const sheet = document.querySelector('#toSheet.open .to-sheet');
+        if (sheet?.querySelector('.to-orders')) openOrders();
+        else if (sheet?.querySelector('#toSend')) {
+            const note = sheet.querySelector('#toNote').value, name = sheet.querySelector('#toName').value;
+            openCart();
+            const again = document.querySelector('#toSheet .to-sheet');
+            if (again?.querySelector('#toNote')) { again.querySelector('#toNote').value = note; again.querySelector('#toName').value = name; }
+        }
     });
 
     // ── Contraste de los botones de pedido ────────────────────
@@ -231,15 +256,19 @@
         const p = Object.fromEntries(new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
             weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
             .formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+        if (window.MenuI18n && MenuI18n.lang() !== 'es') {
+            return new Intl.DateTimeFormat(MenuI18n.locale(), { timeZone: 'America/Argentina/Buenos_Aires',
+                weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+        }
         return `${p.weekday} ${p.day} de ${p.month} a las ${p.hour}:${p.minute} h`;
     };
     let reopenTimer = null;
     function closedInfo() {
         const now = Date.now();
         const pause = cfg?.pause?.until?.toMillis?.() || 0;
-        if (pause > now) return { until: pause, msg: String(cfg.pause.message || DEFAULT_PAUSE_MSG).split('{hasta}').join(fmtUntil(pause)) };
+        if (pause > now) return { until: pause, msg: String(cfg.pause.message || T(DEFAULT_PAUSE_MSG)).split('{hasta}').join(fmtUntil(pause)) };
         const full = cfg?.capacityFullUntil?.toMillis?.() || 0;
-        if (cfg?.limits?.enabled && full > now) return { until: full, msg: String(cfg.limits.message || DEFAULT_CAPACITY_MSG).split('{hasta}').join(fmtUntil(full)) };
+        if (cfg?.limits?.enabled && full > now) return { until: full, msg: String(cfg.limits.message || T(DEFAULT_CAPACITY_MSG)).split('{hasta}').join(fmtUntil(full)) };
         return null;
     }
 
@@ -255,10 +284,10 @@
         const banner = document.getElementById('toBanner');
         if (banner) {
             if (closed) banner.innerHTML = `<span class="to-banner-dot off"></span> ${esc(closed.msg)}`;
-            else if (isCat()) banner.innerHTML = `<span class="to-banner-dot"></span> Pedido de ${esc(table.label)} · Agregá productos tocando <b>+</b>`
-                + (cfg.approvalMode !== 'direct' ? '<small class="to-banner-sub">Te confirmamos el pedido en breve</small>' : '');
-            else banner.innerHTML = `<span class="to-banner-dot"></span> ${esc(table.label)} · Pedí desde acá tocando <b>+</b>`
-                + (cfg.tableSessions !== false && !tableOpen ? '<small class="to-banner-sub">El mozo confirma tu primer pedido</small>' : '');
+            else if (isCat()) banner.innerHTML = `<span class="to-banner-dot"></span> ${T('Pedido de {name} · Agregá productos tocando {plus}', { name: esc(table.label), plus: '<b>+</b>' })}`
+                + (cfg.approvalMode !== 'direct' ? `<small class="to-banner-sub">${T('Te confirmamos el pedido en breve')}</small>` : '');
+            else banner.innerHTML = `<span class="to-banner-dot"></span> ${T('{name} · Pedí desde acá tocando {plus}', { name: esc(table.label), plus: '<b>+</b>' })}`
+                + (cfg.tableSessions !== false && !tableOpen ? `<small class="to-banner-sub">${T('El mozo confirma tu primer pedido')}</small>` : '');
         }
 
         const bar = document.getElementById('toBar');
@@ -271,10 +300,10 @@
         const live = myOrders.filter(o => !['entregado', 'rechazado'].includes(orderState[o.id]?.status));
         const hasOrders = myOrders.some(isFresh) || tableHasOrders;
         bar.innerHTML = `
-            ${hasOrders ? `<button class="to-bar-orders" type="button">Pedidos${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>` : ''}
+            ${hasOrders ? `<button class="to-bar-orders" type="button">${T('Pedidos')}${live.length ? ` <span class="to-pill">${live.length}</span>` : ''}</button>` : ''}
             <button class="to-bar-cart" type="button" ${n && !closed ? '' : 'disabled'}>
-                ${closed ? 'Pedidos cerrados por ahora'
-                    : n ? `Ver pedido · ${n} ${n === 1 ? 'producto' : 'productos'}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : 'Agregá productos con +'}
+                ${closed ? T('Pedidos cerrados por ahora')
+                    : n ? `${T(n === 1 ? 'Ver pedido · {n} producto' : 'Ver pedido · {n} productos', { n })}${hidePrices ? '' : ` · ${money(cartTotal())}`}` : T('Agregá productos con +')}
             </button>`;
         bar.querySelector('.to-bar-cart')?.addEventListener('click', openCart);
         bar.querySelector('.to-bar-orders')?.addEventListener('click', openOrders);
@@ -327,39 +356,39 @@
         if (!lines.length) { closeSheet(); return; }
         const el = openSheet(`
             <div class="to-sheet-head">
-                <h3>${isCat() ? 'Tu pedido' : `Tu pedido · ${esc(table.label)}`}</h3>
-                <button class="to-x" type="button" aria-label="Cerrar">×</button>
+                <h3>${isCat() ? T('Tu pedido') : T('Tu pedido · {mesa}', { mesa: esc(table.label) })}</h3>
+                <button class="to-x" type="button" aria-label="${T('Cerrar')}">×</button>
             </div>
             <div class="to-lines">
                 ${lines.map(([id, l]) => `
                     <div class="to-line" data-id="${esc(id)}">
                         <div class="to-line-name">${esc(l.name)}${hidePrices || !l.price ? '' : `<small>${money(l.price * l.qty)}</small>`}</div>
                         <div class="to-stepper">
-                            <button type="button" data-d="-1" aria-label="Quitar uno">−</button>
+                            <button type="button" data-d="-1" aria-label="${T('Quitar uno')}">−</button>
                             <span>${l.qty}</span>
-                            <button type="button" data-d="1" aria-label="Agregar uno">+</button>
+                            <button type="button" data-d="1" aria-label="${T('Agregar uno')}">+</button>
                         </div>
                     </div>`).join('')}
             </div>
             ${typeof RESTRICTIONS === 'undefined' ? '' : `
-            <div class="to-field">¿Alguna restricción? (opcional)
+            <div class="to-field">${T('¿Alguna restricción? (opcional)')}
                 <div class="to-restrictions">
                     ${RESTRICTIONS.map(x => `
                         <button type="button" class="to-restr${restrictions.has(x.id) ? ' on' : ''}" data-r="${x.id}" aria-pressed="${restrictions.has(x.id)}">
-                            ${restrictionIcon(x.id, 18)}<span>${esc(x.label)}</span>
+                            ${restrictionIcon(x.id, 18)}<span>${esc(T(x.label))}</span>
                         </button>`).join('')}
                 </div>
             </div>`}
-            <label class="to-field">Otras aclaraciones (opcional)
-                <textarea id="toNote" maxlength="300" rows="2" placeholder="Ej: leche de almendras, la carne bien cocida…"></textarea>
+            <label class="to-field">${T('Otras aclaraciones (opcional)')}
+                <textarea id="toNote" maxlength="300" rows="2" placeholder="${T('Ej: leche de almendras, la carne bien cocida…')}"></textarea>
             </label>
-            <label class="to-field">Tu nombre
-                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="¿A nombre de quién?" value="${esc(load(localStorage, NAME_KEY, '') || (isCat() ? table.label : ''))}">
+            <label class="to-field">${T('Tu nombre')}
+                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="${T('¿A nombre de quién?')}" value="${esc(load(localStorage, NAME_KEY, '') || (isCat() ? table.label : ''))}">
             </label>
-            ${hidePrices ? '' : `<div class="to-total"><span>Total</span><b>${money(cartTotal())}</b></div>`}
-            ${isCat() ? '' : '<p class="to-hint">Pagás al final, en el local.</p>'}
+            ${hidePrices ? '' : `<div class="to-total"><span>${T('Total')}</span><b>${money(cartTotal())}</b></div>`}
+            ${isCat() ? '' : `<p class="to-hint">${T('Pagás al final, en el local.')}</p>`}
             <p class="to-error" id="toError"></p>
-            <button class="to-send" type="button" id="toSend">Enviar pedido</button>`);
+            <button class="to-send" type="button" id="toSend">${T('Enviar pedido')}</button>`);
 
         el.querySelector('.to-x').addEventListener('click', closeSheet);
         el.querySelectorAll('.to-restr').forEach(b => b.addEventListener('click', () => {
@@ -381,12 +410,12 @@
 
     function getLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) { reject(new Error('Tu navegador no permite compartir la ubicación.')); return; }
+            if (!navigator.geolocation) { reject(new Error(T('Tu navegador no permite compartir la ubicación.'))); return; }
             navigator.geolocation.getCurrentPosition(
                 pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
                 err => reject(new Error(err.code === 1
-                    ? 'Para pedir desde la mesa tenés que permitir el acceso a tu ubicación (lo usamos solo para confirmar que estás en el local).'
-                    : 'No pudimos obtener tu ubicación. Activá el GPS e intentá de nuevo.')),
+                    ? T('Para pedir desde la mesa tenés que permitir el acceso a tu ubicación (lo usamos solo para confirmar que estás en el local).')
+                    : T('No pudimos obtener tu ubicación. Activá el GPS e intentá de nuevo.'))),
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
             );
         });
@@ -398,7 +427,7 @@
         errEl.textContent = '';
         const nameInput = el.querySelector('#toName');
         if (!nameInput.value.trim()) {
-            errEl.textContent = 'Escribí tu nombre para enviar el pedido.';
+            errEl.textContent = T('Escribí tu nombre para enviar el pedido.');
             nameInput.classList.add('to-invalid');
             nameInput.focus();
             nameInput.addEventListener('input', () => nameInput.classList.remove('to-invalid'), { once: true });
@@ -426,12 +455,12 @@
         try {
             // Primero sin ubicación: si la mesa está abierta o el comensal está en el
             // Wi-Fi del local, el servidor ya lo verifica y no hace falta pedir GPS.
-            btn.textContent = 'Enviando…';
+            btn.textContent = T('Enviando…');
             let { ok, data } = await post(payload);
             if (!ok && data.code === 'need_location') {
-                btn.textContent = 'Verificando ubicación…';
+                btn.textContent = T('Verificando ubicación…');
                 const coords = await getLocation();
-                btn.textContent = 'Enviando…';
+                btn.textContent = T('Enviando…');
                 ({ ok, data } = await post({ ...payload, coords }));
             }
             if (!ok && (data.code === 'capacity' || data.code === 'closed') && data.until) {
@@ -440,12 +469,12 @@
                 cfg = data.code === 'closed' ? { ...cfg, pause: { ...(cfg.pause || {}), until } } : { ...cfg, capacityFullUntil: until };
                 renderBar();
             }
-            if (!ok) throw new Error(data.error || 'No se pudo enviar el pedido.');
+            if (!ok) throw new Error(data.error ? T(data.error) : T('No se pudo enviar el pedido.'));
 
             cart = {};
             restrictions.clear();
             save(sessionStorage, CART_KEY, cart);
-            myOrders.unshift({ id: data.orderId, number: data.number, at: Date.now() });
+            myOrders.unshift({ id: data.orderId, number: data.number, at: Date.now(), mesa: mesaId });
             myOrders = myOrders.slice(0, 20);
             save(localStorage, ORDERS_KEY, myOrders);
             if (payload.name) save(localStorage, NAME_KEY, payload.name);
@@ -455,17 +484,17 @@
             openSheet(`
                 <div class="to-done">
                     <div class="to-done-num">#${data.number}</div>
-                    <h3>¡Pedido enviado!</h3>
+                    <h3>${T('¡Pedido enviado!')}</h3>
                     <p>${data.status === 'pendiente'
-                        ? 'El equipo lo confirma en un momento y pasa a cocina.'
-                        : 'Ya está en cocina.'}</p>
-                    <p class="to-hint">Podés seguir su estado en <b>Pedidos</b>.</p>
-                    <button class="to-send" type="button">Seguir mirando el menú</button>
+                        ? T('El equipo lo confirma en un momento y pasa a cocina.')
+                        : T('Ya está en cocina.')}</p>
+                    <p class="to-hint">${T('Podés seguir su estado en <b>Pedidos</b>.')}</p>
+                    <button class="to-send" type="button">${T('Seguir mirando el menú')}</button>
                 </div>`).querySelector('.to-send').addEventListener('click', closeSheet);
         } catch (e) {
             errEl.textContent = e.message;
             btn.disabled = false;
-            btn.textContent = 'Enviar pedido';
+            btn.textContent = T('Enviar pedido');
         }
     }
 
@@ -474,39 +503,42 @@
     const countsForBill = o => o.status !== 'rechazado';
 
     // En catering no hay mozo: el rechazo se explica distinto
-    const statusInfo = s => s === 'rechazado' && isCat() ? { label: 'No aceptado — contactanos', cls: 'st-rej' } : STATUS[s];
+    const statusInfo = s => {
+        const x = s === 'rechazado' && isCat() ? { label: 'No aceptado — contactanos', cls: 'st-rej' } : STATUS[s];
+        return x && { ...x, label: T(x.label) };
+    };
 
     function orderBlock(o, { title, mine = false }) {
-        const st = statusInfo(o.status) || { label: 'Cargando…', cls: '' };
+        const st = statusInfo(o.status) || { label: T('Cargando…'), cls: '' };
         return `
         <div class="to-order${mine ? ' mine' : ''}">
             <div class="to-order-head"><b>${title}</b><span class="to-status ${st.cls}">${st.label}</span></div>
             ${o.items ? `<ul>${o.items.map(i => `<li><span>${i.qty} × ${esc(i.nombre)}</span>${hidePrices || !i.precio ? '' : `<span>${money(i.precio * i.qty)}</span>`}</li>`).join('')}</ul>` : ''}
-            ${o.restrictions?.length ? `<div class="to-order-restr">${o.restrictions.map(x => `<span>${restrictionIcon(x.id, 13)} ${esc(x.label)}</span>`).join('')}</div>` : ''}
-            ${!hidePrices && o.items ? `<div class="to-order-total"><span>${o.status === 'rechazado' ? 'No se cobra' : 'Subtotal'}</span><b>${money(o.total)}</b></div>` : ''}
+            ${o.restrictions?.length ? `<div class="to-order-restr">${o.restrictions.map(x => `<span>${restrictionIcon(x.id, 13)} ${esc(T(x.label))}</span>`).join('')}</div>` : ''}
+            ${!hidePrices && o.items ? `<div class="to-order-total"><span>${o.status === 'rechazado' ? T('No se cobra') : T('Subtotal')}</span><b>${money(o.total)}</b></div>` : ''}
         </div>`;
     }
 
     function mineHTML() {
         const mine = myOrders.filter(isFresh);
-        if (!mine.length) return '<p class="to-empty">Todavía no hiciste pedidos desde este celular.</p>';
+        if (!mine.length) return `<p class="to-empty">${T('Todavía no hiciste pedidos desde este celular.')}</p>`;
         const total = mine.reduce((s, o) => s + (orderState[o.id] && countsForBill(orderState[o.id]) ? orderState[o.id].total || 0 : 0), 0);
         return mine.map(o => orderBlock({ ...(orderState[o.id] || {}), status: orderState[o.id]?.status },
-                { title: `Pedido #${o.number}`, mine: true })).join('')
-            + (hidePrices ? '' : `<div class="to-sum"><span>Tu total</span><b>${money(total)}</b></div>`);
+                { title: T('Pedido #{n}', { n: o.number }), mine: true })).join('')
+            + (hidePrices ? '' : `<div class="to-sum"><span>${T('Tu total')}</span><b>${money(total)}</b></div>`);
     }
 
     function tableHTML() {
-        if (!tableData) return `<p class="to-empty">${isCat() ? 'Cargando los pedidos…' : 'Cargando los pedidos de la mesa…'}</p>`;
-        if (tableData.error) return `<p class="to-empty">${esc(tableData.error)}</p>`;
-        if (!tableData.orders.length) return `<p class="to-empty">${isCat() ? `Todavía no hay pedidos de ${esc(table.label)}.` : 'Todavía no hay pedidos en esta mesa.'}</p>`;
+        if (!tableData) return `<p class="to-empty">${isCat() ? T('Cargando los pedidos…') : T('Cargando los pedidos de la mesa…')}</p>`;
+        if (tableData.error) return `<p class="to-empty">${esc(T(tableData.error))}</p>`;
+        if (!tableData.orders.length) return `<p class="to-empty">${isCat() ? T('Todavía no hay pedidos de {name}.', { name: esc(table.label) }) : T('Todavía no hay pedidos en esta mesa.')}</p>`;
         const mineIds = new Set(myOrders.map(o => o.id));
         const total = tableData.orders.filter(countsForBill).reduce((s, o) => s + o.total, 0);
         return tableData.orders.slice().reverse().map(o => orderBlock(o, {
-                title: `#${o.number} · ${esc(o.customerName || 'Sin nombre')}${mineIds.has(o.id) ? ' (vos)' : ''}`,
+                title: `#${o.number} · ${esc(o.customerName || T('Sin nombre'))}${mineIds.has(o.id) ? ' ' + T('(vos)') : ''}`,
                 mine: mineIds.has(o.id),
             })).join('')
-            + (hidePrices ? '' : `<div class="to-sum"><span>${isCat() ? 'Total' : 'Total de la mesa'}</span><b>${money(total)}</b></div>`);
+            + (hidePrices ? '' : `<div class="to-sum"><span>${isCat() ? T('Total') : T('Total de la mesa')}</span><b>${money(total)}</b></div>`);
     }
 
     async function fetchTableOrders() {
@@ -535,12 +567,12 @@
         const keepScroll = document.querySelector('#toSheet.open .to-orders') ? sheetBody.scrollTop : 0;
         const el = openSheet(`
             <div class="to-sheet-head">
-                <h3>Pedidos · ${esc(table.label)}</h3>
-                <button class="to-x" type="button" aria-label="Cerrar">×</button>
+                <h3>${T('Pedidos · {mesa}', { mesa: esc(table.label) })}</h3>
+                <button class="to-x" type="button" aria-label="${T('Cerrar')}">×</button>
             </div>
             <div class="to-tabs" role="tablist">
-                <button type="button" role="tab" class="to-tab${tab === 'mine' ? ' on' : ''}" data-tab="mine" aria-selected="${tab === 'mine'}">Mis pedidos</button>
-                <button type="button" role="tab" class="to-tab${tab === 'table' ? ' on' : ''}" data-tab="table" aria-selected="${tab === 'table'}">${isCat() ? `Pedidos de ${esc(table.label)}` : 'Pedidos de la mesa'}</button>
+                <button type="button" role="tab" class="to-tab${tab === 'mine' ? ' on' : ''}" data-tab="mine" aria-selected="${tab === 'mine'}">${T('Mis pedidos')}</button>
+                <button type="button" role="tab" class="to-tab${tab === 'table' ? ' on' : ''}" data-tab="table" aria-selected="${tab === 'table'}">${isCat() ? T('Pedidos de {name}', { name: esc(table.label) }) : T('Pedidos de la mesa')}</button>
             </div>
             <div class="to-orders">${tab === 'mine' ? mineHTML() : tableHTML()}</div>`);
         el.scrollTop = keepScroll;
@@ -564,7 +596,7 @@
                 const prev = orderState[id]?.status;
                 orderState[id] = doc.data();
                 const now = orderState[id].status;
-                if (prev && prev !== now && STATUS[now]) toast(`Pedido #${orderState[id].number}: ${statusInfo(now).label}`);
+                if (prev && prev !== now && STATUS[now]) toast(T('Pedido #{n}: {status}', { n: orderState[id].number, status: statusInfo(now).label }));
                 if (active) renderBar();
                 if (document.querySelector('#toSheet.open .to-orders')) openOrders();
             }, () => {});

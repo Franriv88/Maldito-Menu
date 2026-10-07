@@ -191,6 +191,8 @@ function listenOrders() {
         });
 }
 
+const orderTime = o => (o.createdAt?.toDate?.() || new Date()).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
 function minutesAgo(o) {
     const t = o.createdAt?.toDate?.();
     if (!t) return 'recién';
@@ -215,10 +217,15 @@ function renderBoard(freshIds = new Set()) {
     document.getElementById('historySummary').textContent =
         `Entregados hoy: ${delivered.length} · ${money(delivered.reduce((s, o) => s + (o.total || 0), 0))}` +
         (history.length > delivered.length ? ` · Rechazados: ${history.length - delivered.length}` : '');
-    document.getElementById('historyBody').innerHTML = history.slice().reverse().map(o => `
-        <tr><td>#${o.number}</td><td>${esc(orderTitle(o))}</td>
+    const cat = orderingCfg.businessType === 'catering';
+    document.getElementById('historyBody').innerHTML = history.length ? `
+        <tr class="pd-history-head"><th>Hora</th><th>#</th><th>${cat ? 'Cliente' : 'Mesa'}</th><th>Pidió</th>
+            <th>Productos</th><th>Estado</th><th style="text-align:right">Total</th></tr>`
+        + history.slice().reverse().map(o => `
+        <tr><td>${orderTime(o)}</td><td>#${o.number}</td><td>${esc(o.mesaLabel || '')}</td>
+        <td>${o.customerName ? esc(o.customerName) : '<span class="pd-muted">Sin nombre</span>'}</td>
         <td>${(o.items || []).map(i => `${i.qty}× ${esc(i.nombre)}`).join(', ')}</td>
-        <td>${STATUS_LABEL[o.status]}</td><td style="text-align:right">${money(o.total)}</td></tr>`).join('');
+        <td>${STATUS_LABEL[o.status]}</td><td style="text-align:right">${money(o.total)}</td></tr>`).join('') : '';
 }
 
 function orderCard(o, isNew) {
@@ -237,7 +244,7 @@ function orderCard(o, isNew) {
             <span class="pd-card-mesa">${esc(orderTitle(o))}</span>
             <span class="pd-card-num">#${o.number}</span>
         </div>
-        <div class="pd-card-meta">${minutesAgo(o)}${o.customerName ? ` · ${esc(o.customerName)}` : ''}</div>
+        <div class="pd-card-meta">${orderTime(o)} · ${minutesAgo(o)}${o.customerName ? ` · ${licon('user', 12)} <b>${esc(o.customerName)}</b>` : ''}</div>
         ${verificationBadges(o)}
         ${o.restrictions?.length ? `<div class="pd-restr">${o.restrictions.map(x =>
             `<span>${typeof restrictionIcon === 'function' ? restrictionIcon(x.id, 14) : ''} ${esc(x.label)}</span>`).join('')}</div>` : ''}

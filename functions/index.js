@@ -1244,6 +1244,100 @@ exports.tableOrders = onRequest(
     }
 );
 
+// ── Traducción automática del menú (inglés, alemán, francés) ─────────
+// El comensal elige el idioma en la guía del menú. Los textos se toman de Firestore (nunca del
+// pedido: así nadie puede usar esta función como traductor gratis), se traducen con Cloud
+// Translation y se guardan en restaurants/{r}/translations/{lang} ({ t: { sha1: texto } }):
+// cada texto se traduce una sola vez y de nuevo solo si el restaurante lo cambia.
+const MENU_LANGS = ["en", "de", "fr"];
+const menuTrMemo = new Map();   // `${r}|${lang}` → { at, map } (instancia caliente, 60 s)
+let gcpTokenCache = null;
+
+async function gcpAccessToken() {
+    if (gcpTokenCache && gcpTokenCache.exp > Date.now() + 60000) return gcpTokenCache.token;
+    const r = await axios.get("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+        { headers: { "Metadata-Flavor": "Google" }, timeout: 5000 });
+    gcpTokenCache = { token: r.data.access_token, exp: Date.now() + r.data.expires_in * 1000 };
+    return gcpTokenCache.token;
+}
+
+async function googleTranslate(texts, target) {
+    const token = await gcpAccessToken();
+    const out = [];
+    for (let i = 0; i < texts.length;) {
+        // Lotes de hasta 100 textos y ~25 000 caracteres (límites de la API v2)
+        const batch = [];
+        let chars = 0;
+        while (i < texts.length && batch.length < 100 && (chars + texts[i].length <= 25000 || !batch.length)) {
+            chars += texts[i].length; batch.push(texts[i++]);
+        }
+        const r = await axios.post("https://translation.googleapis.com/language/translate/v2",
+            { q: batch, source: "es", target, format: "text" },
+            { headers: { Authorization: `Bearer ${token}` }, timeout: 20000 });
+        out.push(...r.data.data.translations.map(t => t.translatedText));
+    }
+    return out;
+}
+
+exports.translateMenu = onRequest(
+    { cors: true, invoker: "public", timeoutSeconds: 60 },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const { r, lang } = req.body || {};
+        if (typeof r !== "string" || !/^[\w-]{1,128}$/.test(r) || !MENU_LANGS.includes(lang)) {
+            res.status(400).json({ error: "Datos inválidos" }); return;
+        }
+        const memoKey = `${r}|${lang}`;
+        const memo = menuTrMemo.get(memoKey);
+        if (memo && Date.now() - memo.at < 60000) { res.json({ map: memo.map }); return; }
+
+        const restRef = db.collection("restaurants").doc(r);
+        const [restSnap, prods, titlesSnap, footerSnap, cacheSnap] = await Promise.all([
+            restRef.get(),
+            restRef.collection("productos").get(),
+            restRef.collection("config").doc("categoryTitles").get(),
+            restRef.collection("config").doc("footer").get(),
+            restRef.collection("translations").doc(lang).get(),
+        ]);
+        if (!restSnap.exists) { res.status(404).json({ error: "Restaurante no encontrado" }); return; }
+
+        // Mismos textos que muestra Js/menu-viewers.js (la clave es el texto sin espacios de los bordes)
+        const sources = new Set();
+        const add = s => {
+            const v = String(s ?? "").trim();
+            if (v && v.length <= 3000 && /\p{L}/u.test(v) && sources.size < 3000) sources.add(v);
+        };
+        prods.forEach(d => {
+            const p = d.data();
+            add(p.nombre); add(p.descripcion);
+            if (p.categoria && !String(p.categoria).startsWith("c_")) add(p.categoria); // categorías viejas sin título guardado
+        });
+        Object.values(titlesSnap.data() || {}).forEach(add);
+        add((footerSnap.data() || {}).notice);
+
+        const hash = s => crypto.createHash("sha1").update(s).digest("hex").slice(0, 24);
+        const cached = (cacheSnap.data() || {}).t || {};
+        const list = [...sources];
+        const missing = list.filter(s => typeof cached[hash(s)] !== "string");
+        if (missing.length) {
+            let translated;
+            try {
+                translated = await googleTranslate(missing, lang);
+            } catch (err) {
+                console.error("translateMenu:", err.response?.status, JSON.stringify(err.response?.data || err.message).slice(0, 500));
+                res.status(503).json({ error: "La traducción no está disponible en este momento." }); return;
+            }
+            missing.forEach((s, i) => { cached[hash(s)] = translated[i]; });
+            // Solo se guardan los textos actuales (los que el restaurante borró o cambió se descartan)
+            const t = Object.fromEntries(list.map(s => [hash(s), cached[hash(s)]]));
+            await restRef.collection("translations").doc(lang).set({ t, updatedAt: FieldValue.serverTimestamp() });
+        }
+        const map = Object.fromEntries(list.map(s => [s, cached[hash(s)]]));
+        menuTrMemo.set(memoKey, { at: Date.now(), map });
+        res.json({ map });
+    }
+);
+
 // ── Integración genérica (POS / sistemas externos) ───────────
 // Cuando un pedido pasa a cocina, se envía por POST al webhook configurado,
 // firmado con HMAC-SHA256 en el header X-Cubierto-Signature.

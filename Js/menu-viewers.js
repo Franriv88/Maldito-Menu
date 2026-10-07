@@ -56,6 +56,7 @@ function safeUrl(url) {
 // vez por restaurante y por tipo: 'view' (solo mirar) u 'order' (pedir desde la mesa / catering).
 // table-ordering.js decide cuál corresponde cuando la URL trae ?mesa=.
 window.MenuGuide = (() => {
+    const T = (es, v) => window.MenuI18n ? MenuI18n.t(es, v) : (v ? es.replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m) : es);
     const STEPS = {
         view: [
             ['Tocá un producto', 'para ver su descripción. Volvé a tocarlo para cerrarla.'],
@@ -69,41 +70,95 @@ window.MenuGuide = (() => {
             ['Seguí el estado', 'en Pedidos: ahí ves tus pedidos y los de toda la mesa.'],
         ],
     };
-    let open = false, waiters = [];
+    let open = false, waiters = [], last = null;
     const seenKey = kind => `menu_guide_${kind}_${new URLSearchParams(location.search).get('r')}`;
     const seen = kind => { try { return localStorage.getItem(seenKey(kind)) === '1'; } catch { return true; } };
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-    async function show(kind, { title, steps } = {}) {
-        if (open || document.querySelector('.mg-backdrop') || seen(kind)) return;
-        open = true;
-        // Esperar a que el menú esté dibujado (con sus colores) antes de mostrarla
-        for (let i = 0; i < 40 && !document.querySelector('#menu-container .menu-section'); i++) await new Promise(r => setTimeout(r, 150));
-        await new Promise(r => setTimeout(r, 500));
+    // Contenido de la tarjeta en el idioma actual (se vuelve a dibujar al cambiar de idioma)
+    function cardHTML({ kind, title, steps }) {
         const list = steps || STEPS[kind] || STEPS.view;
+        const cur = window.MenuI18n?.lang() || 'es';
+        const st  = window.MenuI18n?.contentState();
+        const note = cur === 'es' ? '' : st === 'loading' ? T('Traduciendo el menú…')
+            : st === 'error' ? T('La traducción automática no está disponible ahora: el menú se muestra en español.')
+            : T('Menú traducido automáticamente.');
+        return `
+            ${window.MenuI18n ? `
+            <div class="mg-langs" role="radiogroup" aria-label="${esc(T('Idioma'))}">
+                ${MenuI18n.LANGS.map(l => `<button type="button" class="mg-lang${l.id === cur ? ' on' : ''}" data-lang="${l.id}"
+                    role="radio" aria-checked="${l.id === cur}" lang="${l.id}">${l.label}</button>`).join('')}
+            </div>
+            <p class="mg-lang-note${st === 'error' ? ' err' : ''}" aria-live="polite">${esc(note)}</p>` : ''}
+            <h2 id="mgTitle">${esc(title ? T(title) : T(kind === 'order' ? '¿Cómo pedir?' : 'Bienvenido a nuestro menú'))}</h2>
+            <ol class="mg-steps">${list.map(([b, t], i) => `
+                <li><span class="mg-num">${i + 1}</span><span><b>${esc(T(b))}</b> ${esc(T(t))}</span></li>`).join('')}
+            </ol>
+            <button type="button" class="mg-ok">${esc(T('Entendido'))}</button>`;
+    }
+
+    // force: abrirla aunque ya se haya visto (botón de ayuda/idioma)
+    async function show(kind, { title, steps, force } = {}) {
+        last = { kind, title, steps };
+        mountReopen();
+        if (open || document.querySelector('.mg-backdrop') || (!force && seen(kind))) return;
+        open = true;
+        if (!force) {
+            // Esperar a que el menú esté dibujado (con sus colores) antes de mostrarla
+            for (let i = 0; i < 40 && !document.querySelector('#menu-container .menu-section'); i++) await new Promise(r => setTimeout(r, 150));
+            await new Promise(r => setTimeout(r, 500));
+        }
         const el = document.createElement('div');
         el.className = 'mg-backdrop';
-        el.innerHTML = `
-            <div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mgTitle">
-                <h2 id="mgTitle">${esc(title || (kind === 'order' ? '¿Cómo pedir?' : 'Bienvenido a nuestro menú'))}</h2>
-                <ol class="mg-steps">${list.map(([b, t], i) => `
-                    <li><span class="mg-num">${i + 1}</span><span><b>${esc(b)}</b> ${esc(t)}</span></li>`).join('')}
-                </ol>
-                <button type="button" class="mg-ok">Entendido</button>
-            </div>`;
+        el.innerHTML = `<div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mgTitle"></div>`;
+        const card = el.querySelector('.mg-card');
+        const draw = () => { card.innerHTML = cardHTML(last); };
+        draw();
         document.body.appendChild(el);
         requestAnimationFrame(() => el.classList.add('show'));
+        const onLang = () => draw();
+        document.addEventListener('menulang', onLang);
         const close = () => {
             try { localStorage.setItem(seenKey(kind), '1'); } catch { /* modo privado */ }
+            document.removeEventListener('menulang', onLang);
             el.classList.remove('show');
             setTimeout(() => el.remove(), 250);
             open = false;
             waiters.splice(0).forEach(fn => fn());
         };
-        el.querySelector('.mg-ok').addEventListener('click', close);
+        card.addEventListener('click', e => {
+            const lb = e.target.closest('.mg-lang');
+            if (lb) { window.MenuI18n?.setLang(lb.dataset.lang); draw(); card.querySelector(`.mg-lang[data-lang="${lb.dataset.lang}"]`)?.focus({ preventScroll: true }); return; }
+            if (e.target.closest('.mg-ok')) close();
+        });
         el.addEventListener('click', e => { if (e.target === el) close(); });
-        el.querySelector('.mg-ok').focus({ preventScroll: true });
+        card.querySelector('.mg-ok').focus({ preventScroll: true });
     }
+
+    // Botón sutil arriba a la derecha del menú: vuelve a abrir la guía (con el cambio de idioma)
+    function mountReopen() {
+        if (document.getElementById('mgReopen')) return;
+        const header = document.getElementById('restaurant-header');
+        if (!header) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'mg-reopen-wrap';
+        wrap.innerHTML = `<button type="button" id="mgReopen" class="mg-reopen"></button>`;
+        header.before(wrap);
+        const btn = wrap.querySelector('button');
+        const paint = () => {
+            const cur = window.MenuI18n?.lang() || 'es';
+            const def = typeof lucide !== 'undefined' ? lucide.Languages || lucide.Globe : null;
+            let svg = '';
+            if (def) { const ic = lucide.createElement(def); ic.setAttribute('width', 15); ic.setAttribute('height', 15); svg = ic.outerHTML; }
+            btn.innerHTML = `${svg}<span>${cur.toUpperCase()}</span>`;
+            btn.setAttribute('aria-label', T('Ver instrucciones y cambiar idioma'));
+            btn.title = T('Ver instrucciones y cambiar idioma');
+        };
+        paint();
+        document.addEventListener('menulang', paint);
+        btn.addEventListener('click', () => last && show(last.kind, { ...last, force: true }));
+    }
+
     // Para no tapar la demostración del acordeón: espera a que se cierre la guía
     const whenClosed = () => open ? new Promise(r => waiters.push(r)) : Promise.resolve();
     return { show, whenClosed, isOpen: () => open };
@@ -126,6 +181,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const restRef = db.collection('restaurants').doc(restaurantId);
 
     let lastSnapshot  = null;
+    // Idioma: textos fijos (T) y del restaurante (TC, traducción automática); ver Js/menu-i18n.js
+    const T  = (es, v) => window.MenuI18n ? MenuI18n.t(es, v) : (v ? es.replace(/\{(\w+)\}/g, (m, k) => k in v ? v[k] : m) : es);
+    const TC = text => window.MenuI18n ? MenuI18n.tc(text) : text;
+    const escT = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    // Traducido: se escapa (el original se muestra como siempre)
+    const TCH = text => { const out = TC(text); return out === text ? text : escT(out); };
+    document.addEventListener('menulang', () => {
+        if (lastSnapshot) renderMenu();
+        renderFooter();
+        renderStaticTexts();
+    });
+    function renderStaticTexts() {
+        const p = document.querySelector('#menu-disclaimer p');
+        if (p) p.textContent = T('FUERA DE CARTA EN PIZARRA');
+        window._menuShareLabel?.();
+    }
     let imageConfig   = {};
     let imageData     = {};   // imageData/{imgN}.src: cada imagen de sección en su propio documento
     let restData      = {};
@@ -293,6 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // "Fuera de carta en pizarra": opcional (visible salvo que el admin lo desactive)
         const disclaimer = document.getElementById('menu-disclaimer');
         if (disclaimer) disclaimer.style.display = stylesConfig.showDisclaimer === false ? 'none' : 'block';
+        renderStaticTexts();
     }
 
     // ── Footer ─────────────────────────────────────────────────
@@ -328,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += '</div>';
         }
 
-        if (notice)  html += `<p class="footer-notice">${notice}</p>`;
+        if (notice)  html += `<p class="footer-notice">${TCH(notice)}</p>`;
         if (address) html += `<p class="footer-address">${address}</p>`;
 
         footer.innerHTML = html;
@@ -357,12 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
         pop.dataset.email = email;
         pop.innerHTML = `
             <div class="email-pop-addr">${email.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>
-            <a class="email-pop-btn" href="mailto:${email}">Escribir email</a>
-            <a class="email-pop-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to=${enc}" target="_blank" rel="noopener noreferrer">Abrir en Gmail</a>
-            <button class="email-pop-btn" type="button" data-copy>Copiar dirección</button>`;
+            <a class="email-pop-btn" href="mailto:${email}">${T('Escribir email')}</a>
+            <a class="email-pop-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to=${enc}" target="_blank" rel="noopener noreferrer">${T('Abrir en Gmail')}</a>
+            <button class="email-pop-btn" type="button" data-copy>${T('Copiar dirección')}</button>`;
         pop.querySelector('[data-copy]').addEventListener('click', async ev => {
             const btn = ev.currentTarget;
-            try { await navigator.clipboard.writeText(email); btn.textContent = '¡Copiada!'; }
+            try { await navigator.clipboard.writeText(email); btn.textContent = T('¡Copiada!'); }
             catch { btn.textContent = email; }
             setTimeout(() => pop.remove(), 1200);
         });
@@ -435,6 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const legacyY = { top: 0, center: 50, bottom: 100 }[imageConfig[`${sec.imgKey}_vAlign`]] ?? 50;
             const posX = clamp01(num('pos', 50)), posY = clamp01(num('posY', legacyY));
             const zoom = num('zoom', 100), shiftX = num('shiftX', 0), shiftY = num('shiftY', 0);
+            // Ancho de la columna de imagen en % de la sección (25–70; ver imgWidth en script.js)
+            const widthVal = Math.max(25, Math.min(70, num('width', 40)));
 
             let contentHTML = '';
             sec.categorias.forEach(cat => {
@@ -442,14 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!productos.length) return;
                 // Título guardado (puede estar vacío a propósito); los viejos sin guardar muestran su nombre
                 const title = typeof catTitles[cat] === 'string' ? catTitles[cat] : (LEGACY_CATS.includes(cat) ? cat : '');
-                if (title) contentHTML += `<h2>${title}</h2>`;
+                if (title) contentHTML += `<h2>${TCH(title)}</h2>`;
                 productos.forEach(item => {
-                    const desc = String(item.descripcion || '').trim();   // sin descripción: no se despliega
+                    const desc = String(TC(String(item.descripcion || '').trim()) || '').trim();   // sin descripción: no se despliega
                     const hasPrice = !stylesConfig.hidePrices && item.precio !== null && item.precio !== undefined && item.precio !== '';
                     contentHTML += `
                         <div class="menu-item" data-id="${item.id}" data-price="${String(item.precio ?? '').replace(/"/g, '')}">
                             <div class="item-header">
-                                <span class="producto">${item.nombre}</span>
+                                <span class="producto">${TCH(item.nombre)}</span>
                                 ${hasPrice ? `<span class="precio">$${item.precio}</span>` : ''}
                             </div>
                             ${desc ? `<div class="item-details"><div class="item-desc">${formatDescription(desc)}</div></div>` : ''}
@@ -459,6 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sectionEl = document.createElement('div');
             sectionEl.className = `menu-section ${mode === 'text-image' ? layoutClass : ''} mode-${mode}${imgSrc ? '' : ' no-image'}`;
+            sectionEl.style.setProperty('--img-w', widthVal + '%');
             sectionEl.innerHTML = `
                 <div class="menu-content">${contentHTML}</div>
                 ${imgSrc ? `<div class="menu-image" style="aspect-ratio:${refW} / ${heightVal};min-height:0;">
@@ -510,19 +585,20 @@ document.addEventListener('DOMContentLoaded', () => {
         function buildShareBtnContent() {
             if (typeof lucide !== 'undefined') {
                 try {
-                    const ico = lucide.createElement('share-2');
+                    const ico = lucide.createElement(lucide.Share2);
                     ico.setAttribute('width', 15); ico.setAttribute('height', 15);
                     ico.setAttribute('stroke-width', '1.75');
                     ico.style.cssText = 'display:inline-block;vertical-align:middle;flex-shrink:0';
                     shareBtn.innerHTML = '';
                     shareBtn.appendChild(ico);
-                    shareBtn.append(' Compartir');
-                } catch(_) { shareBtn.textContent = 'Compartir'; }
+                    shareBtn.append(' ' + T('Compartir'));
+                } catch(_) { shareBtn.textContent = T('Compartir'); }
             } else {
-                shareBtn.textContent = 'Compartir';
+                shareBtn.textContent = T('Compartir');
             }
         }
         buildShareBtnContent();
+        window._menuShareLabel = buildShareBtnContent;
         shareBtn.style.display = 'block';
 
         shareBtn.addEventListener('click', async () => {
@@ -531,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 navigator.share({ title: document.title, url }).catch(() => {});
             } else {
                 await navigator.clipboard.writeText(url);
-                shareBtn.textContent = '¡Link copiado!';
+                shareBtn.textContent = T('¡Link copiado!');
                 setTimeout(() => buildShareBtnContent(), 2000);
             }
         });
