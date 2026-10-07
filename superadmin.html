@@ -652,6 +652,8 @@ async function deletePlan(idx) {
 // 2) ¿Lo pidió el cliente? Sí → una confirmación. No → dos (la segunda: escribir su email).
 // Siempre se corta el débito automático en Mercado Pago; la devolución (si se elige) sale por MP.
 const SWAL_DARK = { background: '#1a1a1a', color: '#c8b89a', cancelButtonColor: 'rgba(124,108,92,.3)' };
+// Email comparable: sin espacios ni caracteres invisibles, sin mayúsculas (igual que en functions)
+const normEmail = v => String(v || '').normalize('NFKC').replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, '').toLowerCase();
 
 async function deleteUser(uid, name) {
     Swal.fire({ title: 'Revisando la cuenta…', didOpen: () => Swal.showLoading(), allowOutsideClick: false, ...SWAL_DARK });
@@ -691,8 +693,8 @@ async function deleteUser(uid, name) {
             </div>` : ''}
             </div>`,
         showCancelButton: true, showDenyButton: !!fin.autoDebit,
-        confirmButtonText: 'Continuar', denyButtonText: 'Solo cancelar la renovación', cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#c0392b', denyButtonColor: '#8a6a2a', ...SWAL_DARK,
+        confirmButtonText: 'Continuar con la eliminación', denyButtonText: 'No eliminar: solo cancelar la renovación', cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c0392b', denyButtonColor: 'rgba(124,108,92,.35)', reverseButtons: false, ...SWAL_DARK,
         didOpen: el => {
             Swal.hideLoading();   // viene de "Revisando la cuenta…": que el botón vuelva a ser "Continuar"
             const hint = el.querySelector('#delHint');
@@ -738,7 +740,10 @@ async function deleteUser(uid, name) {
             input: 'text', inputPlaceholder: fin.email || '', inputAttributes: { autocomplete: 'off', spellcheck: 'false' },
             showCancelButton: true, confirmButtonText: 'Eliminar definitivamente', cancelButtonText: 'Volver', confirmButtonColor: '#c0392b', ...SWAL_DARK,
             preConfirm: v => {
-                if (String(v || '').trim().toLowerCase() !== String(fin.email || '').toLowerCase()) { Swal.showValidationMessage('El email no coincide.'); return false; }
+                if (normEmail(v) !== normEmail(fin.email)) {
+                    Swal.showValidationMessage(`El email no coincide (se esperaban ${normEmail(fin.email).length} caracteres y escribiste ${normEmail(v).length}).`);
+                    return false;
+                }
                 return v.trim();
             },
         });

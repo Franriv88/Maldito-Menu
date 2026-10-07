@@ -1176,7 +1176,8 @@ exports.adminDeleteAccount = onRequest(
 
         if (action !== "delete") { res.status(400).json({ error: "Acción inválida" }); return; }
         // Sin pedido del cliente: segunda confirmación obligatoria (escribir su email)
-        if (!requestedByClient && String(confirmEmail || "").trim().toLowerCase() !== String(fin.email || "").toLowerCase()) {
+        const normEmail = v => String(v || "").normalize("NFKC").replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").toLowerCase();
+        if (!requestedByClient && (!fin.email || normEmail(confirmEmail) !== normEmail(fin.email))) {
             res.status(400).json({ error: "Para eliminar una cuenta que no lo pidió, escribí su email exacto." }); return;
         }
         const refundAmount = refund === "full" ? fin.fullRefund : refund === "proportional" ? fin.proportionalRefund : 0;
