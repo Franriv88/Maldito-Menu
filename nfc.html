@@ -64,6 +64,9 @@
         .scan-state svg { flex-shrink: 0; margin-top: 2px; }
         .scan-state.on, .scan-state.on b { color: var(--ok); }
         .scan-state.error { color: var(--warn); }
+        .scan-state.error span { color: var(--text); }
+        .scan-state .steps { margin: 6px 0; padding-left: 18px; }
+        .err-detail { display: block; margin-top: 8px; color: var(--muted); font-size: .72rem; word-break: break-word; }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -143,6 +146,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
-<script src="./Js/nfc.js?v=5"></script>
+<script src="./Js/nfc.js?v=6"></script>
 </body>
 </html>

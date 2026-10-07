@@ -39,7 +39,7 @@ async function startIdleScan() {
         setScanUI('on');
     } catch (err) {
         if (idleScan === ctrl) idleScan = null;
-        if (err.name !== 'AbortError') setScanUI('error', err);
+        if (err.name !== 'AbortError') showNfcProblem(err);
     }
 }
 function stopIdleScan() {
@@ -47,15 +47,39 @@ function stopIdleScan() {
     try { idleScan.abort(); } catch { /* ya liberado */ }
     idleScan = null;
 }
+// Por qué no se pudo usar el NFC, con el paso para resolverlo (Chrome rechaza sin preguntar
+// si el permiso quedó bloqueado, si la página está dentro de otra app, o si el NFC está apagado)
+async function nfcProblemHTML(err) {
+    let perm = '';
+    try { perm = (await navigator.permissions.query({ name: 'nfc' })).state; } catch { /* sin Permissions API */ }
+    const detail = `<small class="err-detail">Detalle: ${esc(err?.name || 'Error')}${err?.message ? ' · ' + esc(err.message) : ''}${perm ? ' · permiso: ' + esc(perm) : ''}</small>`;
+    if (perm === 'denied') return `<b>El permiso de NFC está bloqueado</b> para cubierto.menu. Para habilitarlo:
+        <ol class="steps"><li>Tocá el <b>candado</b> (o el ícono de ajustes) a la izquierda de la dirección, arriba.</li>
+        <li><b>Permisos → NFC → Permitir</b>.</li><li>Recargá la página y tocá de nuevo “Activar lectura de stickers”.</li></ol>
+        <small>También desde Chrome: ⋮ → Configuración → Configuración de sitios → NFC.</small>${detail}`;
+    if (err?.name === 'NotReadableError' || err?.name === 'NotSupportedError') return `<b>El NFC del celular está apagado o no disponible.</b>
+        Activalo en <b>Ajustes → Conexiones / Dispositivos conectados → NFC</b> y volvé a intentar.${detail}`;
+    return `<b>Chrome no dejó usar el NFC.</b> Probá en este orden:
+        <ol class="steps"><li>Revisá que el <b>NFC esté encendido</b> (Ajustes → NFC).</li>
+        <li>Si abriste esta página escaneando el QR con la cámara o Google Lens, puede estar <b>dentro de otra app</b>: tocá ⋮ → <b>“Abrir en Chrome”</b> y probá ahí.</li>
+        <li>Revisá el permiso: tocá el candado junto a la dirección → <b>Permisos → NFC → Permitir</b>.</li></ol>${detail}`;
+}
+async function showNfcProblem(err) {
+    setScanUI('error');
+    const el = document.getElementById('scanState');
+    if (el) el.innerHTML = `${icon('alert-triangle', 16)} <span>${await nfcProblemHTML(err)}</span>`;
+}
+
 function setScanUI(state, err) {
     const el = document.getElementById('scanState'), btn = document.getElementById('scanBtn');
     if (!el || !btn) return;
     btn.hidden = state === 'on';
+    btn.lastChild.textContent = state === 'error' ? ' Reintentar' : ' Activar lectura de stickers';
     el.className = 'scan-state ' + state;
     el.innerHTML = state === 'on'
         ? `${icon('radio', 16)} <span><b>Lectura activa:</b> acercá cualquier sticker y se lee acá (no se abre su link). Te muestra qué tiene y lo podés reescribir.</span>`
         : state === 'error'
-        ? `${icon('alert-triangle', 16)} <span>No se pudo activar el NFC${err?.name === 'NotAllowedError' ? ': permití el uso de NFC para cubierto.menu en Chrome' : ''}. Revisá que el NFC del celular esté encendido.</span>`
+        ? `${icon('alert-triangle', 16)} <span>No se pudo activar el NFC.</span>`
         : `${icon('nfc', 16)} <span>Activá la lectura para que, al acercar un sticker que ya tiene algo grabado, se lea acá en lugar de abrirse.</span>`;
 }
 document.addEventListener('visibilitychange', () => {
@@ -278,8 +302,10 @@ async function writeOne(t, { step, force } = {}) {
         stage.waiting = false;
         render();
         if (err.name === 'AbortError') return false;
+        const permProblem = ['NotAllowedError', 'NotReadableError', 'NotSupportedError', 'SecurityError'].includes(err.name);
         const r = await sw({ icon: 'error', title: 'No se pudo grabar',
-            text: `${err.message}. Probá apoyar el sticker en otra parte del celular.`,
+            ...(permProblem ? { html: `<div style="text-align:left">${await nfcProblemHTML(err)}</div>` }
+                            : { text: `${err.message}. Probá apoyar el sticker en otra parte del celular.` }),
             showCancelButton: true, confirmButtonText: 'Reintentar', cancelButtonText: step ? 'Terminar' : 'Cerrar' });
         return r.isConfirmed ? writeOne(t, { step }) : false;
     } finally {
