@@ -60,6 +60,10 @@
         .muted { color: var(--muted); font-size: .82rem !important; }
         .row.focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
         .existing { display: block; margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: rgba(127,127,127,.15); font-size: .85rem; word-break: break-all; text-align: left; }
+        .scan-state { display: flex; gap: 10px; align-items: flex-start; margin: 0; font-size: .92rem; color: var(--muted); }
+        .scan-state svg { flex-shrink: 0; margin-top: 2px; }
+        .scan-state.on, .scan-state.on b { color: var(--ok); }
+        .scan-state.error { color: var(--warn); }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -75,6 +79,10 @@
 
     <!-- Android con Chrome: graba y bloquea desde acá -->
     <div id="androidMode" hidden>
+        <div class="card scan-card">
+            <p class="scan-state off" id="scanState"></p>
+            <button class="btn block" id="scanBtn" style="margin-top:10px"><i data-lucide="radio" style="width:18px;height:18px"></i> Activar lectura de stickers</button>
+        </div>
         <div class="card" id="protectCard">
             <h2><i data-lucide="shield" style="width:18px;height:18px"></i> Protección del sticker</h2>
             <label class="switch"><input type="radio" name="protect" value="none" checked>
@@ -99,6 +107,8 @@
 
     <!-- iPhone (o Android sin Web NFC): con la app NFC Tools -->
     <div id="appMode" hidden>
+        <div class="card notice" id="useChrome" hidden><i data-lucide="alert-triangle" style="width:18px;height:18px"></i>
+            <span>Este navegador no puede grabar NFC. <b>Abrí esta página en Google Chrome</b> para grabar los stickers desde acá (y reescribir los que ya tienen algo). Si no, usá la app NFC Tools con los pasos de abajo.</span></div>
         <div class="card">
             <h2><i data-lucide="smartphone" style="width:18px;height:18px"></i> Cómo grabarlos desde este celular</h2>
             <ol class="steps">
@@ -133,6 +143,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="./Js/theme.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
-<script src="./Js/nfc.js?v=4"></script>
+<script src="./Js/nfc.js?v=5"></script>
 </body>
 </html>

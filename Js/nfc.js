@@ -23,8 +23,69 @@ function releaseNfc() {
     try { activeNfc.abort(); } catch { /* ya liberado */ }
     activeNfc = null;
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { releaseNfc(); Swal.close(); } });
-window.addEventListener('pagehide', releaseNfc);
+// Lectura "en espera": con la página abierta, Chrome recibe cualquier sticker que se acerque
+// (si no, Android abre el link que tenga grabado y no se lo puede reescribir).
+let idleScan = null, idleWanted = false;
+async function startIdleScan() {
+    if (!hasWebNfc || idleScan || activeNfc || document.hidden) return;
+    const ctrl = new AbortController();
+    idleScan = ctrl;
+    try {
+        const reader = new NDEFReader();
+        reader.onreading = e => { if (idleScan === ctrl && !activeNfc) onIdleTag(e.message); };
+        reader.onreadingerror = () => { if (idleScan === ctrl && !activeNfc) onIdleTag(null); };
+        await reader.scan({ signal: ctrl.signal });
+        idleWanted = true;
+        setScanUI('on');
+    } catch (err) {
+        if (idleScan === ctrl) idleScan = null;
+        if (err.name !== 'AbortError') setScanUI('error', err);
+    }
+}
+function stopIdleScan() {
+    if (!idleScan) return;
+    try { idleScan.abort(); } catch { /* ya liberado */ }
+    idleScan = null;
+}
+function setScanUI(state, err) {
+    const el = document.getElementById('scanState'), btn = document.getElementById('scanBtn');
+    if (!el || !btn) return;
+    btn.hidden = state === 'on';
+    el.className = 'scan-state ' + state;
+    el.innerHTML = state === 'on'
+        ? `${icon('radio', 16)} <span><b>Lectura activa:</b> acercá cualquier sticker y se lee acá (no se abre su link). Te muestra qué tiene y lo podés reescribir.</span>`
+        : state === 'error'
+        ? `${icon('alert-triangle', 16)} <span>No se pudo activar el NFC${err?.name === 'NotAllowedError' ? ': permití el uso de NFC para cubierto.menu en Chrome' : ''}. Revisá que el NFC del celular esté encendido.</span>`
+        : `${icon('nfc', 16)} <span>Activá la lectura para que, al acercar un sticker que ya tiene algo grabado, se lea acá en lugar de abrirse.</span>`;
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { releaseNfc(); stopIdleScan(); Swal.close(); setScanUI('off'); }
+    else if (idleWanted) startIdleScan();
+});
+window.addEventListener('pagehide', () => { releaseNfc(); stopIdleScan(); });
+
+// Se acercó un sticker con la lectura activa: mostrar qué tiene y elegir a qué mesa grabarlo
+async function onIdleTag(message) {
+    stopIdleScan();
+    const content = message ? describeMessage(message) : '(no se pudo leer: puede estar vacío o usar otro formato)';
+    const other = tableOfUrl(content || '');
+    const next = other || tables.find(t => !status[t.id]) || tables[0];
+    const opts = tables.map(t => `<option value="${esc(t.id)}" ${t.id === next?.id ? 'selected' : ''}>${esc(t.label)}${status[t.id] ? ' (ya grabada)' : ''}</option>`).join('');
+    const r = await sw({
+        title: content ? 'Sticker con contenido' : 'Sticker vacío',
+        html: (content ? `<p style="margin:0 0 4px">Tiene grabado:</p><span class="existing">${esc(content)}</span>` : '<p>No tiene nada grabado.</p>')
+            + (other ? `<p>Es el link de <b>${esc(other.label)}</b>.</p>` : '')
+            + `<label style="display:block;text-align:left;margin-top:10px">Grabarle el link de:
+                 <select id="idleTable" class="swal2-select" style="display:block;width:100%;margin:6px 0 0">${opts}</select></label>`,
+        showCancelButton: true, confirmButtonText: content ? 'Reescribir' : 'Grabar', cancelButtonText: 'Cancelar',
+        preConfirm: () => document.getElementById('idleTable').value,
+    });
+    if (r.isConfirmed) {
+        const t = tables.find(x => x.id === r.value);
+        if (t) { await writeOne(t, { force: true }); return; }
+    }
+    if (idleWanted) startIdleScan();
+}
 
 const swalTheme = () => document.body.classList.contains('light')
     ? { background: '#fffdf9', color: '#3a2e22', confirmButtonColor: '#6b5135' }
@@ -54,8 +115,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Sin bloqueo permanente en este Chrome: solo queda la opción de clave (con NFC Tools)
         if (!canLock) document.querySelector('input[name="protect"][value="lock"]').closest('label').hidden = true;
         document.getElementById('writeAllBtn').addEventListener('click', writeAll);
+        document.getElementById('scanBtn').addEventListener('click', startIdleScan);
+        setScanUI('off');
+        // Si Chrome ya tiene el permiso de NFC, la lectura se activa sola
+        navigator.permissions?.query({ name: 'nfc' }).then(p => { if (p.state === 'granted') startIdleScan(); }).catch(() => {});
     } else if (isMobile) {
         document.getElementById('appMode').hidden = false;
+        // Android sin Web NFC: casi siempre es otro navegador (Samsung Internet, Firefox...)
+        if (!isIOS) document.getElementById('useChrome').hidden = false;
         document.getElementById('storeLink').href = isIOS
             ? 'https://apps.apple.com/app/nfc-tools/id1252962749'
             : 'https://play.google.com/store/apps/details?id=com.wakdev.wdnfc';
@@ -137,7 +204,7 @@ function nfcPrompt(title, html, ctrl, cancelText, stage) {
 // Graba un sticker sin pisar lo que tenga: si ya tiene contenido, lo muestra y pregunta si
 // reescribirlo. Después, si se eligió, lo bloquea para siempre (en el mismo acercamiento).
 // Devuelve true para seguir (grabado u omitido) y false si se canceló.
-async function writeOne(t, { step } = {}) {
+async function writeOne(t, { step, force } = {}) {
     const lock = canLock && document.querySelector('input[name="protect"]:checked')?.value === 'lock';
     const cancelText = step ? 'Terminar' : 'Cancelar';
     const head = `${step ? `${step} · ` : ''}${esc(t.label)}`;
@@ -146,6 +213,7 @@ async function writeOne(t, { step } = {}) {
     activeNfc = ctrl;
     const stage = { waiting: false };
     const url = tableUrl(t.id);
+    stopIdleScan();   // una sola operación de NFC a la vez
     try {
         const ndef = new NDEFReader();
         // Se lee lo que tiene el sticker al acercarlo (para poder mostrarlo si ya tiene algo)
@@ -155,7 +223,8 @@ async function writeOne(t, { step } = {}) {
 
         nfcPrompt(head, `Acercá el sticker a la parte de atrás del celular${lock ? ' y <b>mantenelo apoyado</b> hasta que termine (se graba y se bloquea)' : ''}.`, ctrl, cancelText, stage);
         try {
-            await ndef.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal, overwrite: false });
+            // force: el contenido ya se mostró (lectura en espera) y se eligió reescribirlo
+            await ndef.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal, overwrite: !!force });
         } catch (err) {
             // overwrite:false rechaza con NotAllowedError si el sticker ya tiene contenido
             if (err.name !== 'NotAllowedError') throw err;
@@ -216,10 +285,16 @@ async function writeOne(t, { step } = {}) {
     } finally {
         // Liberar el NFC apenas termina (si no, el celular no lee otros stickers)
         if (activeNfc === ctrl) releaseNfc();
+        // y volver a la lectura en espera (si estaba activa), salvo durante "grabar todas"
+        if (idleWanted && !step) setTimeout(startIdleScan, 400);
     }
 }
 
 async function writeAll() {
+    stopIdleScan();
+    try { await writeAllSteps(); } finally { if (idleWanted) setTimeout(startIdleScan, 400); }
+}
+async function writeAllSteps() {
     const pending = tables.filter(t => !status[t.id]);
     const list = pending.length ? pending : tables;
     for (let i = 0; i < list.length; i++) {
