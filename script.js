@@ -361,6 +361,7 @@ async function renderAdminMenu() {
         }
         applyStyles(styleConfig);
         populateStyleControls(styleConfig);
+        applyFontGating();   // los selectores se acaban de armar: volver a bloquear las premium
         initStyleControls();
         updateAdminHeader();
 
@@ -2065,6 +2066,20 @@ async function removeBgFromPreview(previewId, firestoreKey, isFavicon, btn) {
 
 // ── Beneficios del plan ───────────────────────────────────────
 
+// Tipografías premium (✦ caligráficas, pizarra, estilo asiático): solo si el plan tiene "extra_fonts"
+// (lo configura el superadmin en cada nivel). Se vuelve a aplicar cada vez que se arman los selectores.
+function applyFontGating() {
+    const locked = !!window.userBenefits && !hasBenefit(window.userBenefits, 'extra_fonts');
+    document.body.classList.toggle('no-extra-fonts', locked);
+    document.querySelectorAll('optgroup[data-premium="extra_fonts"] option').forEach(o => {
+        // La que ya está elegida se conserva (no se cambia sola el menú publicado)
+        o.disabled = locked && !o.selected;
+    });
+    document.querySelectorAll('.premium-fonts-note').forEach(n => { n.hidden = !locked; });
+}
+// Si se cambia de una premium a otra fuente, la premium queda bloqueada
+document.addEventListener('change', e => { if (e.target.matches?.('#cfg-titleFontFamily, #cfg-fontFamily')) applyFontGating(); });
+
 function applyBenefitGating() {
     const b = window.userBenefits;
     if (!b) return; // null = superadmin o plan sin restrictions definidas → acceso total
@@ -2076,10 +2091,7 @@ function applyBenefitGating() {
         document.getElementById('socialsSection')?.classList.add('feature-locked');
         document.getElementById('socialsBadge')?.classList.add('visible');
     }
-    if (!hasBenefit(b, 'extra_fonts')) {
-        document.body.classList.add('no-extra-fonts');
-        document.querySelectorAll('optgroup[data-premium="extra_fonts"] option').forEach(o => o.disabled = true);
-    }
+    applyFontGating();
     if (!hasBenefit(b, 'menu_bg')) {
         document.getElementById('menuBgSection')?.classList.add('feature-locked');
         document.getElementById('menuBgBadge')?.classList.add('visible');
