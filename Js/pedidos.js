@@ -77,6 +77,25 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('editMenuLink').href = `./admin.html?r=${restaurantId}`;
     initThemeToggle('themeBtn');
 
+    // Superadmin en un restaurante ajeno: solo con el código de soporte que le dio el dueño
+    // (los pedidos tienen nombres de comensales; las reglas de Firestore también lo exigen)
+    if (isSuperAdmin && restDoc.data().ownerId !== user.uid) {
+        const grant = await SupportAccess.grant(restaurantId);
+        if (!grant?.active) {
+            document.querySelector('.pd-tabs').classList.add('pd-hidden');
+            document.querySelectorAll('.pd-panel').forEach(p => p.classList.remove('active'));
+            const msg = document.getElementById('lockedMsg');
+            msg.querySelector('h2').textContent = 'Necesitás un código de soporte';
+            msg.querySelector('p').innerHTML = 'Los pedidos y la configuración de este restaurante son privados. Pedile al cliente que genere un '
+                + '<b>código de soporte</b> desde su panel (Contactar soporte → Dar acceso a soporte) y canjealo en el SuperAdmin.';
+            msg.classList.remove('pd-hidden');
+            return;
+        }
+        // Al vencer o si el dueño lo revoca, se vuelve a cargar (y queda bloqueado)
+        setTimeout(() => location.reload(), Math.min(Math.max(grant.expiresAt - Date.now(), 0) + 1000, 2 ** 31 - 1));
+        db.collection('supportGrants').doc(restaurantId).onSnapshot(d => { if (!d.exists || d.data().active !== true) location.reload(); }, () => location.reload());
+    }
+
     // Beneficio del plan
     let allowed = isSuperAdmin;
     if (!isSuperAdmin) {

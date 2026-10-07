@@ -852,6 +852,10 @@ body.preview-mode .input-description { pointer-events: none; cursor: default; }
     white-space: nowrap;
     letter-spacing: .2px;
 }
+.preview-badge svg { vertical-align: -2px; }
+/* Modo soporte (con código del cliente): verde, para distinguirlo de la vista previa */
+.support-badge { background: rgba(60,170,100,.12); border-color: rgba(60,170,100,.35); color: #5cbf7a; }
+body.light .support-badge { color: #2e7d4f; }
 
 /* save button */
 body.light #saveMenuBtn { background: #6b5135; border-color: #6b5135; color: #fff; box-shadow: 0 10px 24px rgba(60,42,20,.28); }

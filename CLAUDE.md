@@ -155,6 +155,14 @@ appConfig/
 
 paymentQuotes/{id}: { uid, tierId, period, kind: new|renew|upgrade, amount, usedAt, paymentId } ← solo servidor
 
+supportGrants/{restaurantId}: { ownerId, restaurantName, codeHash, createdAt, expiresAt, active, redeemedAt } ← solo servidor
+  **Acceso de soporte con código del cliente**: el superadmin NO puede modificar un restaurante ajeno ni ver sus pedidos/private
+  salvo que el dueño genere un código (dashboard → Soporte → Dar acceso a soporte; createSupportCode) y el superadmin lo canjee
+  (superadmin → "Entrar con código de soporte"; redeemSupportCode). Vale 24 h desde que se genera; revokeSupportCode lo corta.
+  Lo exigen las reglas (supportActive) y registerDevice. admin.html sin código = solo lectura aunque la URL no diga readonly;
+  con código = "modo soporte" con los beneficios del plan del dueño. Js/support-access.js (cliente).
+  Eliminar una cuenta desde el superadmin: function adminDeleteAccount (recursiveDelete de sus restaurantes y su usuario)
+
 ---
 
 ## Secciones y categorías
@@ -217,6 +225,7 @@ await saveCategoryTitle('CAFÉ DE ESPECIALIDAD', 'Mi Café');
 ### Preview mode (superadmin impersonando cliente)
 URL: `admin.html?r={id}&readonly=1`  
 CSS: `body.preview-mode` deshabilita todos los controles.
+Sin código de soporte vigente (supportGrants) el superadmin queda SIEMPRE en preview mode en restaurantes ajenos.
 
 ---
 

@@ -134,6 +134,7 @@ function showBlockedScreen() {
 }
 
 // ── Cargar restaurantes ────────────────────────────────────────
+let myRestaurants = [];
 
 async function loadRestaurants(uid) {
     try {
@@ -152,9 +153,11 @@ async function loadRestaurants(uid) {
         const docs = [];
         snap.forEach(doc => docs.push({ id: doc.id, data: doc.data() }));
         docs.sort((a, b) => (b.data.createdAt?.seconds ?? 0) - (a.data.createdAt?.seconds ?? 0));
+        myRestaurants = docs;
 
         grid.innerHTML = '';
         docs.forEach(({ id, data }) => grid.appendChild(buildCard(id, data)));
+        docs.forEach(({ id }) => paintSupportBadge(id));
     } catch (err) {
         console.error(err);
         grid.innerHTML = `<div class="empty-state">Error al cargar. Recargá la página.</div>`;
@@ -175,6 +178,7 @@ function buildCard(id, data) {
                 </svg>
             </button>
         </div>
+        <div class="card-support" data-support="${id}" hidden></div>
         <div class="card-actions">
             <a href="admin.html?r=${id}" class="btn-card btn-edit">${licon('pencil',13)} Editar menú</a>
             <a href="pedidos.html?r=${id}" class="btn-card">${licon('chef-hat',13)} Pedidos</a>
@@ -465,6 +469,61 @@ function esc(str) {
         .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ── Acceso de soporte con código (Js/support-access.js) ──────────
+// Aviso en la tarjeta mientras haya un código vigente ("sin usar" o "con acceso"), con botón para revocar
+async function paintSupportBadge(id) {
+    const el = document.querySelector(`[data-support="${id}"]`);
+    if (!el) return;
+    const g = await SupportAccess.grant(id);
+    el.hidden = !g;
+    if (!g) { el.innerHTML = ''; return; }
+    el.className = `card-support${g.active ? ' on' : ''}`;
+    el.innerHTML = `${licon('life-buoy', 13)} <span>${g.active ? 'Soporte tiene acceso' : 'Código de soporte sin usar'} hasta ${SupportAccess.when(g.expiresAt)}</span>
+        <button type="button" data-revoke="${id}">Revocar</button>`;
+    el.querySelector('[data-revoke]').addEventListener('click', () => revokeSupport(id));
+}
+async function revokeSupport(id) {
+    if (!confirm('¿Revocar el acceso de soporte? El código deja de servir y, si ya lo usaron, el acceso se corta en el momento.')) return;
+    try { await SupportAccess.revoke(id); } catch (e) { alert(e.message); }
+    paintSupportBadge(id);
+    const box = document.getElementById('supportCodeBox');
+    if (box && document.getElementById('supportRest')?.value === id) { box.hidden = true; box.innerHTML = ''; }
+}
+function initSupportAccess() {
+    const sel = document.getElementById('supportRest'), btn = document.getElementById('supportGenBtn');
+    const box = document.getElementById('supportCodeBox'), wrap = document.getElementById('supportAccess');
+    if (!sel || !btn) return;
+    const fill = () => {
+        wrap.hidden = !myRestaurants.length;
+        sel.innerHTML = myRestaurants.map(r => `<option value="${r.id}">${esc(r.data.nombre || 'Sin nombre')}</option>`).join('');
+        sel.hidden = myRestaurants.length < 2;
+        box.hidden = true; box.innerHTML = '';
+        btn.textContent = 'Generar código';
+    };
+    document.getElementById('supportBtn').addEventListener('click', fill);
+    btn.addEventListener('click', async () => {
+        const id = sel.value;
+        btn.disabled = true; btn.textContent = 'Generando…';
+        try {
+            const { code, expiresAt } = await SupportAccess.create(id);
+            box.innerHTML = `<div class="sa-code-val" aria-live="polite">${code}</div>
+                <p>Pasale este código a soporte. Vale hasta el <b>${SupportAccess.when(expiresAt)}</b>.
+                Si generás otro, este deja de servir.</p>
+                <div class="sa-code-actions"><button type="button" data-copy>Copiar</button><button type="button" data-revoke>Revocar acceso</button></div>`;
+            box.hidden = false;
+            box.querySelector('[data-copy]').addEventListener('click', async e => {
+                try { await navigator.clipboard.writeText(code); e.target.textContent = '¡Copiado!'; } catch { e.target.textContent = code; }
+            });
+            box.querySelector('[data-revoke]').addEventListener('click', () => revokeSupport(id));
+            paintSupportBadge(id);
+        } catch (e) {
+            box.innerHTML = `<p class="sa-err">${esc(e.message)}</p>`;
+            box.hidden = false;
+        }
+        btn.disabled = false; btn.textContent = 'Generar otro código';
+    });
+}
+
 // ── Soporte: contacto con el administrador de Cubierto (appConfig/support) ──
 function initSupport(user) {
     const modal = document.getElementById('supportModal');
@@ -488,6 +547,7 @@ function initSupport(user) {
         hours.innerHTML = c.hours ? `${licon('clock', 13)} ${esc(c.hours)}` : '';
         modal.classList.add('visible');
     });
+    initSupportAccess();
     document.getElementById('closeSupport').addEventListener('click', () => modal.classList.remove('visible'));
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('visible'); });
 }

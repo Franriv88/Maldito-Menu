@@ -8,7 +8,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="./Css/auth.css?v=4">
+    <link rel="stylesheet" href="./Css/auth.css?v=5">
 </head>
 <body>
 
@@ -56,6 +56,16 @@
             <div class="support-options" id="supportOptions"></div>
             <p class="support-hours" id="supportHours" hidden></p>
             <a class="support-faq" href="./ayuda.html" target="_blank" rel="noopener">Ver preguntas frecuentes: planes, editor, pedidos…</a>
+            <div class="support-access" id="supportAccess">
+                <h4>Dar acceso a soporte</h4>
+                <p>Si querés que entremos a tu menú para ayudarte, generá un código y pasánoslo. <b>Sin tu código, nadie de Cubierto
+                    puede modificar tu menú ni ver tus pedidos.</b> Vale 24 horas y lo podés revocar cuando quieras.</p>
+                <div class="sa-row">
+                    <select id="supportRest" class="sa-select" aria-label="Restaurante"></select>
+                    <button type="button" class="sa-gen" id="supportGenBtn">Generar código</button>
+                </div>
+                <div class="sa-code" id="supportCodeBox" hidden></div>
+            </div>
             <div class="modal-actions">
                 <button class="btn-cancel" id="closeSupport">Cerrar</button>
             </div>
@@ -85,8 +95,9 @@
     <script src="./Js/theme.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
     <script src="./Js/benefits-config.js?v=4"></script>
+    <script src="./Js/support-access.js?v=1"></script>
     <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
-    <script src="./Js/dashboard.js?v=6"></script>
+    <script src="./Js/dashboard.js?v=7"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

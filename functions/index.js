@@ -975,6 +975,111 @@ async function ownerHasTableOrders(ownerId) {
     return !tier.benefits || tier.benefits.table_orders === true;
 }
 
+// ══════════════════════════════════════════════════════════════
+//  ACCESO DE SOPORTE CON CÓDIGO DEL CLIENTE
+//  El superadmin no puede modificar un restaurante ajeno (ni ver sus pedidos o datos privados)
+//  salvo que el dueño genere un código y se lo pase. supportGrants/{restaurantId}:
+//  { ownerId, restaurantName, codeHash, createdAt, expiresAt, active, redeemedAt }
+//  - El código se guarda solo como hash: nadie puede leerlo de la base.
+//  - El acceso (y el código) valen SUPPORT_GRANT_HOURS desde que se genera; el dueño lo revoca cuando quiere.
+//  - Lo exigen las reglas de Firestore (supportActive) y registerDevice.
+// ══════════════════════════════════════════════════════════════
+const SUPPORT_GRANT_HOURS = 24;
+const SUPPORT_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   // sin 0/O, 1/I/L
+const supportCodeHash = code => crypto.createHash("sha256").update("cubierto-support|" + code).digest("hex");
+const normalizeSupportCode = c => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+async function hasSupportAccess(restaurantId) {
+    const g = (await db.collection("supportGrants").doc(restaurantId).get()).data();
+    return !!(g && g.active && g.expiresAt?.toMillis?.() > Date.now());
+}
+
+async function requireOwnedRestaurant(req, res, user) {
+    const r = String(req.body?.r || "");
+    if (!/^[\w-]{1,128}$/.test(r)) { res.status(400).json({ error: "Restaurante inválido" }); return null; }
+    const snap = await db.collection("restaurants").doc(r).get();
+    if (!snap.exists || snap.data().ownerId !== user.uid) { res.status(403).json({ error: "Ese restaurante no es tuyo" }); return null; }
+    return { id: r, data: snap.data() };
+}
+
+// El dueño genera un código nuevo (reemplaza al anterior y corta cualquier acceso vigente)
+exports.createSupportCode = onRequest(
+    { cors: true, invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        const rest = await requireOwnedRestaurant(req, res, user);
+        if (!rest) return;
+        let raw = "";
+        for (let i = 0; i < 8; i++) raw += SUPPORT_CODE_ALPHABET[crypto.randomInt(SUPPORT_CODE_ALPHABET.length)];
+        const expiresAt = Date.now() + SUPPORT_GRANT_HOURS * 3600 * 1000;
+        await db.collection("supportGrants").doc(rest.id).set({
+            ownerId: user.uid,
+            restaurantName: rest.data.nombre || "",
+            codeHash: supportCodeHash(raw),
+            createdAt: FieldValue.serverTimestamp(),
+            expiresAt: Timestamp.fromMillis(expiresAt),
+            active: false,
+        });
+        res.json({ code: `${raw.slice(0, 4)}-${raw.slice(4)}`, expiresAt });
+    }
+);
+
+// El dueño revoca el acceso (el código deja de servir y, si ya se usó, se corta en el momento)
+exports.revokeSupportCode = onRequest(
+    { cors: true, invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        const rest = await requireOwnedRestaurant(req, res, user);
+        if (!rest) return;
+        await db.collection("supportGrants").doc(rest.id).delete();
+        res.json({ ok: true });
+    }
+);
+
+// El superadmin canjea el código que le pasó el cliente
+exports.redeemSupportCode = onRequest(
+    { cors: true, invoker: "public" },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        if (user.email !== SUPERADMIN_EMAIL) { res.status(403).json({ error: "Sin permiso" }); return; }
+        const code = normalizeSupportCode(req.body?.code);
+        if (code.length !== 8) { res.status(400).json({ error: "El código tiene 8 caracteres (por ejemplo ABCD-2345)." }); return; }
+        const snap = await db.collection("supportGrants").where("codeHash", "==", supportCodeHash(code)).limit(1).get();
+        const doc = snap.docs[0];
+        const g = doc?.data();
+        if (!g) { res.status(404).json({ error: "Código incorrecto o revocado por el cliente." }); return; }
+        if (!(g.expiresAt?.toMillis?.() > Date.now())) { res.status(410).json({ error: "El código venció. Pedile al cliente uno nuevo." }); return; }
+        await doc.ref.update({ active: true, redeemedAt: FieldValue.serverTimestamp() });
+        res.json({ r: doc.id, nombre: g.restaurantName || "", expiresAt: g.expiresAt.toMillis() });
+    }
+);
+
+// El superadmin elimina una cuenta completa: restaurantes con TODO su contenido, accesos de soporte y el usuario
+exports.adminDeleteAccount = onRequest(
+    { cors: true, invoker: "public", timeoutSeconds: 300 },
+    async (req, res) => {
+        if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+        const user = await requireUser(req, res);
+        if (!user) return;
+        if (user.email !== SUPERADMIN_EMAIL) { res.status(403).json({ error: "Sin permiso" }); return; }
+        const uid = String(req.body?.uid || "");
+        if (!/^[\w-]{1,128}$/.test(uid) || uid === user.uid) { res.status(400).json({ error: "Usuario inválido" }); return; }
+        const rests = await db.collection("restaurants").where("ownerId", "==", uid).get();
+        for (const r of rests.docs) {
+            await db.recursiveDelete(r.ref);
+            await db.collection("supportGrants").doc(r.id).delete();
+        }
+        await db.recursiveDelete(db.collection("users").doc(uid));
+        res.json({ ok: true, restaurants: rests.size });
+    }
+);
+
 // ── Registrar el Wi-Fi del local ──────────────────────────────
 // El tablero (pedidos.html) llama cada 5 min: la IP desde la que llega es la del local.
 
@@ -987,7 +1092,9 @@ exports.registerDevice = onRequest(
 
         const restRef  = db.collection("restaurants").doc(String(req.body?.r || "_"));
         const restSnap = await restRef.get();
-        if (!restSnap.exists || (restSnap.data().ownerId !== user.uid && user.email !== SUPERADMIN_EMAIL)) {
+        // El superadmin solo con el código de soporte que le dio el dueño
+        if (!restSnap.exists || (restSnap.data().ownerId !== user.uid
+            && !(user.email === SUPERADMIN_EMAIL && await hasSupportAccess(restRef.id)))) {
             res.status(403).json({ error: "Sin permiso" }); return;
         }
 

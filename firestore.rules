@@ -12,35 +12,51 @@ service cloud.firestore {
              get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid;
     }
 
+    // El superadmin solo modifica (y ve pedidos / datos privados de) un restaurante ajeno con el
+    // código de soporte que le dio el dueño: supportGrants/{id} activo y sin vencer (functions/index.js)
+    function supportActive(restaurantId) {
+      let g = /databases/$(database)/documents/supportGrants/$(restaurantId);
+      return isSuperAdmin() && exists(g)
+             && get(g).data.active == true && get(g).data.expiresAt > request.time;
+    }
+
     match /restaurants/{restaurantId} {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if request.auth != null
-                            && (resource.data.ownerId == request.auth.uid || isSuperAdmin());
+                            && (resource.data.ownerId == request.auth.uid || supportActive(restaurantId));
 
       // Menú, config y estilos: lectura pública
       match /{sub}/{docId} {
         allow read: if !(sub in ['pedidos', 'private']);
         allow write: if !(sub in ['pedidos', 'private'])
-                     && (isOwner(restaurantId) || isSuperAdmin());
+                     && (isOwner(restaurantId) || supportActive(restaurantId));
       }
 
       // Pedidos: los crea solo el servidor (placeOrder).
       // get público = el comensal sigue su pedido con el id (aleatorio) que recibió.
       match /pedidos/{orderId} {
         allow get:    if true;
-        allow list:   if isOwner(restaurantId) || isSuperAdmin();
-        allow update: if (isOwner(restaurantId) || isSuperAdmin())
+        allow list:   if isOwner(restaurantId) || supportActive(restaurantId);
+        allow update: if (isOwner(restaurantId) || supportActive(restaurantId))
                       && request.resource.data.diff(resource.data).affectedKeys()
                            .hasOnly(['status', 'printStatus', 'printedAt', 'sentToKitchenAt', 'updatedAt']);
-        allow delete: if isOwner(restaurantId) || isSuperAdmin();
+        allow delete: if isOwner(restaurantId) || supportActive(restaurantId);
       }
 
       // Secretos (clave de impresora, webhook): solo el dueño
       match /private/{docId} {
-        allow read, write: if isOwner(restaurantId) || isSuperAdmin();
+        allow read, write: if isOwner(restaurantId) || supportActive(restaurantId);
       }
+    }
+
+    // Accesos de soporte: los crea/canjea/revoca solo el servidor. El dueño ve el de su restaurante;
+    // el superadmin ve si está vigente (el código nunca se guarda, solo su hash).
+    match /supportGrants/{restaurantId} {
+      allow read:  if request.auth != null
+                    && (resource == null || resource.data.ownerId == request.auth.uid || isSuperAdmin());
+      allow write: if false;
     }
 
     match /appConfig/{docId} {

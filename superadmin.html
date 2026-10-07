@@ -259,12 +259,6 @@
             color: rgba(200,184,154,.65);
         }
         .sa-btn-view:hover { background: rgba(124,108,92,.18); color:#c8b89a; }
-        .sa-btn-prices {
-            background: rgba(80,130,180,.08);
-            border-color: rgba(80,130,180,.3);
-            color: rgba(130,180,220,.75);
-        }
-        .sa-btn-prices:hover { background: rgba(80,130,180,.18); color:#a8d0f0; }
 
         .sa-empty {
             text-align: center; padding: 3rem;
@@ -322,6 +316,7 @@
     <div class="topbar-left">
         <span id="topbarRestName" style="color:#c8b89a;font-size:.95rem;font-weight:600">SuperAdmin</span>
         <a href="dashboard.html" class="btn-back"><i data-lucide="store" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Mis restaurantes</a>
+        <button class="btn-back sa-support-btn" id="supportCodeBtn" type="button" title="Editar el menú de un cliente con el código que te dio"><i data-lucide="life-buoy" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Entrar con código de soporte</button>
     </div>
     <div class="topbar-right">
         <span id="topbarUserName"></span>
@@ -421,6 +416,7 @@
 <script src="./Js/firebase-config.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="./Js/benefits-config.js?v=4"></script>
+<script src="./Js/support-access.js?v=1"></script>
 <script>
 
 const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
@@ -649,7 +645,7 @@ async function deleteUser(uid, name) {
 
     const { isConfirmed } = await Swal.fire({
         title: `¿Eliminar a ${name}?`,
-        html: `${restNote}Se eliminarán sus datos y suscripción.<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
+        html: `${restNote}Se eliminarán sus datos, su suscripción y todo el contenido de sus restaurantes (menú, imágenes, mesas y pedidos).<br><small style="color:rgba(200,184,154,.4)">No se elimina su cuenta de Google.</small>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Eliminar',
@@ -661,11 +657,9 @@ async function deleteUser(uid, name) {
     });
     if (!isConfirmed) return;
     try {
-        const restaurants = userEntry?.restaurants || [];
-        await Promise.all([
-            db.collection('users').doc(uid).delete(),
-            ...restaurants.map(r => db.collection('restaurants').doc(r.id).delete()),
-        ]);
+        // El servidor borra sus restaurantes con todo su contenido (menú, imágenes, mesas, pedidos…),
+        // sus accesos de soporte y su usuario. Las reglas ya no dejan al superadmin borrar contenido ajeno.
+        await SupportAccess.call('adminDeleteAccount', { uid });
         allUsers = allUsers.filter(u => u.uid !== uid);
         renderStats(); renderCharts(); renderTable();
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Usuario eliminado', timer:2000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
@@ -1059,20 +1053,17 @@ function renderTable() {
         const viewBtn = u.restaurants.length
             ? `<button class="sa-btn sa-btn-view" onclick="viewPanel('${u.uid}')">${licon('eye',12)} Ver</button>`
             : '';
-        const priceBtn = u.restaurants.length
-            ? `<button class="sa-btn sa-btn-prices" onclick="toggleHidePrices('${u.uid}')">${licon('tag',12)} Precios</button>`
-            : '';
 
         const actions = status === 'blocked'
-            ? `${viewBtn}${priceBtn}
+            ? `${viewBtn}
                <button class="sa-btn sa-btn-unblock" onclick="setStatus('${u.uid}','unpaid')">${licon('shield-check',12)} Desbloquear</button>
                <button class="sa-btn sa-btn-delete"  onclick="deleteUser('${u.uid}','${safeName}')">${licon('trash-2',12)} Eliminar</button>`
             : status === 'pending_payment'
-            ? `${viewBtn}${priceBtn}
+            ? `${viewBtn}
                <button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">${licon('check',12)} Confirmar pago</button>
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">${licon('ban',12)} Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">${licon('trash-2',12)} Eliminar</button>`
-            : `${viewBtn}${priceBtn}
+            : `${viewBtn}
                <button class="sa-btn sa-btn-paid"  onclick="markPaid('${u.uid}')">${licon('credit-card',12)} Marcar pagado</button>
                <button class="sa-btn sa-btn-block"  onclick="setStatus('${u.uid}','blocked')">${licon('ban',12)} Bloquear</button>
                <button class="sa-btn sa-btn-delete" onclick="deleteUser('${u.uid}','${safeName}')">${licon('trash-2',12)} Eliminar</button>`;
@@ -1235,85 +1226,31 @@ async function viewPanel(uid) {
     });
 }
 
-// ── Toggle hide prices ────────────────────────────────────────
-
-async function toggleHidePrices(uid) {
-    const u = allUsers.find(u => u.uid === uid);
-    if (!u || !u.restaurants.length) return;
-
-    if (u.restaurants.length === 1) {
-        await doToggleHidePrices(u.restaurants[0]);
-        return;
-    }
-
-    const btnStyle = [
-        'display:inline-flex', 'align-items:center', 'gap:8px',
-        'background:rgba(124,108,92,.1)', 'border:1px solid rgba(124,108,92,.22)',
-        'color:#c8b89a', 'border-radius:10px', 'padding:.6rem 1.1rem',
-        'font-size:.85rem', 'cursor:pointer',
-        'transition:background .15s,border-color .15s', 'font-family:inherit',
-    ].join(';');
-
-    const html = `<div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center">` +
-        u.restaurants.map(r => `
-            <button style="${btnStyle}"
-                onmouseover="this.style.background='rgba(124,108,92,.22)';this.style.borderColor='rgba(124,108,92,.45)'"
-                onmouseout="this.style.background='rgba(124,108,92,.1)';this.style.borderColor='rgba(124,108,92,.22)'"
-                onclick="Swal.close();doToggleHidePrices({id:'${r.id}',nombre:'${esc(r.nombre || 'Sin nombre').replace(/'/g,"\\'")}'})" >
-                ${licon('store', 14)} ${esc(r.nombre || 'Sin nombre')}
-            </button>`).join('') + `</div>`;
-
+// ── Acceso de soporte con el código del cliente (Js/support-access.js) ──
+// Sin código, "Ver" abre el menú del cliente en solo lectura; con el código, se edita en "modo soporte"
+async function enterWithSupportCode() {
+    const { value: code } = await Swal.fire({
+        title: 'Código de soporte',
+        html: '<p style="font-size:.85rem;color:rgba(200,184,154,.7);margin:0">El cliente lo genera desde su panel: <b>Contactar soporte → Dar acceso a soporte</b>. Vale 24 horas.</p>',
+        input: 'text', inputPlaceholder: 'ABCD-2345',
+        inputAttributes: { autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false', maxlength: 12 },
+        showCancelButton: true, confirmButtonText: 'Entrar', cancelButtonText: 'Cancelar',
+        background: '#1a1a1a', color: '#c8b89a', confirmButtonColor: '#3a8f5c', cancelButtonColor: 'rgba(124,108,92,.3)',
+        showLoaderOnConfirm: true,
+        preConfirm: async v => {
+            try { return await SupportAccess.redeem(v); }
+            catch (e) { Swal.showValidationMessage(e.message); return false; }
+        },
+    });
+    if (!code) return;
     await Swal.fire({
-        title: 'Elegí el restaurante',
-        html,
-        showConfirmButton: false,
-        showCancelButton: true,
-        cancelButtonText: 'Cancelar',
-        background: '#1a1a1a',
-        color: '#c8b89a',
-        cancelButtonColor: 'rgba(124,108,92,.3)',
+        icon: 'success', title: `Acceso a ${esc(code.nombre || 'el restaurante')}`,
+        html: `<span style="font-size:.85rem">Podés editar hasta el <b>${SupportAccess.when(code.expiresAt)}</b>. El cliente lo puede revocar en cualquier momento.</span>`,
+        confirmButtonText: 'Abrir el editor', background: '#1a1a1a', color: '#c8b89a', confirmButtonColor: '#3a8f5c',
     });
+    window.open(`./admin.html?r=${encodeURIComponent(code.r)}`, '_blank');
 }
-
-async function doToggleHidePrices(rest) {
-    const stylesRef = db.collection('restaurants').doc(rest.id).collection('config').doc('styles');
-    let current = false;
-    try {
-        const doc = await stylesRef.get();
-        current = doc.exists ? (doc.data().hidePrices || false) : false;
-    } catch (err) {
-        console.error(err);
-        return;
-    }
-    const next = !current;
-
-    const { isConfirmed } = await Swal.fire({
-        title: next ? 'Ocultar precios' : 'Mostrar precios',
-        html: `<span style="font-size:.9rem;color:rgba(200,184,154,.7)"><b>${esc(rest.nombre || 'Sin nombre')}</b> — los precios ${next ? 'quedarán <b>ocultos</b>' : 'volverán a ser <b>visibles</b>'} en el menú público.</span>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Confirmar',
-        cancelButtonText: 'Cancelar',
-        background: '#1a1a1a',
-        color: '#c8b89a',
-        confirmButtonColor: next ? '#5080b4' : '#2d9a4e',
-        cancelButtonColor: 'rgba(124,108,92,.3)',
-    });
-    if (!isConfirmed) return;
-
-    try {
-        await stylesRef.set({ hidePrices: next }, { merge: true });
-        Swal.fire({
-            toast: true, position: 'top-end', icon: 'success',
-            title: next ? 'Precios ocultos en el menú' : 'Precios visibles en el menú',
-            timer: 2500, showConfirmButton: false,
-            background: '#1a1a1a', color: '#c8b89a',
-        });
-    } catch (err) {
-        console.error(err);
-        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al guardar', timer:3000, showConfirmButton:false, background:'#1a1a1a', color:'#c8b89a' });
-    }
-}
+document.getElementById('supportCodeBtn')?.addEventListener('click', enterWithSupportCode);
 
 // ── Search & filter ───────────────────────────────────────────
 

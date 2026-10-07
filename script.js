@@ -226,7 +226,10 @@ function categoryTitle(cat, catTitles, byCategory) {
 const newCatKey = () => 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 const restaurantId    = new URLSearchParams(location.search).get('r');
-const isReadonly      = new URLSearchParams(location.search).get('readonly') === '1';
+// Solo lectura: vista previa del superadmin. Sin el código de soporte del dueño es SIEMPRE solo lectura
+// (además lo hacen cumplir las reglas de Firestore); con el código, el superadmin edita en "modo soporte".
+let isReadonly        = new URLSearchParams(location.search).get('readonly') === '1';
+let supportGrant      = null;
 const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
 
 // ── Auth guard ────────────────────────────────────────────────
@@ -246,6 +249,12 @@ auth.onAuthStateChanged(async user => {
 
         const restData = restDoc.data();
         const nombre   = restData.nombre || 'Mi Restaurante';
+        const isOwnerUser = restData.ownerId === user.uid;
+        if (isSuperAdmin && !isOwnerUser) {
+            supportGrant = await SupportAccess.grant(restaurantId);
+            if (!supportGrant?.active) isReadonly = true;
+            else isReadonly = false;
+        }
 
         // Suscripción: prueba de 14 días, plan activo (con su nivel) o vencido → elegir plan
         if (!isSuperAdmin) {
@@ -263,8 +272,16 @@ auth.onAuthStateChanged(async user => {
             if (info.state === 'blocked') { window.location.href = './login.html?reason=blocked'; return; }
             if (info.state !== 'trial' && info.state !== 'active') { window.location.href = './checkout.html'; return; }
             window.userBenefits = info.benefits;   // null = todo incluido (prueba)
+        } else if (supportGrant?.active) {
+            // Modo soporte: se edita con los beneficios del plan del DUEÑO, no con los del superadmin
+            const [oSnap, pSnap] = await Promise.all([
+                db.collection('users').doc(restData.ownerId).get(),
+                db.collection('appConfig').doc('plans').get().catch(() => null),
+            ]);
+            const info = subscriptionInfo(oSnap.data()?.subscription, normalizePlans(pSnap?.exists ? pSnap.data() : {}));
+            window.userBenefits = info.benefits ?? null;
         } else {
-            window.userBenefits = null; // superadmin = acceso total
+            window.userBenefits = null; // superadmin en su propio restaurante o en vista previa
         }
 
         // Topbar
@@ -290,7 +307,8 @@ auth.onAuthStateChanged(async user => {
         applyBenefitGating();
         initBgImageControls();
 
-        if (isReadonly && isSuperAdmin) enterPreviewMode(nombre);
+        if (isReadonly && isSuperAdmin) enterPreviewMode(nombre, !isOwnerUser);
+        else if (supportGrant?.active) enterSupportMode(nombre, supportGrant.expiresAt);
     } catch (err) {
         console.error('Error verificando acceso:', err);
         document.getElementById('admin-menu-container').innerHTML = '<p style="color:red;padding:2rem">Error al cargar. Intentá de nuevo.</p>';
@@ -305,7 +323,26 @@ function restRef() {
 
 // ── Modo vista (superadmin impersonation) ─────────────────────
 
-function enterPreviewMode(restName) {
+// Modo soporte: el superadmin edita con el código que le dio el dueño. Se corta solo al vencer
+// o si el dueño lo revoca (se recarga en solo lectura).
+function enterSupportMode(restName, expiresAt) {
+    const backBtn = document.querySelector('.btn-back');
+    if (backBtn) { backBtn.href = './superadmin.html'; backBtn.textContent = '← SuperAdmin'; }
+    const topbarLeft = document.querySelector('.topbar-left');
+    if (topbarLeft) {
+        const badge = document.createElement('span');
+        badge.className = 'preview-badge support-badge';
+        badge.innerHTML = `${licon('life-buoy', 13)} Modo soporte · ${esc(restName)} · hasta ${SupportAccess.when(expiresAt)}`;
+        badge.title = 'El cliente te dio acceso con un código. Lo puede revocar cuando quiera.';
+        topbarLeft.appendChild(badge);
+    }
+    setTimeout(() => location.reload(), Math.min(Math.max(expiresAt - Date.now(), 0) + 1000, 2 ** 31 - 1));
+    db.collection('supportGrants').doc(restaurantId).onSnapshot(d => {
+        if (!d.exists || d.data().active !== true) location.reload();
+    }, () => location.reload());
+}
+
+function enterPreviewMode(restName, needsCode) {
     document.body.classList.add('preview-mode');
 
     // Cambiar botón de volver → SuperAdmin
@@ -317,7 +354,8 @@ function enterPreviewMode(restName) {
     if (topbarLeft) {
         const badge = document.createElement('span');
         badge.className = 'preview-badge';
-        badge.innerHTML = `${licon('eye', 13)} Vista previa · ${restName}`;
+        badge.innerHTML = `${licon('eye', 13)} Vista previa · ${restName}${needsCode ? ' · solo lectura' : ''}`;
+        if (needsCode) badge.title = 'Para editar, el cliente tiene que darte un código de soporte desde su panel.';
         topbarLeft.appendChild(badge);
     }
 }
