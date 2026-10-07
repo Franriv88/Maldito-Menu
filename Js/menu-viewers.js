@@ -135,35 +135,73 @@ window.MenuGuide = (() => {
         card.querySelector('.mg-ok').focus({ preventScroll: true });
     }
 
-    // Botón sutil arriba a la derecha del menú: vuelve a abrir la guía (con el cambio de idioma)
+    // Panel retráctil en el borde derecho (como el de modo oscuro de la presentación): cerrado solo
+    // asoma una pestañita; al entrar se despliega unos segundos y se esconde solo. Tiene los idiomas
+    // del restaurante y "?" para volver a ver la guía.
+    let panel = null, panelTimer = null, peeked = false;
+    const PANEL_OPEN_MS = 5000;
+    const iconSvg = (name, size) => {
+        const def = typeof lucide !== 'undefined' ? lucide[name] : null;
+        if (!def) return '';
+        const ic = lucide.createElement(def); ic.setAttribute('width', size); ic.setAttribute('height', size); ic.setAttribute('stroke-width', '1.75');
+        return ic.outerHTML;
+    };
+    function openPanel(ms = PANEL_OPEN_MS) {
+        if (!panel) return;
+        panel.classList.add('open');
+        panel.querySelector('.mg-tab').setAttribute('aria-expanded', 'true');
+        clearTimeout(panelTimer);
+        panelTimer = setTimeout(closePanel, ms);
+    }
+    function closePanel() {
+        if (!panel) return;
+        clearTimeout(panelTimer);
+        panel.classList.remove('open');
+        panel.querySelector('.mg-tab').setAttribute('aria-expanded', 'false');
+    }
+    function paintPanel() {
+        if (!panel) return;
+        const langs = window.MenuI18n?.langs() || [];
+        const cur = window.MenuI18n?.lang() || 'es';
+        const multi = langs.length > 1;
+        const tab = panel.querySelector('.mg-tab');
+        tab.innerHTML = iconSvg(multi ? 'Languages' : 'HelpCircle', 15);
+        tab.setAttribute('aria-label', T(multi ? 'Ver instrucciones y cambiar idioma' : 'Ver instrucciones'));
+        panel.querySelector('.mg-panel-body').innerHTML =
+            (multi ? langs.map(l => `<button type="button" class="mg-plang${l.id === cur ? ' on' : ''}" data-lang="${l.id}" lang="${l.id}"
+                aria-pressed="${l.id === cur}" title="${l.label}">${l.id.toUpperCase()}</button>`).join('') : '')
+            + `<button type="button" class="mg-phelp" aria-label="${esc(T('Ver instrucciones'))}" title="${esc(T('Ver instrucciones'))}">${iconSvg('HelpCircle', 16) || '?'}</button>`;
+    }
     function mountReopen() {
-        if (document.getElementById('mgReopen')) return;
-        const header = document.getElementById('restaurant-header');
-        if (!header) return;
-        const wrap = document.createElement('div');
-        wrap.className = 'mg-reopen-wrap';
-        wrap.innerHTML = `<button type="button" id="mgReopen" class="mg-reopen"></button>`;
-        header.before(wrap);
-        const btn = wrap.querySelector('button');
-        const paint = () => {
-            const cur = window.MenuI18n?.lang() || 'es';
-            const def = typeof lucide !== 'undefined' ? lucide.Languages || lucide.Globe : null;
-            let svg = '';
-            if (def) { const ic = lucide.createElement(def); ic.setAttribute('width', 15); ic.setAttribute('height', 15); svg = ic.outerHTML; }
-            // Solo español: el botón abre la guía (signo de pregunta, sin código de idioma)
-            const multi = (window.MenuI18n?.langs().length || 1) > 1;
-            if (!multi && typeof lucide !== 'undefined' && lucide.HelpCircle) {
-                const ic = lucide.createElement(lucide.HelpCircle); ic.setAttribute('width', 15); ic.setAttribute('height', 15); svg = ic.outerHTML;
-            }
-            btn.innerHTML = multi ? `${svg}<span>${cur.toUpperCase()}</span>` : svg;
-            btn.classList.toggle('icon-only', !multi);
-            const label = multi ? 'Ver instrucciones y cambiar idioma' : 'Ver instrucciones';
-            btn.setAttribute('aria-label', T(label));
-            btn.title = T(label);
-        };
-        paint();
-        document.addEventListener('menulang', paint);
-        btn.addEventListener('click', () => last && show(last.kind, { ...last, force: true }));
+        if (panel) return;
+        panel = document.createElement('div');
+        panel.id = 'mgPanel';
+        panel.className = 'mg-panel';
+        panel.innerHTML = `<button type="button" class="mg-tab" aria-expanded="false" aria-controls="mgPanelBody"></button>
+            <div class="mg-panel-body" id="mgPanelBody"></div>`;
+        document.body.appendChild(panel);
+        paintPanel();
+        document.addEventListener('menulang', paintPanel);
+        panel.addEventListener('click', e => {
+            if (e.target.closest('.mg-tab')) { panel.classList.contains('open') ? closePanel() : openPanel(); return; }
+            const lb = e.target.closest('.mg-plang');
+            if (lb) { window.MenuI18n?.setLang(lb.dataset.lang); openPanel(); return; }
+            if (e.target.closest('.mg-phelp')) { closePanel(); if (last) show(last.kind, { ...last, force: true }); }
+        });
+        // Tocar fuera lo esconde
+        document.addEventListener('click', e => { if (panel.classList.contains('open') && !panel.contains(e.target)) closePanel(); });
+        peekOnce();
+    }
+    // Al entrar: con el menú dibujado y la guía cerrada, se asoma el panel y se vuelve a esconder
+    async function peekOnce() {
+        if (peeked) return;
+        peeked = true;
+        for (let i = 0; i < 40 && !document.querySelector('#menu-container .menu-section'); i++) await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 1200));
+        await whenClosed();
+        await new Promise(r => setTimeout(r, 500));
+        if (document.querySelector('.mg-backdrop')) await whenClosed();
+        openPanel(3500);
     }
 
     // Para no tapar la demostración del acordeón: espera a que se cierre la guía

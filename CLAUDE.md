@@ -40,7 +40,8 @@ Js/pedidos.js       Lógica de pedidos.html (impresión desde navegador, QR, Web
 Js/table-ordering.js Carrito del comensal en menu.html (se activa con ?mesa=)
 Js/menu-i18n.js     Idioma del menú público (es/en/de/fr): textos fijos con diccionario (t), textos del
                     restaurante traducidos solos por la function translateMenu (Cloud Translation) (tc).
-                    Se elige en la guía de bienvenida; botón sutil arriba a la derecha para volver a abrirla
+                    Se elige en la guía de bienvenida o en el panel retráctil del borde derecho (#mgPanel: se asoma
+                    al entrar y se esconde solo; idiomas + "?" para volver a ver la guía)
 nfc.html + Js/nfc.js Grabar stickers NFC desde el celular (QR desde Pedidos → Mesas; sin login). Web NFC:
                     graba con overwrite:false y, si ya tiene algo, lo muestra y pregunta; bloqueo permanente opcional;
                     la clave (NTAG PWD) solo con la app NFC Tools. Siempre libera el NFC (si no, Android no lee otros tags)
