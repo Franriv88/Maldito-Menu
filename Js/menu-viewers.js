@@ -179,7 +179,22 @@ window.MenuGuide = (() => {
         panel.className = 'mg-panel';
         panel.innerHTML = `<button type="button" class="mg-tab" aria-expanded="false" aria-controls="mgPanelBody"></button>
             <div class="mg-panel-body" id="mgPanelBody"></div>`;
-        document.body.appendChild(panel);
+        // Va dentro del menú, a la altura del logo: se desplaza con el encabezado y no tapa títulos ni botones
+        const wrapper = document.querySelector('.page-wrapper');
+        const header  = document.getElementById('restaurant-header');
+        (wrapper || document.body).appendChild(panel);
+        const place = () => {
+            if (!wrapper || !header) return;
+            const wr = wrapper.getBoundingClientRect(), hr = header.getBoundingClientRect();
+            const logo = header.querySelector('img, h1');
+            const ref = logo && logo.getBoundingClientRect().height ? logo.getBoundingClientRect() : hr;
+            panel.style.top = `${Math.max(8, ref.top - wr.top + ref.height / 2 - 23)}px`;
+        };
+        place();
+        if (header && 'ResizeObserver' in window) new ResizeObserver(place).observe(header);
+        new MutationObserver(place).observe(header || document.body, { childList: true, subtree: true });
+        window.addEventListener('resize', place);
+        document.addEventListener('load', e => { if (e.target.tagName === 'IMG' && header?.contains(e.target)) place(); }, true);
         paintPanel();
         document.addEventListener('menulang', paintPanel);
         panel.addEventListener('click', e => {

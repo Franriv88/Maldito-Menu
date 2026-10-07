@@ -688,10 +688,11 @@ body.ordering-closed .to-banner { text-align: center; line-height: 1.45; padding
 .mg-langs.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 340px) { .mg-langs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* Panel retráctil de idioma / ayuda en el borde derecho (cerrado solo asoma la pestaña) */
-.mg-panel {
-    position: fixed; right: 0; top: 38%; z-index: 80;
-    display: flex; align-items: center;
+/* Panel retráctil de idioma / ayuda en el borde derecho del menú, a la altura del logo (lo ubica JS);
+   cerrado solo asoma la pestaña. Se desplaza con la página: nunca queda encima de los productos. */
+.mg-panel, .page-wrapper > .mg-panel {
+    position: absolute; right: 0; top: 24px; z-index: 6;
+    display: flex; align-items: flex-start;
     transform: translateX(calc(100% - 22px)); transition: transform .4s cubic-bezier(.4,0,.2,1);
     font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
