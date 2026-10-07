@@ -810,6 +810,9 @@ exports.mpWebhook = onRequest(
             res.status(200).send("OK");
         } catch (err) {
             console.error("MP webhook error:", err.response?.data || err.message);
+            // Un recurso que MP no encuentra (ej. "Simular notificación" con un id inventado) no se arregla
+            // reintentando: se responde 200. Cualquier otro error → 500 y MP reintenta.
+            if (err.response?.status === 404) { res.status(200).send("OK (no encontrado)"); return; }
             res.status(500).send("Error"); // MP reintenta
         }
     }
