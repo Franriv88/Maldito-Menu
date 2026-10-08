@@ -1221,7 +1221,7 @@ body.preview-mode .admin-page .drop-zone, body.preview-mode .drop-zone { cursor:
 
 /* Aviso: el zoom supera la resolución real de la imagen */
 .img-res-warning {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 11;
+    position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 11;   /* debajo de la barra de la sección (flechas, Diseño, eliminar) */
     display: inline-flex; align-items: center; gap: 5px; max-width: 90%;
     padding: 4px 10px; border-radius: 999px; pointer-events: none;
     background: rgba(230,170,40,.92); color: #1a1205; font-size: .66rem; font-weight: 600; line-height: 1.25;
