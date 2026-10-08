@@ -1188,10 +1188,11 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
     try {
         overlaySpan.textContent = 'Procesando…';
         const isPng = fileToProcess.type === 'image/png';
-        let url = null;
+        let url = null, storageErr = null;
         try {
             url = await uploadSectionImage(fileToProcess, imgKey, isPng);
         } catch (stErr) {
+            storageErr = stErr;
             console.warn('Storage falló, se guarda en baja resolución:', stErr);
         }
         if (!url) {
@@ -1211,6 +1212,13 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
         deleteOldSectionImage(prev, url);
         // ya hay una imagen propia: se le puede quitar el fondo o eliminarla
         zone.querySelectorAll('.img-removebg-btn, .img-delete-btn').forEach(b => { b.hidden = false; });
+        // Si no se pudo usar Storage, avisarlo (antes pasaba en silencio y no se sabía por qué)
+        if (storageErr || window.storageUnavailable) {
+            const why = storageErr ? (storageErr.code || storageErr.message || 'error') : 'Storage no respondió antes en esta sesión';
+            const msg = `La imagen se guardó en calidad reducida porque no se pudo subir en alta calidad (${why}).`;
+            if (window.Swal) Swal.fire({ toast: true, position: 'bottom-end', icon: 'warning', title: msg, timer: 9000, showConfirmButton: false });
+            else alert(msg);
+        }
 
     } catch (error) {
         console.error('Error al procesar imagen:', error);
