@@ -382,8 +382,9 @@
             <label class="to-field">${T('Otras aclaraciones (opcional)')}
                 <textarea id="toNote" maxlength="300" rows="2" placeholder="${T('Ej: leche de almendras, la carne bien cocida…')}"></textarea>
             </label>
-            <label class="to-field">${T('Tu nombre')}
-                <input id="toName" maxlength="60" required autocomplete="given-name" placeholder="${T('¿A nombre de quién?')}" value="${esc(load(localStorage, NAME_KEY, '') || (isCat() ? table.label : ''))}">
+            <label class="to-field">${isCat() ? T('¿A nombre de quién? (podés cambiarlo)') : T('Tu nombre')}
+                <input id="toName" maxlength="60" ${isCat() ? '' : 'required'} autocomplete="given-name"
+                    placeholder="${isCat() ? esc(table.label) : T('¿A nombre de quién?')}" value="${esc(load(localStorage, NAME_KEY, '') || (isCat() ? table.label : ''))}">
             </label>
             ${hidePrices ? '' : `<div class="to-total"><span>${T('Total')}</span><b>${money(cartTotal())}</b></div>`}
             ${isCat() ? '' : `<p class="to-hint">${T('Pagás al final, en el local.')}</p>`}
@@ -426,6 +427,9 @@
         const errEl = el.querySelector('#toError');
         errEl.textContent = '';
         const nameInput = el.querySelector('#toName');
+        // Catering: el link es de un cliente (ej. una oficina) y puede pedir cualquiera de ahí;
+        // si dejan el nombre vacío, el pedido sale a nombre del cliente. En restaurante es obligatorio.
+        if (!nameInput.value.trim() && isCat()) nameInput.value = table.label;
         if (!nameInput.value.trim()) {
             errEl.textContent = T('Escribí tu nombre para enviar el pedido.');
             nameInput.classList.add('to-invalid');

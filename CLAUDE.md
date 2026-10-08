@@ -285,7 +285,8 @@ Los inputs hardcodeados con `background: #111` necesitan override `body.light` p
 - **Catering** (`businessType: 'catering'`): las mesas son clientes ("Pedido de Marcela"), sin verificación de
   presencia; los pedidos llevan `kind: 'catering'`. **Límite y pausa** valen para ambos tipos y los aplica placeOrder
   en la transacción (los rechazados no cuentan); `{hasta}` en el mensaje = fecha de reapertura.
-- Nombre del comensal obligatorio (cliente y placeOrder).
+- Nombre del comensal obligatorio (cliente y placeOrder). En **restaurante** el campo arranca vacío; en **catering** arranca con el
+  nombre del cliente ("¿A nombre de quién? (podés cambiarlo)") y si lo dejan vacío se envía el del cliente. Se recuerda el último usado.
 
 - URL de mesa: `menu.html?r={id}&mesa={tableId}` (mismo link en QR y sticker NFC)
 - `placeOrder` valida plan del dueño, mesa, precios desde Firestore y límite por mesa
