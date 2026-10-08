@@ -7,6 +7,13 @@ service firebase.storage {
              request.auth.token.email == 'frivasv2388@gmail.com';
     }
 
+    // El superadmin solo con el código de soporte vigente que le dio el dueño (igual que firestore.rules)
+    function supportActive(restaurantId) {
+      let g = /databases/(default)/documents/supportGrants/$(restaurantId);
+      return isSuperAdmin() && firestore.exists(g)
+             && firestore.get(g).data.active == true && firestore.get(g).data.expiresAt > request.time;
+    }
+
     // Dueño del restaurante según Firestore (reglas cross-service)
     function isOwner(restaurantId) {
       return request.auth != null &&
@@ -16,11 +23,11 @@ service firebase.storage {
     // Logos, favicons e imágenes de sección: restaurants/{id}/{archivo}
     match /restaurants/{restaurantId}/{fileName} {
       allow read;
-      // Solo el dueño (o el superadmin), solo imágenes y como máximo 10 MB
-      allow create, update: if (isOwner(restaurantId) || isSuperAdmin())
+      // Solo el dueño (o el superadmin con código de soporte), solo imágenes y como máximo 10 MB
+      allow create, update: if (isOwner(restaurantId) || supportActive(restaurantId))
                             && request.resource.size < 10 * 1024 * 1024
                             && request.resource.contentType.matches('image/.*');
-      allow delete: if isOwner(restaurantId) || isSuperAdmin();
+      allow delete: if isOwner(restaurantId) || supportActive(restaurantId);
     }
   }
 }

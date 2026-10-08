@@ -1281,7 +1281,7 @@ async function uploadSectionImage(file, imgKey, keepAlpha) {
     const ext = blob.type.split('/')[1].replace('jpeg', 'jpg');
 
     // Si Storage no responde (ej. el bucket no está activado), el SDK reintenta hasta 10 min
-    // y la subida queda "Procesando…". Se corta a los 15 s y se usa el guardado alternativo;
+    // y la subida queda "Procesando…". Se corta a los 45 s y se usa el guardado alternativo;
     // tras un fallo no se reintenta Storage en esta sesión.
     if (window.storageUnavailable) return null;
     const ref  = storage.ref(`restaurants/${restaurantId}/section-${imgKey}-${Date.now()}.${ext}`);
@@ -1300,7 +1300,7 @@ async function uploadSectionImage(file, imgKey, keepAlpha) {
     }
     return ref.getDownloadURL();
 }
-const STORAGE_TIMEOUT_MS = 15000;
+const STORAGE_TIMEOUT_MS = 45000;   // fotos grandes desde un celular con poca señal
 
 // Borra del Storage la imagen anterior de la sección (solo si era nuestra)
 function deleteOldSectionImage(prevUrl, newUrl) {
