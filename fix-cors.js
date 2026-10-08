@@ -1,4 +1,4 @@
-// fix-cors.js — configura CORS via Firebase Storage Management API v1beta
+// fix-cors.js — aplica cors.json al bucket de Storage (Cloud Storage JSON API)
 // Uso: node fix-cors.js
 
 const https = require('https');
@@ -50,35 +50,12 @@ function req(hostname, urlPath, method, token, body) {
     if (!token) { console.error('Error obteniendo token:', tokenRes); process.exit(1); }
     console.log('Token OK.\n');
 
-    // 3. Probar Firebase Storage Management API v1beta
-    console.log('Buscando buckets via Firebase Storage API...');
-    const listRes = await req('firebasestorage.googleapis.com', `/v1beta/projects/${PROJECT_ID}/buckets`, 'GET', token);
-    console.log(`  Status: ${listRes.status}`);
-
-    let parsed;
-    try { parsed = JSON.parse(listRes.body); } catch { console.log('  Respuesta:', listRes.body.slice(0, 300)); }
-
-    if (listRes.status === 200 && parsed) {
-        console.log('  Buckets:', JSON.stringify(parsed, null, 2));
-    } else {
-        console.log('  Respuesta:', listRes.body.slice(0, 500));
-    }
-
-    // 4. Probar GET del bucket específico
-    console.log(`\nObteniendo info del bucket ${BUCKET_NAME}...`);
-    const bucketRes = await req('firebasestorage.googleapis.com', `/v1beta/projects/${PROJECT_ID}/buckets/${encodeURIComponent(BUCKET_NAME)}`, 'GET', token);
-    console.log(`  Status: ${bucketRes.status}`);
-    console.log('  Respuesta:', bucketRes.body.slice(0, 500));
-
-    // 5. Intentar PATCH con CORS via Cloud Storage API directo (con el token que tenemos)
-    console.log('\nIntentando PATCH Cloud Storage API directamente...');
-    const corsRes = await req(
-        'storage.googleapis.com',
-        `/storage/v1/b/${encodeURIComponent(BUCKET_NAME)}?fields=cors`,
-        'PATCH',
-        token,
-        { cors: [{ origin: ['*'], method: ['GET','PUT','POST','DELETE','HEAD'], responseHeader: ['Content-Type','Access-Control-Allow-Origin'], maxAgeSeconds: 3600 }] }
-    );
-    console.log(`  Status: ${corsRes.status}`);
-    console.log('  Respuesta:', corsRes.body.slice(0, 300));
+    // 3. Aplicar cors.json al bucket (Cloud Storage JSON API) y mostrar cómo quedó.
+    //    Permite que cubierto.menu LEA las imágenes de Storage con fetch (ej. "Quitar fondo"
+    //    sobre una imagen ya cargada). Las subidas usan la API de Firebase y no dependen de esto.
+    const cors = JSON.parse(fs.readFileSync(path.join(__dirname, 'cors.json'), 'utf8'));
+    const corsRes = await req('storage.googleapis.com', `/storage/v1/b/${encodeURIComponent(BUCKET_NAME)}?fields=cors`, 'PATCH', token, { cors });
+    console.log(`PATCH CORS → ${corsRes.status}`);
+    console.log(corsRes.body.slice(0, 600));
+    if (corsRes.status !== 200) process.exit(1);
 })();

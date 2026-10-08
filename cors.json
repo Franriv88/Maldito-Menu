@@ -1,8 +1,14 @@
 [
   {
-    "origin": ["*"],
-    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "origin": [
+      "https://cubierto.menu",
+      "https://www.cubierto.menu",
+      "https://maldito-cafe.web.app",
+      "https://maldito-cafe.firebaseapp.com",
+      "http://localhost:5000"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type"],
     "maxAgeSeconds": 3600
   }
 ]
