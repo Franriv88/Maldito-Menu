@@ -11,7 +11,7 @@ Guía de referencia rápida para Claude Code. Leer esto antes de explorar archiv
 | Frontend | HTML + JS vanilla (sin bundler) |
 | Auth | Firebase Auth (Google Sign-In) |
 | DB | Firestore (multi-tenant) |
-| Storage | Firebase Storage `maldito-cafe.firebasestorage.app` (US-EAST1, gratis): imágenes de sección, logos, favicons. Reglas en storage.rules (dueño o superadmin con código de soporte; cross-service a Firestore: la cuenta `service-471022150149@gcp-sa-firebasestorage.iam.gserviceaccount.com` necesita el rol **Firebase Rules Firestore Service Agent**, si falta → storage/unauthorized) |
+| Storage | Firebase Storage `maldito-cafe.firebasestorage.app` (US-EAST1, gratis): imágenes de sección, logos, favicons. Reglas en storage.rules (dueño o superadmin con código de soporte; cross-service a Firestore: la cuenta `service-471022150149@gcp-sa-firebasestorage.iam.gserviceaccount.com` necesita el rol **Firebase Rules Firestore Service Agent**, si falta → storage/unauthorized). CORS del bucket (leer imágenes con fetch, ej. "Quitar fondo"): `cors.json`, se aplica con `node fix-cors.js` |
 | Hosting | Firebase Hosting → **`cubierto.menu`** (los dominios `maldito-cafe.*` redirigen por JS; no mostrar "Maldito" en nada visible) |
 | Pagos | Mercado Pago (redirect + webhook client-side) |
 | Íconos | **Lucide Icons v0.309.0** via jsDelivr CDN |
