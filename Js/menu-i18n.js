@@ -91,7 +91,6 @@ window.MenuI18n = (() => {
         'Ej: leche de almendras, la carne bien cocida…': ['E.g. almond milk, meat well done…', 'Z. B. Mandelmilch, Fleisch durchgebraten…', 'Ex. : lait d’amande, viande bien cuite…'],
         'Tu nombre': ['Your name', 'Ihr Name', 'Votre nom'],
         '¿A nombre de quién?': ['Who is the order for?', 'Auf welchen Namen?', 'Au nom de qui ?'],
-        '¿A nombre de quién? (podés cambiarlo)': ['Who is the order for? (you can change it)', 'Auf welchen Namen? (änderbar)', 'Au nom de qui ? (modifiable)'],
         'Total': ['Total', 'Gesamt', 'Total'],
         'Pagás al final, en el local.': ['You pay at the end, at the venue.', 'Sie bezahlen am Ende vor Ort.', 'Vous payez à la fin, sur place.'],
         'Enviar pedido': ['Send order', 'Bestellung senden', 'Envoyer la commande'],
