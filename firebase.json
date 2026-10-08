@@ -16,8 +16,6 @@
       "storage.rules",
       "cors.json",
       "fix-cors.js",
-      "design-system.html",
-      "design-system.png",
       "firestore.indexes.json"
     ],
     "rewrites": [
