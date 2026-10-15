@@ -887,6 +887,29 @@ body.light .btn-remove-asset { color: #c0392b; border-color: rgba(192,57,43,.3);
 
 /* superadmin specific */
 body.light .sa-stat { background: #fff; border-color: rgba(100,80,50,.12); }
+/* Planes en modo claro: tarjetas blancas; el recomendado se distingue con borde dorado, un tinte cálido y sombra suave */
+body.light .sa-plan-card { background: #fff; border-color: rgba(100,80,50,.16); box-shadow: 0 1px 3px rgba(60,42,20,.05); }
+body.light .sa-plan-card.sa-plan-recommended { background: linear-gradient(180deg, #fbf5ea 0%, #fff 55%); border: 1.5px solid #b8935a;
+    box-shadow: 0 8px 22px rgba(107,81,53,.14); }
+body.light .sa-plan-rec-badge { background: #6b5135; color: #fff; }
+body.light .sa-plan-name { color: #6b5135; }
+body.light .sa-plan-price { color: #2a1f14; }
+body.light .sa-plan-price span { color: rgba(60,42,20,.5); }
+body.light .sa-plan-row { color: rgba(60,42,20,.68); }
+body.light .sa-plan-off { color: #2e7d4f; }
+body.light .sa-plan-ben.on  { background: rgba(46,125,79,.09); color: #2e7d4f; border-color: rgba(46,125,79,.3); }
+body.light .sa-plan-ben.off { background: rgba(100,80,50,.04); color: rgba(60,42,20,.38); border-color: rgba(100,80,50,.12); }
+body.light .sa-periods-title { color: rgba(60,42,20,.5); }
+body.light .sa-period { border-color: rgba(100,80,50,.18); color: rgba(60,42,20,.75); background: #fff; }
+body.light .sa-period-input { background: #fff; border-color: rgba(100,80,50,.3); color: #2a1f14; }
+/* Botones con colores legibles sobre fondo claro */
+body.light .sa-btn-unblock { background: rgba(100,80,50,.07); border-color: rgba(100,80,50,.3); color: #6b5135; }
+body.light .sa-btn-unblock:hover { background: rgba(100,80,50,.14); }
+body.light .sa-btn-view { background: rgba(100,80,50,.05); border-color: rgba(100,80,50,.25); color: #6b5135; }
+body.light .sa-btn-paid { color: #2e7d4f; border-color: rgba(46,125,79,.4); background: rgba(46,125,79,.08); }
+body.light .sa-btn-unpaid { color: #a0601c; border-color: rgba(160,96,28,.4); }
+body.light .sa-btn-block, body.light .sa-btn-delete { color: #b3261e; border-color: rgba(179,38,30,.35); background: rgba(179,38,30,.06); }
+body.light .sa-btn-delete:hover, body.light .sa-btn-block:hover { background: rgba(179,38,30,.12); color: #b3261e; }
 body.light .sa-stat-num { color: #6b5135; }
 body.light .sa-stat-label { color: rgba(60,42,20,.45); }
 body.light .sa-chart-card { background: #fff; border-color: rgba(100,80,50,.12); }
