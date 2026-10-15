@@ -135,7 +135,8 @@ users/{uid}/
                      limits: { enabled, max, period: 'day'|'week'|'hours', hours, message }, pause: { until, message },
                      capacityFullUntil (lo escribe placeOrder al llenarse),
                      geo: {enabled, lat, lng, radius},
-                     tables: [{id, label}], printMode: 'browser'|'epson'|'star'|'none', paperWidth }
+                     tables: [{id, label}], printMode: 'browser'|'epson'|'star'|'none', paperWidth,
+                     stickerNfcLogo (bool: los stickers impresos llevan el logo de NFC; solo restaurante) }
   mesas/{tableId}:  { open, openedAt, lastActivityAt, openedBy }  ← "mesa abierta" (vence a las 6 h sin actividad)
   private/ordering: { printerKey, webhookUrl, webhookSecret, counter, counterDay, rate, knownIps }  ← solo dueño
   pedidos/{id}:     { number, mesaId, mesaLabel, items, total, note, customerName,

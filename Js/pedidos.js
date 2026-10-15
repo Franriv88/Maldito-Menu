@@ -127,6 +127,8 @@ auth.onAuthStateChanged(async user => {
         renderTables();
         renderTableStrip();
         fillSettings();
+        const nfcLogo = document.getElementById('stickerNfcLogo');
+        if (nfcLogo) nfcLogo.checked = !!orderingCfg.stickerNfcLogo;
         processPrintQueue();
     });
     restRef().collection('mesas').onSnapshot(snap => {
@@ -527,6 +529,11 @@ function initTablesTab() {
         if (n > 0) addTables(Math.min(n, 100));
     });
     document.getElementById('printStickersBtn').addEventListener('click', () => printStickers(orderingCfg.tables || []));
+    // Logo de NFC en los stickers impresos (config/ordering.stickerNfcLogo; se guarda al tocarlo)
+    document.getElementById('stickerNfcLogo').addEventListener('change', async e => {
+        await restRef().collection('config').doc('ordering').set({ stickerNfcLogo: e.target.checked }, { merge: true });
+        toastMsg(e.target.checked ? 'Los stickers van a llevar el logo de NFC' : 'Los stickers van sin logo de NFC');
+    });
     document.getElementById('tablesGrid').addEventListener('click', onTableClick);
     document.getElementById('tablesGrid').addEventListener('change', onTableRename);
     // Enter confirma el nombre (dispara el guardado al salir del campo)
@@ -634,6 +641,12 @@ async function onTableRename(e) {
 
 function printStickers(tables) {
     if (!tables.length) { toastMsg(isCatering() ? 'No hay clientes para imprimir' : 'No hay mesas para imprimir', 'info'); return; }
+    // Logo de NFC solo si el restaurante lo eligió (en catering no se usa)
+    const withNfc = !isCatering() && !!orderingCfg.stickerNfcLogo;
+    const nfcMark = withNfc ? `<div class="nfc">${licon('nfc', 22)}<span>NFC</span></div>` : '';
+    const hint = isCatering() ? 'Escaneá el QR<br>para hacer tu pedido'
+        : withNfc ? 'Escaneá el QR o acercá tu celular<br>al logo para ver el menú y pedir'
+        : 'Escaneá el QR<br>para ver el menú y pedir';
     const w = window.open('', '_blank');
     if (!w) { toastMsg('Permití las ventanas emergentes para imprimir', 'warning'); return; }
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Stickers · ${esc(restName)}</title><style>
@@ -645,10 +658,14 @@ function printStickers(tables) {
         .mesa { font-size: 20pt; font-weight: 800; margin: 2mm 0 1mm; }
         .hint { font-size: 9pt; color: #444; line-height: 1.35; }
         .rest { font-size: 8pt; color: #888; margin-top: 2mm; letter-spacing: .5px; text-transform: uppercase; }
+        .nfc { display: inline-flex; align-items: center; gap: 1.5mm; margin: 1mm 0 1.5mm; padding: 1mm 3mm; border: 0.4mm solid #111; border-radius: 3mm;
+               font-size: 9pt; font-weight: 800; letter-spacing: 1px; color: #111; }
+        .nfc svg { width: 6mm; height: 6mm; }
     </style></head><body><div class="grid">
         ${tables.map(t => `<div class="st">${qrSvg(tableUrl(t.id))}
             <div class="mesa">${esc(t.label)}</div>
-            <div class="hint">${isCatering() ? 'Escaneá el QR<br>para hacer tu pedido' : 'Escaneá el QR o acercá tu celular<br>para ver el menú y pedir'}</div>
+            ${nfcMark}
+            <div class="hint">${hint}</div>
             <div class="rest">${esc(restName)}</div></div>`).join('')}
     </div><script>window.onload = () => setTimeout(() => window.print(), 300);<\/script></body></html>`);
     w.document.close();

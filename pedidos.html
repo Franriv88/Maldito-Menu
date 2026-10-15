@@ -268,6 +268,11 @@
                 <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
                 <button class="pd-btn" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos los stickers</button>
             </div>
+            <div class="pd-only-restaurant" style="margin-top:14px">
+                <label class="pd-switch"><input type="checkbox" id="stickerNfcLogo"> <span>Incluir el logo de NFC en los stickers impresos</span></label>
+                <p class="pd-help">Activalo si en cada mesa vas a pegar también un sticker NFC: el logo le indica al comensal que puede acercar el celular.
+                    Si no usás NFC, dejalo apagado y el sticker solo pide escanear el QR.</p>
+            </div>
         </div>
         <div class="pd-section pd-nfc-phone" id="nfcPhoneCard">
             <div class="pd-nfc-qr" id="nfcPhoneQr"></div>
@@ -424,7 +429,7 @@
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/support-access.js?v=1"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=11"></script>
+    <script src="./Js/pedidos.js?v=12"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>
