@@ -567,8 +567,9 @@ async function addTables(n) {
     await saveTables(tables);
 }
 
-function qrSvg(text) {
-    const qr = qrcode(0, 'M');
+// level: corrección de errores del QR. 'H' (30%) cuando se le superpone un logo en el centro
+function qrSvg(text, level = 'M') {
+    const qr = qrcode(0, level);
     qr.addData(text);
     qr.make();
     return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
@@ -643,9 +644,13 @@ function printStickers(tables) {
     if (!tables.length) { toastMsg(isCatering() ? 'No hay clientes para imprimir' : 'No hay mesas para imprimir', 'info'); return; }
     // Logo de NFC solo si el restaurante lo eligió (en catering no se usa)
     const withNfc = !isCatering() && !!orderingCfg.stickerNfcLogo;
-    const nfcMark = withNfc ? `<div class="nfc">${licon('nfc', 22)}<span>NFC</span></div>` : '';
+    // El logo va en el centro del QR: con corrección 'H' el código se lee aunque una parte esté tapada
+    // (el logo ocupa menos del 10% del área; 'H' tolera hasta 30%)
+    const qrBlock = url => withNfc
+        ? `<div class="qr">${qrSvg(url, 'H')}<div class="qrlogo">${licon('nfc', 22)}<b>NFC</b></div></div>`
+        : `<div class="qr">${qrSvg(url)}</div>`;
     const hint = isCatering() ? 'Escaneá el QR<br>para hacer tu pedido'
-        : withNfc ? 'Escaneá el QR o acercá tu celular<br>al logo para ver el menú y pedir'
+        : withNfc ? 'Escaneá o acercá tu celular<br>para ver el menú y pedir'
         : 'Escaneá el QR<br>para ver el menú y pedir';
     const w = window.open('', '_blank');
     if (!w) { toastMsg('Permití las ventanas emergentes para imprimir', 'warning'); return; }
@@ -654,17 +659,19 @@ function printStickers(tables) {
         body { margin: 0; font-family: system-ui, sans-serif; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
         .st { border: 1px dashed #bbb; border-radius: 4mm; padding: 5mm; text-align: center; break-inside: avoid; }
-        .st svg { width: 42mm; height: 42mm; }
+        .qr { position: relative; width: 42mm; height: 42mm; margin: 0 auto; }
+        .qr > svg { width: 100%; height: 100%; display: block; }
+        .qrlogo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 11mm; height: 11mm;
+                  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3mm;
+                  background: #fff; border-radius: 2.2mm; box-shadow: 0 0 0 0.8mm #fff; color: #111; }
+        .qrlogo svg { width: 6mm; height: 6mm; }
+        .qrlogo b { font-size: 5.5pt; letter-spacing: .6px; line-height: 1; }
         .mesa { font-size: 20pt; font-weight: 800; margin: 2mm 0 1mm; }
         .hint { font-size: 9pt; color: #444; line-height: 1.35; }
         .rest { font-size: 8pt; color: #888; margin-top: 2mm; letter-spacing: .5px; text-transform: uppercase; }
-        .nfc { display: inline-flex; align-items: center; gap: 1.5mm; margin: 1mm 0 1.5mm; padding: 1mm 3mm; border: 0.4mm solid #111; border-radius: 3mm;
-               font-size: 9pt; font-weight: 800; letter-spacing: 1px; color: #111; }
-        .nfc svg { width: 6mm; height: 6mm; }
     </style></head><body><div class="grid">
-        ${tables.map(t => `<div class="st">${qrSvg(tableUrl(t.id))}
+        ${tables.map(t => `<div class="st">${qrBlock(tableUrl(t.id))}
             <div class="mesa">${esc(t.label)}</div>
-            ${nfcMark}
             <div class="hint">${hint}</div>
             <div class="rest">${esc(restName)}</div></div>`).join('')}
     </div><script>window.onload = () => setTimeout(() => window.print(), 300);<\/script></body></html>`);
