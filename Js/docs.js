@@ -29,19 +29,29 @@
         const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         const items = [...document.querySelectorAll('.faq details')];
         const empty = document.getElementById('faqEmpty');
+        // Busca cada palabra por separado (en cualquier orden): "cambiar plan" encuentra "cambio de plan".
+        // Las palabras se comparan por su comienzo (cambi… = cambiar, cambio) y se ignoran las muy comunes.
+        const STOP = new Set(['de', 'del', 'el', 'la', 'los', 'las', 'un', 'una', 'mi', 'mis', 'como', 'que', 'en', 'y', 'o', 'a', 'al', 'para', 'por', 'con', 'se', 'me', 'es', 'lo']);
+        const words = q => norm(q).split(/[^a-z0-9ñ]+/).filter(w => w.length > 1 && !STOP.has(w)).map(w => w.length > 5 ? w.slice(0, 5) : w);
         search.addEventListener('input', () => {
-            const q = norm(search.value.trim());
+            const ws = words(search.value);
             let shown = 0;
             items.forEach(d => {
-                const hit = !q || norm(d.textContent + ' ' + (d.dataset.k || '')).includes(q);
+                const all = norm(d.textContent + ' ' + (d.dataset.k || ''));
+                const hit = !ws.length || ws.every(w => all.includes(w));
                 d.hidden = !hit;
                 if (hit) shown++;
-                if (q && hit) d.open = norm(d.querySelector('summary').textContent + ' ' + (d.dataset.k || '')).includes(q) || d.open;
+                const title = norm(d.querySelector('summary').textContent + ' ' + (d.dataset.k || ''));
+                if (ws.length && hit) d.open = ws.every(w => title.includes(w)) || d.open;
             });
             document.querySelectorAll('.faq-group').forEach(g => { g.hidden = !g.querySelector('details:not([hidden])'); });
             if (empty) empty.hidden = shown > 0;
         });
     }
+    // Búsqueda que llega desde el panel (ayuda.html?q=cambiar plan)
+    const q0 = new URLSearchParams(location.search).get('q');
+    if (search && q0) { search.value = q0; search.dispatchEvent(new Event('input')); }
+
     // Link directo a una pregunta (ayuda.html#cambiar-plan): abrirla
     const openHash = () => {
         const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));

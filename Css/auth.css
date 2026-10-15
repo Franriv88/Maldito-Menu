@@ -123,8 +123,29 @@ body {
 }
 .login-legal { font-size: 0.7rem; line-height: 1.5; opacity: 0.55; margin: 0.6rem auto 0; max-width: 300px; }
 .login-legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.support-faq { display: block; margin-top: 12px; font-size: .8rem; text-align: center; color: #c8b89a; }
-body.light .support-faq { color: #6b5135; }
+/* Preguntas frecuentes destacadas en el modal de soporte (antes que el email) */
+.support-faq-card { display: block; margin: 0 0 16px; padding: 14px; border-radius: 12px;
+    background: linear-gradient(180deg, rgba(200,184,154,.14), rgba(200,184,154,.06)); border: 1px solid rgba(200,184,154,.45); }
+.sfc-head { display: flex; gap: 10px; align-items: flex-start; color: #ddd0bb; }
+.sfc-head svg { flex-shrink: 0; margin-top: 2px; color: #c8b89a; }
+.sfc-head b { display: block; font-size: .95rem; }
+.sfc-head small { display: block; margin-top: 2px; font-size: .76rem; line-height: 1.45; color: rgba(221,208,187,.7); }
+.sfc-search { display: flex; gap: 6px; margin-top: 12px; }
+.sfc-search input { flex: 1; min-width: 0; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(200,184,154,.35);
+    background: rgba(0,0,0,.25); color: #ede4d8; font: inherit; font-size: .84rem; }
+.sfc-search input:focus { outline: 2px solid rgba(200,184,154,.5); outline-offset: 0; }
+.sfc-search button { padding: 9px 14px; border-radius: 8px; border: none; cursor: pointer; background: #c8b89a; color: #161412; font: 700 .82rem inherit; }
+.sfc-search button:hover { background: #ddd0bb; }
+.sfc-all { display: inline-block; margin-top: 9px; font-size: .78rem; color: #c8b89a; text-decoration: underline; text-underline-offset: 3px; }
+.support-sub-contact { margin-top: 0; }
+body.light .support-faq-card { background: linear-gradient(180deg, #fbf5ea, #fffdf9); border-color: #c9a878; }
+body.light .sfc-head, body.light .sfc-head b { color: #3a2e22; }
+body.light .sfc-head svg { color: #6b5135; }
+body.light .sfc-head small { color: rgba(60,42,20,.65); }
+body.light .sfc-search input { background: #fff; border-color: rgba(100,80,50,.3); color: #2a1f14; }
+body.light .sfc-search button { background: #6b5135; color: #fff; }
+body.light .sfc-search button:hover { background: #5a432b; }
+body.light .sfc-all { color: #6b5135; }
 
 /* ── DASHBOARD ──────────────────────────────────────────────── */
 
