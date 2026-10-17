@@ -122,6 +122,12 @@ auth.onAuthStateChanged(async user => {
     initTablesTab();
     initSettingsTab();
 
+    // Instructivo: se abre solo la primera vez que el dueño entra a Pedidos; después, con el botón
+    if (typeof CubiertoGuide !== 'undefined') CubiertoGuide.setup({
+        id: 'pedidos', title: 'Cómo recibir pedidos', steps: () => GUIDE_STEPS.pedidos(shownCatering()), imgVersion: GUIDE_IMG_VERSION,
+        uid: user.uid, auto: restDoc.data().ownerId === user.uid, delay: 1500,
+    });
+
     restRef().collection('config').doc('ordering').onSnapshot(doc => {
         orderingCfg = doc.exists ? doc.data() : {};
         applyBizLabels(orderingCfg.businessType);

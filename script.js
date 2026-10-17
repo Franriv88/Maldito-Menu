@@ -311,6 +311,12 @@ auth.onAuthStateChanged(async user => {
 
         if (isReadonly && isSuperAdmin) enterPreviewMode(nombre, !isOwnerUser);
         else if (supportGrant?.active) enterSupportMode(nombre, supportGrant.expiresAt);
+
+        // Instructivo: se abre solo la primera vez que el dueño entra al editor; después, con el botón
+        if (typeof CubiertoGuide !== 'undefined') CubiertoGuide.setup({
+            id: 'editor', title: 'Cómo armar tu menú', steps: GUIDE_STEPS.editor, imgVersion: GUIDE_IMG_VERSION,
+            uid: user.uid, auto: isOwnerUser && !isReadonly,
+        });
     } catch (err) {
         console.error('Error verificando acceso:', err);
         document.getElementById('admin-menu-container').innerHTML = '<p style="color:red;padding:2rem">Error al cargar. Intentá de nuevo.</p>';
@@ -1667,6 +1673,11 @@ function renderSidebarSummaries() {
 }
 
 function initSidebarUX() {
+    // La barra lateral queda fija debajo de la barra superior (su alto cambia si se parte en dos líneas)
+    const topbar = document.querySelector('.admin-topbar');
+    const setTopbarH = () => document.documentElement.style.setProperty('--topbar-h', (topbar?.offsetHeight || 0) + 'px');
+    setTopbarH();
+    window.addEventListener('resize', setTopbarH);
     const aside = document.getElementById('adminSidebar');
     if (!aside || aside.dataset.uxReady) return;
     aside.dataset.uxReady = '1';

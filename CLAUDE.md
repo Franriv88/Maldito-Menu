@@ -50,6 +50,11 @@ terminos.html       Términos y condiciones · privacidad.html  Política de pri
                     ← estilos Css/docs.css; Js/docs.js completa el contacto desde appConfig/support.
                     Si cambia cómo funcionan planes, cobros, datos guardados o pedidos, actualizar estos textos.
                     Enlazados desde index (abajo a la derecha), login, checkout y el modal de soporte del dashboard
+Js/guide.js         Instructivo paso a paso (botón flotante «Instructivo» + ventana con pasos). Se abre solo la 1ª vez
+                    que el DUEÑO entra (localStorage + users/{uid}.guidesSeen.{editor|pedidos}); después, con el botón
+Js/guide-steps.js   Textos de cada paso (editor y pedidos; pedidos tiene variante catering). Las imágenes son capturas
+                    reales en img/guide/{id}-{n}[c]-{dark|light}.webp: si cambia la pantalla, actualizar texto y captura
+                    (y subir GUIDE_IMG_VERSION) · estilos en Css/guide.css
 functions/index.js  Cloud Functions: OTP, pagos MP, cupones, placeOrder, printerPoll
 ```
 
