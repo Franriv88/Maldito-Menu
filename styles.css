@@ -1434,3 +1434,54 @@ body.preview-mode .style-toggle { pointer-events: none; }
 
 /* Editor, Texto + Texto: el primer título sin margen arriba, alineado con el de la 2.ª columna */
 .admin-page .menu-section.mode-text-text .menu-content > .cat-block:first-child .input-category-title { margin-top: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   Barra lateral del editor: grupos plegables con resumen
+   ══════════════════════════════════════════════════════════ */
+.sb-group { border: 1px solid rgba(124,108,92,.22); border-radius: 12px; margin-bottom: 10px; background: rgba(255,255,255,.015); }
+.sb-group > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 12px; cursor: pointer; color: #ddd0bb; }
+.sb-group > summary::-webkit-details-marker { display: none; }
+.sb-group > summary > svg:first-child { flex-shrink: 0; color: #c8b89a; }
+.sb-group-title { flex: 1; min-width: 0; }
+.sb-group-title b { display: block; font-size: .86rem; font-weight: 600; letter-spacing: .2px; }
+.sb-group-title small { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px; font-size: .7rem; color: rgba(200,184,154,.55);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-chev { flex-shrink: 0; color: rgba(200,184,154,.5); transition: transform .2s; }
+.sb-group[open] > summary .sb-chev { transform: rotate(180deg); }
+.sb-group[open] > summary { border-bottom: 1px solid rgba(124,108,92,.18); }
+.sb-group > summary:hover .sb-group-title b { color: #c8b89a; }
+.sb-group-body { padding: 4px 12px 2px; }
+.sb-group-body > .sidebar-section:last-child { border-bottom: none; }
+.sb-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(200,184,154,.35); }
+.sb-warn { color: #e6aa28; }
+.sb-mode-panel[hidden] { display: none; }
+/* La vista previa del superadmin bloquea los controles, pero deja abrir y cerrar los grupos */
+body.preview-mode .sb-group > summary { pointer-events: auto; cursor: pointer; }
+
+/* Botón "Diseño" y panel lateral (solo cuando la barra no entra en pantalla) */
+.topbar-right .sb-open-btn, .sb-drawer-head { display: none; }
+.sb-backdrop[hidden] { display: none; }
+@media (max-width: 1080px) {
+    .topbar-right .sb-open-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 20px; cursor: pointer; font-size: .78rem;
+        background: rgba(200,184,154,.14); border: 1px solid rgba(200,184,154,.45); color: #ddd0bb; }
+    body.sb-drawer-open .admin-sidebar { display: block; position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw); z-index: 1000; background: #161412;
+        overflow-y: auto; padding: 0 16px 24px; box-shadow: -12px 0 40px rgba(0,0,0,.45); }
+    .sb-drawer-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 2; margin: 0 -16px 12px; padding: 14px 16px;
+        background: inherit; border-bottom: 1px solid rgba(124,108,92,.25); color: #ddd0bb; }
+    .sb-close { background: none; border: none; color: inherit; cursor: pointer; padding: 4px; display: inline-flex; }
+    .sb-backdrop { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,.45); }
+    body.sb-drawer-open { overflow: hidden; }
+}
+body.light .sb-group { border-color: rgba(100,80,50,.2); background: #fffdf9; }
+body.light .sb-group > summary { color: #3a2e22; }
+body.light .sb-group > summary > svg:first-child { color: #6b5135; }
+body.light .sb-group-title small { color: rgba(60,42,20,.55); }
+body.light .sb-chev { color: rgba(60,42,20,.45); }
+body.light .sb-group[open] > summary { border-bottom-color: rgba(100,80,50,.15); }
+body.light .sb-dot { border-color: rgba(60,42,20,.25); }
+body.light .sb-warn { color: #a0601c; }
+body.light .topbar-right .sb-open-btn { background: #fff; border-color: rgba(100,80,50,.35); color: #6b5135; }
+body.light.sb-drawer-open .admin-sidebar { background: #ebe3d7; }
+body.light .sb-group-body .sidebar-section { background: none; border: none; border-bottom: 1px solid rgba(100,80,50,.12); border-radius: 0; box-shadow: none; padding: 0 0 12px; margin-bottom: 12px; }
+body.light .sb-group-body .sidebar-section:last-child { border-bottom: none; padding-bottom: 0; }
+body.light .sb-drawer-head { color: #3a2e22; border-bottom-color: rgba(100,80,50,.2); }

@@ -17,9 +17,9 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="./Css/menu-styles.css?v=22">
+    <link rel="stylesheet" href="./Css/menu-styles.css?v=27">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=27">
     <style>
         /* topbar heredado de styles.css */
     </style>
@@ -34,6 +34,7 @@
         </div>
         <div class="topbar-right">
             <span id="topbarUserName"></span>
+            <button type="button" id="sbOpenBtn" class="sb-open-btn"><i data-lucide="palette" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Diseño</button>
             <a id="ordersLink" href="#"><i data-lucide="chef-hat" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Pedidos</a>
             <a id="viewMenuLink" href="#" target="_blank"><i data-lucide="eye" class="icon" style="width:13px;height:13px;stroke-width:1.75"></i> Ver menú</a>
             <button class="theme-btn" id="themeBtn"><i data-lucide="sun" style="width:15px;height:15px;stroke-width:1.75"></i></button>
@@ -58,186 +59,216 @@
             </main>
         </div>
 
-        <aside class="admin-sidebar">
-            <h3 class="sidebar-title">Diseño</h3>
-
-            <!-- Encabezado -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Encabezado del menú</label>
-                <div class="seg-control" id="headerModeCtrl">
-                    <button class="seg-btn active" data-value="text">Escribir título</button>
-                    <button class="seg-btn" data-value="logo">Usar logo</button>
-                </div>
+        <aside class="admin-sidebar" id="adminSidebar" aria-label="Diseño del menú">
+            <!-- En pantallas angostas la barra se abre como panel lateral (botón "Diseño" arriba) -->
+            <div class="sb-drawer-head">
+                <b>Diseño del menú</b>
+                <button type="button" class="sb-close" id="sbCloseBtn" aria-label="Cerrar"><i data-lucide="x" style="width:18px;height:18px"></i></button>
             </div>
 
-            <!-- Fuente de títulos (primero) y de cuerpo — opciones desde Js/fonts.js -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Fuente de títulos</label>
-                <select id="cfg-titleFontFamily" class="ctrl-select"></select>
-                <div class="title-style-row">
-                    <button type="button" class="style-toggle" id="cfg-titleBold" aria-pressed="true" title="Títulos en negrita"><b>N</b> Negrita</button>
-                    <button type="button" class="style-toggle" id="cfg-titleItalic" aria-pressed="false" title="Títulos en cursiva"><i>C</i> Cursiva</button>
-                </div>
-                <p class="ctrl-help">Los títulos pueden tener una tipografía distinta a la de los productos.</p>
-            </div>
-
-            <div class="sidebar-section">
-                <label class="ctrl-label">Fuente de cuerpo <span class="ctrl-help-inline">(productos y descripciones)</span></label>
-                <select id="cfg-fontFamily" class="ctrl-select"></select>
-                <p class="ctrl-help premium-fonts-note" hidden>Las tipografías marcadas con ✦ (caligráficas, pizarra y estilo asiático) están incluidas en los planes avanzados. <a href="./checkout.html">Ver planes</a></p>
-            </div>
-
-            <!-- Tamaños de fuente — horizontal -->
-            <div class="sidebar-section">
-                <div class="size-controls-row">
-                    <div class="size-ctrl">
-                        <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" class="ctrl-value">14px</span></label>
-                        <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
-                    </div>
-                    <div class="size-ctrl">
-                        <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" class="ctrl-value">20px</span></label>
-                        <input type="range" id="cfg-titleFontSize" min="14" max="42" value="20" class="ctrl-slider">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Colores — horizontal, hex editable primero -->
-            <div class="sidebar-section" style="padding-bottom:.2rem">
-                <label class="ctrl-label" style="margin-bottom:.4rem">Colores</label>
-                <div class="color-ctrl-row">
-                    <span class="ctrl-label-inline">Títulos</span>
-                    <input type="text" id="cfg-titleColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
-                    <input type="color" id="cfg-titleColor" class="ctrl-color" value="#7C6C5C">
-                </div>
-                <div class="color-ctrl-row">
-                    <span class="ctrl-label-inline">Productos</span>
-                    <input type="text" id="cfg-textColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
-                    <input type="color" id="cfg-textColor" class="ctrl-color" value="#7C6C5C">
-                </div>
-                <div class="color-ctrl-row" title="Se ve a los costados del menú cuando se abre en una computadora o tablet">
-                    <span class="ctrl-label-inline">Fondo página</span>
-                    <input type="text" id="cfg-bgPageHex" class="color-hex-input" value="#0e0e0e" maxlength="7">
-                    <input type="color" id="cfg-bgPage" class="ctrl-color" value="#0e0e0e">
-                </div>
-                <div class="color-ctrl-row">
-                    <span class="ctrl-label-inline">Fondo menú</span>
-                    <input type="text" id="cfg-bgMenuHex" class="color-hex-input" value="#1A1A1A" maxlength="7">
-                    <input type="color" id="cfg-bgMenu" class="ctrl-color" value="#1A1A1A">
-                </div>
-                <p class="ctrl-help"><b>Fondo página</b>: lo que se ve a los costados del menú cuando se abre en una computadora o una tablet (en el celular el menú ocupa toda la pantalla). <b>Fondo menú</b>: el fondo detrás de los productos.</p>
-            </div>
-
-            <!-- Imagen fondo página (feature-gated) -->
-            <!-- Precios -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Precios</label>
-                <label class="bg-remove-toggle">
-                    <input type="checkbox" id="cfg-hidePrices">
-                    <span>Publicar el menú sin precios</span>
-                </label>
-            </div>
-
-            <!-- Idiomas del menú (traducción automática) -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Idiomas del menú</label>
-                <label class="bg-remove-toggle"><input type="checkbox" checked disabled><span>Español (el que escribís)</span></label>
-                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="en"><span>Inglés</span></label>
-                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="de"><span>Alemán</span></label>
-                <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="fr"><span>Francés</span></label>
-                <p class="ctrl-help">Escribí el menú en español: se traduce solo a los idiomas que marques. Tus clientes eligen el idioma en la ventana de bienvenida del menú.</p>
-            </div>
-
-            <div class="sidebar-section feature-gated-section" id="pageBgSection">
-                <label class="ctrl-label">Fondo de página <span class="plan-lock-badge" id="pageBgBadge"></span></label>
-                <div class="bg-img-row">
-                    <div id="pageBgThumb" class="bg-img-thumb"></div>
-                    <button id="pageBgBtn" class="btn-bg-upload">Subir imagen</button>
-                    <button id="pageBgRemove" class="btn-bg-remove" style="display:none">×</button>
-                </div>
-                <input type="file" id="pageBgFile" accept="image/*" style="display:none">
-                <p class="ctrl-help">Una imagen para los costados del menú, que se ve en computadoras y tablets.</p>
-            </div>
-
-            <!-- Imagen fondo menú (feature-gated) -->
-            <div class="sidebar-section feature-gated-section" id="menuBgSection">
-                <label class="ctrl-label">Fondo del menú <span class="plan-lock-badge" id="menuBgBadge"></span></label>
-                <div class="bg-img-row">
-                    <div id="menuBgThumb" class="bg-img-thumb"></div>
-                    <button id="menuBgBtn" class="btn-bg-upload">Subir imagen</button>
-                    <button id="menuBgRemove" class="btn-bg-remove" style="display:none">×</button>
-                </div>
-                <input type="file" id="menuBgFile" accept="image/*" style="display:none">
-                <div id="menuBgExtras" style="display:none;margin-top:8px">
-                    <div class="ctrl-row" style="gap:6px;align-items:center">
-                        <span class="ctrl-label-inline" style="flex-shrink:0" title="Desenfoque">Desenfoque</span>
-                        <input type="range" id="menuBgBlur" min="0" max="20" value="0" class="ctrl-slider">
-                        <span id="menuBgBlurVal" style="font-size:.65rem;color:#c8b89a;width:22px;text-align:right;flex-shrink:0">0px</span>
-                    </div>
-                    <div class="ctrl-row" style="gap:6px;align-items:center;margin-top:5px">
-                        <span class="ctrl-label-inline" style="flex-shrink:0" title="Capa de color (overlay)">Capa de color</span>
-                        <input type="color" id="menuBgOverlayColor" class="ctrl-color" value="#000000">
-                        <input type="range" id="menuBgOverlayOpacity" min="0" max="100" value="0" class="ctrl-slider">
-                        <span id="menuBgOverlayVal" style="font-size:.65rem;color:#c8b89a;width:28px;text-align:right;flex-shrink:0">0%</span>
-                    </div>
-                    <p class="ctrl-help"><b>Desenfoque (blur)</b>: difumina la foto de fondo para que no compita con el texto.
-                        <b>Capa de color (overlay)</b>: un velo de color encima de la foto; subí su intensidad para oscurecerla (o aclararla) y que los productos se lean mejor. Lo ves en vivo a la izquierda.</p>
-                </div>
-            </div>
-
-            <!-- Logo -->
-            <div class="sidebar-section">
-                <label class="ctrl-label">Logo del restaurante</label>
-                <div class="mini-drop" id="logoDrop">
-                    <span id="logoDropText">Arrastrá o clic</span>
-                    <img id="logoPreview" style="display:none;max-width:100%;max-height:80px;margin-top:6px;border-radius:4px;">
-                </div>
-                <!-- Tamaño y opacidad del logo -->
-                <div class="size-controls-row" style="margin-top:6px">
-                    <div class="size-ctrl">
-                        <label class="ctrl-label">Tamaño <span id="cfg-logoSizeVal" class="ctrl-value">200px</span></label>
-                        <input type="range" id="cfg-logoSize" min="40" max="860" value="200" class="ctrl-slider">
-                    </div>
-                    <div class="size-ctrl">
-                        <label class="ctrl-label">Opacidad <span id="cfg-logoOpacityVal" class="ctrl-value">100%</span></label>
-                        <input type="range" id="cfg-logoOpacity" min="10" max="100" value="100" class="ctrl-slider">
+            <!-- ── 1. Encabezado ── -->
+            <details class="sb-group" data-group="header">
+                <summary><i data-lucide="heading" style="width:17px;height:17px"></i>
+                    <span class="sb-group-title"><b>Encabezado</b><small id="sbSumHeader"></small></span>
+                    <i data-lucide="chevron-down" class="sb-chev" style="width:16px;height:16px"></i></summary>
+                <div class="sb-group-body">
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Arriba del menú se muestra</label>
+                        <div class="seg-control" id="headerModeCtrl">
+                            <button class="seg-btn active" data-value="text">Un título</button>
+                            <button class="seg-btn" data-value="logo">Tu logo</button>
+                        </div>
+                        <!-- Título -->
+                        <div class="sb-mode-panel" data-mode="text">
+                            <label class="ctrl-label" for="cfg-restName" style="margin-top:12px">Título</label>
+                            <input type="text" id="cfg-restName" class="ctrl-input-text" maxlength="60" placeholder="Nombre de tu restaurante">
+                            <p class="ctrl-help">Es el nombre de tu restaurante: si lo cambiás acá, también cambia en tu panel.</p>
+                        </div>
+                        <!-- Logo -->
+                        <div class="sb-mode-panel" data-mode="logo">
+                            <div class="mini-drop" id="logoDrop" style="margin-top:12px">
+                                <span id="logoDropText">Arrastrá tu logo acá o hacé clic para elegirlo</span>
+                                <img id="logoPreview" style="display:none;max-width:100%;max-height:80px;margin-top:6px;border-radius:4px;">
+                            </div>
+                            <p class="ctrl-help">PNG con fondo transparente queda mejor. Si tiene fondo, probá «Quitar fondo».</p>
+                            <div class="size-controls-row" style="margin-top:6px">
+                                <div class="size-ctrl">
+                                    <label class="ctrl-label">Tamaño <span id="cfg-logoSizeVal" class="ctrl-value">200px</span></label>
+                                    <input type="range" id="cfg-logoSize" min="40" max="860" value="200" class="ctrl-slider">
+                                </div>
+                                <div class="size-ctrl">
+                                    <label class="ctrl-label">Opacidad <span id="cfg-logoOpacityVal" class="ctrl-value">100%</span></label>
+                                    <input type="range" id="cfg-logoOpacity" min="10" max="100" value="100" class="ctrl-slider">
+                                </div>
+                            </div>
+                            <button class="btn-remove-bg-now" id="logoRemoveBgNowBtn" style="display:none"><i data-lucide="sparkles" class="icon" style="width:12px;height:12px;stroke-width:1.75"></i> Quitar fondo</button>
+                            <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar logo</button>
+                        </div>
                     </div>
                 </div>
-                <button class="btn-remove-bg-now" id="logoRemoveBgNowBtn" style="display:none"><i data-lucide="sparkles" class="icon" style="width:12px;height:12px;stroke-width:1.75"></i> Quitar fondo</button>
-                <button class="btn-remove-asset" id="logoRemoveBtn" style="display:none"><i data-lucide="x" class="icon" style="width:12px;height:12px;stroke-width:2"></i> Quitar logo</button>
-            </div>
+            </details>
 
-            <!-- ── PIE DEL MENÚ ── -->
-            <hr class="sidebar-divider">
-            <h3 class="sidebar-title">Pie del menú</h3>
+            <!-- ── 2. Tipografías ── -->
+            <details class="sb-group" data-group="fonts">
+                <summary><i data-lucide="type" style="width:17px;height:17px"></i>
+                    <span class="sb-group-title"><b>Tipografías</b><small id="sbSumFonts"></small></span>
+                    <i data-lucide="chevron-down" class="sb-chev" style="width:16px;height:16px"></i></summary>
+                <div class="sb-group-body">
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Fuente de títulos</label>
+                        <select id="cfg-titleFontFamily" class="ctrl-select"></select>
+                        <div class="title-style-row">
+                            <button type="button" class="style-toggle" id="cfg-titleBold" aria-pressed="true" title="Títulos en negrita"><b>N</b> Negrita</button>
+                            <button type="button" class="style-toggle" id="cfg-titleItalic" aria-pressed="false" title="Títulos en cursiva"><i>C</i> Cursiva</button>
+                        </div>
+                        <p class="ctrl-help">Los títulos pueden tener una tipografía distinta a la de los productos.</p>
+                    </div>
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Fuente de cuerpo <span class="ctrl-help-inline">(productos y descripciones)</span></label>
+                        <select id="cfg-fontFamily" class="ctrl-select"></select>
+                        <p class="ctrl-help premium-fonts-note" hidden>Las tipografías marcadas con ✦ (caligráficas, pizarra y estilo asiático) están incluidas en los planes avanzados. <a href="./checkout.html">Ver planes</a></p>
+                    </div>
+                    <div class="sidebar-section">
+                        <div class="size-controls-row">
+                            <div class="size-ctrl">
+                                <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" class="ctrl-value">14px</span></label>
+                                <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
+                            </div>
+                            <div class="size-ctrl">
+                                <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" class="ctrl-value">20px</span></label>
+                                <input type="range" id="cfg-titleFontSize" min="14" max="42" value="20" class="ctrl-slider">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Cartel de la carta</label>
-                <label class="bg-remove-toggle">
-                    <input type="checkbox" id="cfg-showDisclaimer" checked>
-                    <span>Mostrar «Fuera de carta en pizarra»</span>
-                </label>
-            </div>
+            <!-- ── 3. Colores y fondos ── -->
+            <details class="sb-group" data-group="colors">
+                <summary><i data-lucide="palette" style="width:17px;height:17px"></i>
+                    <span class="sb-group-title"><b>Colores y fondos</b><small id="sbSumColors"></small></span>
+                    <i data-lucide="chevron-down" class="sb-chev" style="width:16px;height:16px"></i></summary>
+                <div class="sb-group-body">
+                    <div class="sidebar-section" style="padding-bottom:.2rem">
+                        <label class="ctrl-label" style="margin-bottom:.4rem">Colores</label>
+                        <div class="color-ctrl-row">
+                            <span class="ctrl-label-inline">Títulos</span>
+                            <input type="text" id="cfg-titleColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
+                            <input type="color" id="cfg-titleColor" class="ctrl-color" value="#7C6C5C">
+                        </div>
+                        <div class="color-ctrl-row">
+                            <span class="ctrl-label-inline">Productos</span>
+                            <input type="text" id="cfg-textColorHex" class="color-hex-input" value="#7C6C5C" maxlength="7">
+                            <input type="color" id="cfg-textColor" class="ctrl-color" value="#7C6C5C">
+                        </div>
+                        <div class="color-ctrl-row">
+                            <span class="ctrl-label-inline">Fondo del menú</span>
+                            <input type="text" id="cfg-bgMenuHex" class="color-hex-input" value="#1A1A1A" maxlength="7">
+                            <input type="color" id="cfg-bgMenu" class="ctrl-color" value="#1A1A1A">
+                        </div>
+                        <div class="color-ctrl-row" title="Se ve a los costados del menú cuando se abre en una computadora o tablet">
+                            <span class="ctrl-label-inline">Fondo de página</span>
+                            <input type="text" id="cfg-bgPageHex" class="color-hex-input" value="#0e0e0e" maxlength="7">
+                            <input type="color" id="cfg-bgPage" class="ctrl-color" value="#0e0e0e">
+                        </div>
+                        <p class="ctrl-help"><b>Fondo del menú</b>: detrás de los productos. <b>Fondo de página</b>: lo que se ve a los costados del menú en una computadora o tablet (en el celular el menú ocupa toda la pantalla).</p>
+                    </div>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Aviso al pie</label>
-                <input type="text" id="cfg-footerNotice" class="ctrl-input-text"
-                       placeholder="Fuera de Carta en Pizarra">
-            </div>
+                    <!-- Imagen fondo menú (feature-gated) -->
+                    <div class="sidebar-section feature-gated-section" id="menuBgSection">
+                        <label class="ctrl-label">Imagen de fondo del menú <span class="plan-lock-badge" id="menuBgBadge"></span></label>
+                        <div class="bg-img-row">
+                            <div id="menuBgThumb" class="bg-img-thumb"></div>
+                            <button id="menuBgBtn" class="btn-bg-upload">Subir imagen</button>
+                            <button id="menuBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                        </div>
+                        <input type="file" id="menuBgFile" accept="image/*" style="display:none">
+                        <div id="menuBgExtras" style="display:none;margin-top:8px">
+                            <div class="ctrl-row" style="gap:6px;align-items:center">
+                                <span class="ctrl-label-inline" style="flex-shrink:0" title="Desenfoque">Desenfoque</span>
+                                <input type="range" id="menuBgBlur" min="0" max="20" value="0" class="ctrl-slider">
+                                <span id="menuBgBlurVal" style="font-size:.65rem;color:#c8b89a;width:22px;text-align:right;flex-shrink:0">0px</span>
+                            </div>
+                            <div class="ctrl-row" style="gap:6px;align-items:center;margin-top:5px">
+                                <span class="ctrl-label-inline" style="flex-shrink:0" title="Capa de color (overlay)">Capa de color</span>
+                                <input type="color" id="menuBgOverlayColor" class="ctrl-color" value="#000000">
+                                <input type="range" id="menuBgOverlayOpacity" min="0" max="100" value="0" class="ctrl-slider">
+                                <span id="menuBgOverlayVal" style="font-size:.65rem;color:#c8b89a;width:28px;text-align:right;flex-shrink:0">0%</span>
+                            </div>
+                            <p class="ctrl-help"><b>Desenfoque (blur)</b>: difumina la foto de fondo para que no compita con el texto.
+                                <b>Capa de color (overlay)</b>: un velo de color encima de la foto; subí su intensidad para oscurecerla (o aclararla) y que los productos se lean mejor. Lo ves en vivo a la izquierda.</p>
+                        </div>
+                    </div>
 
-            <div class="sidebar-section">
-                <label class="ctrl-label">Dirección del local</label>
-                <input type="text" id="cfg-footerAddress" class="ctrl-input-text"
-                       placeholder="Av. Ejemplo 1234, Ciudad (opcional)">
-            </div>
+                    <!-- Imagen fondo página (feature-gated) -->
+                    <div class="sidebar-section feature-gated-section" id="pageBgSection">
+                        <label class="ctrl-label">Imagen de fondo de página <span class="plan-lock-badge" id="pageBgBadge"></span></label>
+                        <div class="bg-img-row">
+                            <div id="pageBgThumb" class="bg-img-thumb"></div>
+                            <button id="pageBgBtn" class="btn-bg-upload">Subir imagen</button>
+                            <button id="pageBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                        </div>
+                        <input type="file" id="pageBgFile" accept="image/*" style="display:none">
+                        <p class="ctrl-help">Para los costados del menú, en computadoras y tablets.</p>
+                    </div>
+                </div>
+            </details>
 
-            <div class="sidebar-section feature-gated-section" id="socialsSection">
-                <label class="ctrl-label">Redes sociales y contacto <span class="plan-lock-badge" id="socialsBadge"></span></label>
-                <div id="socialsContainer" class="socials-list"></div>
-                <div id="socialColorPresets" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
-                <div class="social-picker-grid" id="socialPickerRow"></div>
-            </div>
+            <!-- ── 4. Precios e idiomas ── -->
+            <details class="sb-group" data-group="options">
+                <summary><i data-lucide="sliders-horizontal" style="width:17px;height:17px"></i>
+                    <span class="sb-group-title"><b>Precios e idiomas</b><small id="sbSumOptions"></small></span>
+                    <i data-lucide="chevron-down" class="sb-chev" style="width:16px;height:16px"></i></summary>
+                <div class="sb-group-body">
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Precios</label>
+                        <label class="bg-remove-toggle">
+                            <input type="checkbox" id="cfg-hidePrices">
+                            <span>Publicar el menú sin precios</span>
+                        </label>
+                    </div>
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Idiomas del menú</label>
+                        <label class="bg-remove-toggle"><input type="checkbox" checked disabled><span>Español (el que escribís)</span></label>
+                        <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="en"><span>Inglés</span></label>
+                        <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="de"><span>Alemán</span></label>
+                        <label class="bg-remove-toggle"><input type="checkbox" class="cfg-menuLang" value="fr"><span>Francés</span></label>
+                        <p class="ctrl-help">Escribí el menú en español: se traduce solo a los idiomas que marques. Tus clientes eligen el idioma en la ventana de bienvenida del menú.</p>
+                    </div>
+                </div>
+            </details>
 
+            <!-- ── 5. Pie del menú ── -->
+            <details class="sb-group" data-group="footer">
+                <summary><i data-lucide="map-pin" style="width:17px;height:17px"></i>
+                    <span class="sb-group-title"><b>Pie del menú</b><small id="sbSumFooter"></small></span>
+                    <i data-lucide="chevron-down" class="sb-chev" style="width:16px;height:16px"></i></summary>
+                <div class="sb-group-body">
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Cartel de la carta</label>
+                        <label class="bg-remove-toggle">
+                            <input type="checkbox" id="cfg-showDisclaimer" checked>
+                            <span>Mostrar «Fuera de carta en pizarra»</span>
+                        </label>
+                    </div>
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Aviso al pie</label>
+                        <input type="text" id="cfg-footerNotice" class="ctrl-input-text" placeholder="Fuera de Carta en Pizarra">
+                    </div>
+                    <div class="sidebar-section">
+                        <label class="ctrl-label">Dirección del local</label>
+                        <input type="text" id="cfg-footerAddress" class="ctrl-input-text" placeholder="Av. Ejemplo 1234, Ciudad (opcional)">
+                    </div>
+                    <div class="sidebar-section feature-gated-section" id="socialsSection">
+                        <label class="ctrl-label">Redes sociales y contacto <span class="plan-lock-badge" id="socialsBadge"></span></label>
+                        <div id="socialsContainer" class="socials-list"></div>
+                        <div id="socialColorPresets" style="display:none;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
+                        <div class="social-picker-grid" id="socialPickerRow"></div>
+                    </div>
+                </div>
+            </details>
         </aside>
+        <div class="sb-backdrop" id="sbBackdrop" hidden></div>
 
     </div>
 
@@ -252,7 +283,7 @@
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/support-access.js?v=1"></script>
     <script src="./Js/fonts.js?v=2"></script>
-    <script src="script.js?v=37"></script>
+    <script src="script.js?v=38"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

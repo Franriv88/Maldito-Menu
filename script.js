@@ -287,6 +287,8 @@ auth.onAuthStateChanged(async user => {
         // Topbar
         document.getElementById('topbarRestName').textContent  = nombre;
         document.getElementById('adminRestName').textContent   = nombre;
+        const restNameInp = document.getElementById('cfg-restName');
+        if (restNameInp) restNameInp.value = nombre;
         document.getElementById('topbarUserName').textContent  = user.displayName || user.email;
         document.getElementById('viewMenuLink').href = `./menu.html?r=${restaurantId}`;
         document.getElementById('ordersLink').href   = `./pedidos.html?r=${restaurantId}`;
@@ -401,6 +403,7 @@ async function renderAdminMenu() {
         populateStyleControls(styleConfig);
         applyFontGating();   // los selectores se acaban de armar: volver a bloquear las premium
         initStyleControls();
+        initSidebarUX();
         updateAdminHeader();
 
         const byCategory = {};
@@ -1639,6 +1642,83 @@ function applyStyles(cfg) {
     }
 }
 
+// ── Barra lateral del editor: grupos plegables con resumen y panel en pantallas angostas ──
+const SB_OPEN_KEY = 'editor_sidebar_open';
+function renderSidebarSummaries() {
+    const $ = id => document.getElementById(id);
+    const set = (id, html) => { const el = $(id); if (el) el.innerHTML = html; };
+    const optText = sel => sel?.selectedOptions?.[0]?.textContent?.replace(/\s*✦\s*/g, '').trim() || '';
+    const mode = $('headerModeCtrl')?.querySelector('.seg-btn.active')?.dataset.value || 'text';
+    const hasLogo = $('logoPreview')?.style.display !== 'none' && !!$('logoPreview')?.getAttribute('src');
+    set('sbSumHeader', mode === 'logo'
+        ? (hasLogo ? 'Tu logo' : 'Tu logo · <span class="sb-warn">todavía no lo subiste</span>')
+        : `Título: ${esc($('cfg-restName')?.value || '')}`);
+    const titleFont = $('cfg-titleFontFamily')?.value ? optText($('cfg-titleFontFamily')) : optText($('cfg-fontFamily'));
+    set('sbSumFonts', `${esc(titleFont)} · ${esc(optText($('cfg-fontFamily')))} · ${$('cfg-fontSize')?.value || 14}/${$('cfg-titleFontSize')?.value || 20} px`);
+    const dot = id => `<i class="sb-dot" style="background:${esc($(id)?.value || '#000')}"></i>`;
+    const imgs = ['menuBgThumb', 'pageBgThumb'].filter(id => ($(id)?.style.backgroundImage || 'none') !== 'none').length;
+    set('sbSumColors', `${dot('cfg-titleColor')}${dot('cfg-textColor')}${dot('cfg-bgMenu')}${dot('cfg-bgPage')}${imgs ? ` · ${imgs === 1 ? '1 imagen' : '2 imágenes'} de fondo` : ''}`);
+    const langs = ['ES', ...[...document.querySelectorAll('.cfg-menuLang:checked')].map(b => b.value.toUpperCase())];
+    set('sbSumOptions', `${$('cfg-hidePrices')?.checked ? 'Sin precios' : 'Con precios'} · ${langs.join(', ')}`);
+    const nets = (typeof footerSocials !== 'undefined' ? footerSocials : []).length;
+    set('sbSumFooter', [$('cfg-footerAddress')?.value ? 'Dirección' : '', nets ? `${nets} ${nets === 1 ? 'red' : 'redes'}` : '',
+        $('cfg-showDisclaimer')?.checked ? 'Cartel de la carta' : ''].filter(Boolean).join(' · ') || 'Sin datos');
+}
+
+function initSidebarUX() {
+    const aside = document.getElementById('adminSidebar');
+    if (!aside || aside.dataset.uxReady) return;
+    aside.dataset.uxReady = '1';
+
+    // Qué grupos quedaron abiertos (la primera vez: Encabezado)
+    let open;
+    try { open = JSON.parse(localStorage.getItem(SB_OPEN_KEY)); } catch { open = null; }
+    if (!Array.isArray(open)) open = ['header'];
+    aside.querySelectorAll('.sb-group').forEach(g => {
+        g.open = open.includes(g.dataset.group);
+        g.addEventListener('toggle', () => {
+            const now = [...aside.querySelectorAll('.sb-group[open]')].map(x => x.dataset.group);
+            try { localStorage.setItem(SB_OPEN_KEY, JSON.stringify(now)); } catch { /* modo privado */ }
+        });
+    });
+
+    // Título del menú = nombre del restaurante (también se ve en el panel)
+    const nameInp = document.getElementById('cfg-restName');
+    nameInp?.addEventListener('input', () => {
+        const v = nameInp.value.trim();
+        document.getElementById('adminRestName').textContent = v;
+        document.getElementById('topbarRestName').textContent = v;
+    });
+    nameInp?.addEventListener('change', async () => {
+        const v = nameInp.value.trim();
+        if (!v) { nameInp.value = document.getElementById('topbarRestName').textContent || ''; return; }
+        if (isReadonly) return;
+        try { await restRef().update({ nombre: v }); }
+        catch (err) { console.error('No se pudo guardar el nombre:', err); }
+    });
+
+    // Resúmenes: se actualizan con cualquier cambio de la barra (y cuando cambia el logo o las redes)
+    aside.addEventListener('input', renderSidebarSummaries);
+    aside.addEventListener('change', renderSidebarSummaries);
+    aside.addEventListener('click', () => setTimeout(renderSidebarSummaries, 50));
+    ['logoPreview', 'menuBgThumb', 'pageBgThumb', 'socialsContainer'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) new MutationObserver(renderSidebarSummaries).observe(el, { attributes: true, childList: true, subtree: id === 'socialsContainer' });
+    });
+    renderSidebarSummaries();
+
+    // Pantallas angostas: la barra se abre como panel lateral con el botón "Diseño"
+    const backdrop = document.getElementById('sbBackdrop');
+    const toggleDrawer = on => {
+        document.body.classList.toggle('sb-drawer-open', on);
+        if (backdrop) backdrop.hidden = !on;
+    };
+    document.getElementById('sbOpenBtn')?.addEventListener('click', () => toggleDrawer(true));
+    document.getElementById('sbCloseBtn')?.addEventListener('click', () => toggleDrawer(false));
+    backdrop?.addEventListener('click', () => toggleDrawer(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleDrawer(false); });
+}
+
 function populateStyleControls(cfg) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     document.getElementById('cfg-titleBold')?.setAttribute('aria-pressed', String(cfg.titleBold !== false));
@@ -1676,10 +1756,17 @@ function populateStyleControls(cfg) {
         if (inp && hex) hex.value = inp.value;
     });
 
-    if (cfg.headerMode) {
-        const ctrl = document.getElementById('headerModeCtrl');
-        ctrl?.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === cfg.headerMode));
-    }
+    // Sin elección guardada: logo si ya hay uno (igual que el menú público), si no el título
+    const headerMode = cfg.headerMode || ((cfg.logoBase64 || cfg.logoStorageUrl) ? 'logo' : 'text');
+    document.getElementById('headerModeCtrl')?.querySelectorAll('.seg-btn')
+        .forEach(b => b.classList.toggle('active', b.dataset.value === headerMode));
+    syncHeaderModePanels();
+}
+
+// Debajo de "Un título / Tu logo" se ve solo lo que corresponde: el campo del título o la carga del logo
+function syncHeaderModePanels() {
+    const mode = document.getElementById('headerModeCtrl')?.querySelector('.seg-btn.active')?.dataset.value || 'text';
+    document.querySelectorAll('.sb-mode-panel').forEach(el => { el.hidden = el.dataset.mode !== mode; });
 }
 
 function updateAdminHeader() {
@@ -1945,7 +2032,9 @@ function initStyleControls() {
             btn.addEventListener('click', async () => {
                 headerModeCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                syncHeaderModePanels();
                 updateAdminHeader();
+                renderSidebarSummaries();
                 await saveStyleField('headerMode', btn.dataset.value);
             });
         });
