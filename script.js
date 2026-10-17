@@ -1591,6 +1591,7 @@ function applyStyles(cfg) {
     if (cfg.titleColor)      r.style.setProperty('--title-color',       cfg.titleColor);
     if (cfg.textColor)       r.style.setProperty('--text-color',        cfg.textColor);
     if (cfg.bgPage)          document.body.style.backgroundColor = cfg.bgPage;
+    applyEditorPageBg(cfg.pageBgImage || '');
     if (cfg.bgMenu)          r.style.setProperty('--primary-color',     cfg.bgMenu);
     if (cfg.fontSize)        r.style.setProperty('--base-font-size',    cfg.fontSize + 'px');
     if (cfg.titleFontSize)   r.style.setProperty('--title-font-size',   cfg.titleFontSize + 'px');
@@ -1654,7 +1655,7 @@ function renderSidebarSummaries() {
         ? (hasLogo ? 'Tu logo' : 'Tu logo · <span class="sb-warn">todavía no lo subiste</span>')
         : `Título: ${esc($('cfg-restName')?.value || '')}`);
     const titleFont = $('cfg-titleFontFamily')?.value ? optText($('cfg-titleFontFamily')) : optText($('cfg-fontFamily'));
-    set('sbSumFonts', `${esc(titleFont)} · ${esc(optText($('cfg-fontFamily')))} · ${$('cfg-fontSize')?.value || 14}/${$('cfg-titleFontSize')?.value || 20} px`);
+    set('sbSumFonts', `${esc(titleFont)} · ${esc(optText($('cfg-fontFamily')))} · ${$('cfg-titleFontSize')?.value || 20}/${$('cfg-fontSize')?.value || 14} px`);
     const dot = id => `<i class="sb-dot" style="background:${esc($(id)?.value || '#000')}"></i>`;
     const imgs = ['menuBgThumb', 'pageBgThumb'].filter(id => ($(id)?.style.backgroundImage || 'none') !== 'none').length;
     set('sbSumColors', `${dot('cfg-titleColor')}${dot('cfg-textColor')}${dot('cfg-bgMenu')}${dot('cfg-bgPage')}${imgs ? ` · ${imgs === 1 ? '1 imagen' : '2 imágenes'} de fondo` : ''}`);
@@ -2239,6 +2240,15 @@ function applyBenefitGating() {
 
 // ── Controles de imagen de fondo (menuBg / pageBg) ───────────
 
+// Imagen de fondo de página en el editor: a los costados del menú, igual que en el menú público
+function applyEditorPageBg(img) {
+    const b = document.body.style;
+    b.backgroundImage      = img ? `url('${img}')` : '';
+    b.backgroundSize       = img ? 'cover' : '';
+    b.backgroundPosition   = img ? 'center' : '';
+    b.backgroundAttachment = img ? 'fixed' : '';
+}
+
 function initBgImageControls() {
     ['menuBg', 'pageBg'].forEach(key => {
         const btn    = document.getElementById(`${key}Btn`);
@@ -2265,6 +2275,7 @@ function initBgImageControls() {
                 await restRef().collection('config').doc('styles').set({ [field]: base64 }, { merge: true });
                 if (thumb)  thumb.style.backgroundImage = `url('${base64}')`;
                 if (key === 'menuBg') { editorMenuBg.image = base64; applyEditorMenuBg(); }
+                else applyEditorPageBg(base64);
                 if (remove) remove.style.display = '';
                 showExtras(true);
             } catch (err) { console.error('Error subiendo fondo:', err); }
@@ -2280,6 +2291,7 @@ function initBgImageControls() {
             if (remove) remove.style.display = 'none';
             showExtras(false);
             if (key === 'menuBg') { Object.assign(editorMenuBg, { image: '', blur: 0, opacity: 0 }); applyEditorMenuBg(); }
+            else applyEditorPageBg('');
         });
     });
 

@@ -17,9 +17,9 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="./Css/menu-styles.css?v=27">
+    <link rel="stylesheet" href="./Css/menu-styles.css?v=29">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=27">
+    <link rel="stylesheet" href="styles.css?v=29">
     <style>
         /* topbar heredado de styles.css */
     </style>
@@ -124,19 +124,19 @@
                         <p class="ctrl-help">Los títulos pueden tener una tipografía distinta a la de los productos.</p>
                     </div>
                     <div class="sidebar-section">
-                        <label class="ctrl-label">Fuente de cuerpo <span class="ctrl-help-inline">(productos y descripciones)</span></label>
+                        <label class="ctrl-label">Fuente de productos <span class="ctrl-help-inline">(nombres y descripciones)</span></label>
                         <select id="cfg-fontFamily" class="ctrl-select"></select>
                         <p class="ctrl-help premium-fonts-note" hidden>Las tipografías marcadas con ✦ (caligráficas, pizarra y estilo asiático) están incluidas en los planes avanzados. <a href="./checkout.html">Ver planes</a></p>
                     </div>
                     <div class="sidebar-section">
                         <div class="size-controls-row">
                             <div class="size-ctrl">
-                                <label class="ctrl-label">Cuerpo <span id="cfg-fontSizeVal" class="ctrl-value">14px</span></label>
-                                <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
-                            </div>
-                            <div class="size-ctrl">
                                 <label class="ctrl-label">Títulos <span id="cfg-titleFontSizeVal" class="ctrl-value">20px</span></label>
                                 <input type="range" id="cfg-titleFontSize" min="14" max="42" value="20" class="ctrl-slider">
+                            </div>
+                            <div class="size-ctrl">
+                                <label class="ctrl-label">Productos <span id="cfg-fontSizeVal" class="ctrl-value">14px</span></label>
+                                <input type="range" id="cfg-fontSize" min="11" max="20" value="14" class="ctrl-slider">
                             </div>
                         </div>
                     </div>
@@ -180,7 +180,7 @@
                         <div class="bg-img-row">
                             <div id="menuBgThumb" class="bg-img-thumb"></div>
                             <button id="menuBgBtn" class="btn-bg-upload">Subir imagen</button>
-                            <button id="menuBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                            <button type="button" id="menuBgRemove" class="btn-bg-remove" style="display:none" title="Quitar imagen" aria-label="Quitar imagen"><i data-lucide="x" style="width:14px;height:14px;stroke-width:2.5"></i></button>
                         </div>
                         <input type="file" id="menuBgFile" accept="image/*" style="display:none">
                         <div id="menuBgExtras" style="display:none;margin-top:8px">
@@ -206,7 +206,7 @@
                         <div class="bg-img-row">
                             <div id="pageBgThumb" class="bg-img-thumb"></div>
                             <button id="pageBgBtn" class="btn-bg-upload">Subir imagen</button>
-                            <button id="pageBgRemove" class="btn-bg-remove" style="display:none">×</button>
+                            <button type="button" id="pageBgRemove" class="btn-bg-remove" style="display:none" title="Quitar imagen" aria-label="Quitar imagen"><i data-lucide="x" style="width:14px;height:14px;stroke-width:2.5"></i></button>
                         </div>
                         <input type="file" id="pageBgFile" accept="image/*" style="display:none">
                         <p class="ctrl-help">Para los costados del menú, en computadoras y tablets.</p>
@@ -283,7 +283,7 @@
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/support-access.js?v=1"></script>
     <script src="./Js/fonts.js?v=2"></script>
-    <script src="script.js?v=38"></script>
+    <script src="script.js?v=40"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

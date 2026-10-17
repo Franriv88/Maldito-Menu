@@ -36,6 +36,7 @@
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
+    background: #141210;
 }
 
 .sidebar-title {
@@ -1485,3 +1486,26 @@ body.light.sb-drawer-open .admin-sidebar { background: #ebe3d7; }
 body.light .sb-group-body .sidebar-section { background: none; border: none; border-bottom: 1px solid rgba(100,80,50,.12); border-radius: 0; box-shadow: none; padding: 0 0 12px; margin-bottom: 12px; }
 body.light .sb-group-body .sidebar-section:last-child { border-bottom: none; padding-bottom: 0; }
 body.light .sb-drawer-head { color: #3a2e22; border-bottom-color: rgba(100,80,50,.2); }
+
+/* Botones X (quitar / cerrar / eliminar): círculo visible en vez de una X suelta */
+.btn-bg-remove, .social-remove-btn, .lp-close, .delete-item-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 24px; height: 24px; padding: 0; border-radius: 50%; cursor: pointer; line-height: 1;
+    background: rgba(220,90,80,.14); border: 1px solid rgba(220,90,80,.5); color: #e98a80;
+    transition: background .15s, color .15s, border-color .15s, opacity .15s;
+}
+.btn-bg-remove:hover, .social-remove-btn:hover, .lp-close:hover, .delete-item-btn:hover {
+    background: #d9534f; border-color: #d9534f; color: #fff;
+}
+.btn-bg-remove svg, .social-remove-btn svg, .lp-close svg, .delete-item-btn svg { stroke-width: 2.5; }
+.lp-close { background: rgba(221,208,187,.1); border-color: rgba(221,208,187,.4); color: #ddd0bb; }
+.delete-item-btn { width: 22px; height: 22px; top: 0; opacity: .55; }
+.admin-item:hover .delete-item-btn, .delete-item-btn:focus-visible { opacity: 1; }
+@media (hover: none) { .delete-item-btn { opacity: .8; } }
+body.light .btn-bg-remove, body.light .social-remove-btn, body.light .delete-item-btn {
+    background: #fdecea; border-color: rgba(190,60,50,.55); color: #b8382c;
+}
+body.light .lp-close { background: #fff; border-color: rgba(100,80,50,.4); color: #5a4630; }
+body.light .btn-bg-remove:hover, body.light .social-remove-btn:hover, body.light .lp-close:hover, body.light .delete-item-btn:hover {
+    background: #c9302c; border-color: #c9302c; color: #fff;
+}

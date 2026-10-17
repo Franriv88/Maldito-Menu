@@ -24,6 +24,8 @@ const TABLE_SESSION_TTL = 6 * 3600 * 1000; // igual que en functions/index.js
 
 // Catering / pedidos a distancia: las "mesas" son clientes con su link y no hay mesa abierta
 const isCatering = () => orderingCfg.businessType === 'catering';
+// Lo que se ve en pantalla (cambia al elegir el tipo de negocio, antes de guardar)
+const shownCatering = () => document.body.classList.contains('is-catering');
 const sessionsOn = () => !isCatering() && orderingCfg.tableSessions !== false;
 // Título de un pedido: la mesa, o "Pedido de Marcela" en catering
 const orderTitle = o => o.kind === 'catering' ? `Pedido de ${o.mesaLabel}` : o.mesaLabel;
@@ -523,7 +525,7 @@ function printTicket(o) {
 function initTablesTab() {
     document.getElementById('addTableBtn').addEventListener('click', () => addTables(1));
     document.getElementById('addManyBtn').addEventListener('click', async () => {
-        const { value } = await Swal.fire({ title: isCatering() ? '¿Cuántos clientes agregar?' : '¿Cuántas mesas agregar?', input: 'number', inputValue: 10,
+        const { value } = await Swal.fire({ title: shownCatering() ? '¿Cuántos clientes agregar?' : '¿Cuántas mesas agregar?', input: 'number', inputValue: 10,
             inputAttributes: { min: 1, max: 100 }, showCancelButton: true, confirmButtonText: 'Agregar', cancelButtonText: 'Cancelar' });
         const n = parseInt(value);
         if (n > 0) addTables(Math.min(n, 100));
@@ -538,6 +540,8 @@ function initTablesTab() {
     });
     // Logo de NFC en los stickers impresos (config/ordering.stickerNfcLogo; se guarda al tocarlo)
     document.getElementById('stickerNfcLogo').addEventListener('change', async e => {
+        orderingCfg.stickerNfcLogo = e.target.checked;
+        renderTables();
         await restRef().collection('config').doc('ordering').set({ stickerNfcLogo: e.target.checked }, { merge: true });
         toastMsg(e.target.checked ? 'Los stickers van a llevar el logo de NFC' : 'Los stickers van sin logo de NFC');
     });
@@ -588,25 +592,27 @@ function renderTables() {
     const tables = orderingCfg.tables || [];
     if (!tables.length) {
         const c = document.getElementById('tablesCount');
-        if (c) c.textContent = isCatering() ? 'Todavía no cargaste clientes' : 'Creá una por cada mesa del local';
-        grid.innerHTML = `<p class="pd-empty">${isCatering() ? 'Todavía no hay clientes. Agregá el primero.' : 'Todavía no hay mesas. Agregá la primera.'}</p>`;
+        if (c) c.textContent = shownCatering() ? 'Todavía no cargaste clientes' : 'Creá una por cada mesa del local';
+        grid.innerHTML = `<p class="pd-empty">${shownCatering() ? 'Todavía no hay clientes. Agregá el primero.' : 'Todavía no hay mesas. Agregá la primera.'}</p>`;
         return;
     }
     const canNfc = 'NDEFReader' in window;
     const countEl = document.getElementById('tablesCount');
-    if (countEl) countEl.textContent = isCatering()
+    if (countEl) countEl.textContent = shownCatering()
         ? (tables.length === 1 ? 'Tenés 1 cliente' : `Tenés ${tables.length} clientes`)
         : (tables.length === 1 ? 'Tenés 1 mesa' : `Tenés ${tables.length} mesas`);
-    const tip = isCatering()
+    const tip = shownCatering()
         ? 'Tocá el nombre de un cliente para cambiarlo (por ejemplo: «Marcela» o «Oficina Centro»). Los pedidos llegan como «Pedido de Marcela».'
         : 'Tocá el nombre de una mesa para cambiarlo (por ejemplo: «Terraza 2» o «Barra»).';
+    // Igual que el sticker impreso: con el logo de NFC en el centro si el restaurante lo eligió
+    const withNfc = !shownCatering() && !!orderingCfg.stickerNfcLogo;
     grid.innerHTML = `<p class="pd-tname-tip">${licon('pencil', 13)} ${tip}</p>` + tables.map(t => `
         <div class="pd-table" data-id="${t.id}">
             <label class="pd-tname" title="Tocá para cambiar el nombre de la mesa">
                 <input class="pd-input" value="${esc(t.label)}" maxlength="30" aria-label="Nombre (editable)">
                 <span class="pd-tname-icon" aria-hidden="true">${licon('pencil', 13)}</span>
             </label>
-            <div class="pd-qr">${qrSvg(tableUrl(t.id))}</div>
+            <div class="pd-qr">${withNfc ? `${qrSvg(tableUrl(t.id), 'H')}<div class="pd-qrlogo">${licon('nfc', 16)}<b>NFC</b></div>` : qrSvg(tableUrl(t.id))}</div>
             <div class="pd-actions">
                 <button class="pd-btn" data-act="copy" title="Copiar link">${licon('link-2', 14)} Link</button>
                 ${canNfc ? `<button class="pd-btn" data-act="nfc">${licon('nfc', 14)} Grabar NFC</button>` : ''}
@@ -713,6 +719,7 @@ function applyBizLabels(type) {
         ? 'Cada cliente tiene un link único y su QR. Mandale el link por WhatsApp o imprimí su QR: al abrirlo ve tu menú y te hace el pedido, que llega como «Pedido de» y su nombre.'
         : 'Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.');
     set('addTableLabel',  cat ? 'Agregar cliente' : 'Agregar mesa');
+    set('addManyBtn',     cat ? 'Agregar varios…' : 'Agregar varias…');
     set('printStepTitle', cat ? 'Compartí su link o imprimí su QR' : 'Imprimí los QR');
     set('printStepSub',   cat ? 'Mandale a cada cliente su link (botón «Link») o imprimí su QR.' : 'Un sticker por mesa, listo para pegar.');
     set('enabledTitle',   cat ? 'Recibir pedidos' : 'Pedidos desde la mesa');
@@ -724,6 +731,7 @@ function applyBizLabels(type) {
     set('apDirectText',   cat
         ? 'Todos los pedidos pasan directo a cocina e imprimen, sin que tengas que aceptarlos.'
         : 'Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.');
+    renderTables();   // contador y textos de las tarjetas (mesas ↔ clientes)
 }
 
 // datetime-local ⇄ Date (hora del dispositivo)

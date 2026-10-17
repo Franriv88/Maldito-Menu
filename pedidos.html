@@ -154,7 +154,13 @@
         .pd-tname input:focus + .pd-tname-icon { opacity: 0; }
         .pd-tname-tip { grid-column: 1 / -1; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--pd-muted); }
         .pd-qr { width: 150px; height: 150px; background: #fff; border-radius: 8px; padding: 6px; }
-        .pd-qr svg { width: 100%; height: 100%; display: block; }
+        .pd-qr { position: relative; }
+        .pd-qr > svg { width: 100%; height: 100%; display: block; }
+        .pd-qrlogo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 36px; height: 36px;
+                     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+                     background: #fff; border-radius: 7px; box-shadow: 0 0 0 3px #fff; color: #111; }
+        .pd-qrlogo svg { width: 18px; height: 18px; }
+        .pd-qrlogo b { font-size: 7px; letter-spacing: .5px; line-height: 1; }
         .pd-table .pd-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
         .pd-table .pd-actions [data-act="nfc"] { grid-column: 1 / -1; }
         .pd-table .pd-actions .pd-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; text-decoration: none;
@@ -258,7 +264,11 @@
             display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px;
             min-width: 92px; padding: 7px 12px; border-radius: 10px; cursor: pointer; text-align: left;
             border: 1px solid var(--pd-border); background: var(--pd-surface); color: var(--pd-muted); font: inherit;
+            transition: box-shadow .18s, transform .18s, border-color .18s;
         }
+        .pd-tchip:hover { box-shadow: 0 6px 16px rgba(0,0,0,.28); transform: translateY(-2px); border-color: color-mix(in srgb, var(--pd-accent) 55%, transparent); }
+        body.light .pd-tchip:hover { box-shadow: 0 6px 16px rgba(60,42,20,.16); }
+        .pd-tchip:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.2); }
         .pd-tchip b { font-size: .85rem; color: var(--pd-text); }
         .pd-tchip small { font-size: .7rem; }
         .pd-tchip.open { border-color: color-mix(in srgb, var(--pd-green) 55%, transparent); background: color-mix(in srgb, var(--pd-green) 9%, var(--pd-surface)); }
@@ -535,7 +545,7 @@
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/support-access.js?v=1"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=14"></script>
+    <script src="./Js/pedidos.js?v=16"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>
