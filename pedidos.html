@@ -155,7 +155,10 @@
         .pd-tname-tip { grid-column: 1 / -1; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--pd-muted); }
         .pd-qr { width: 150px; height: 150px; background: #fff; border-radius: 8px; padding: 6px; }
         .pd-qr svg { width: 100%; height: 100%; display: block; }
-        .pd-table .pd-actions { justify-content: center; }
+        .pd-table .pd-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+        .pd-table .pd-actions [data-act="nfc"] { grid-column: 1 / -1; }
+        .pd-table .pd-actions .pd-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; text-decoration: none;
+            height: 34px; box-sizing: border-box; padding: 0 8px; font: 600 .78rem/1 system-ui, -apple-system, "Segoe UI", sans-serif; }
 
         /* Formularios */
         .pd-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 10px; }
@@ -180,7 +183,71 @@
         .pd-code span { flex: 1; }
         .pd-help { font-size: .78rem; color: var(--pd-muted); line-height: 1.55; margin: 8px 0 0; }
         .pd-help ol { margin: 6px 0 0; padding-left: 18px; }
-        .pd-save-bar { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(transparent, var(--pd-bg) 35%); display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+        /* Barra de guardado: aparece solo con cambios sin guardar */
+        .pd-save-bar { position: sticky; bottom: 12px; z-index: 5; margin-top: 14px; padding: 10px 12px; display: flex; justify-content: flex-end; gap: 10px; align-items: center;
+            background: var(--pd-surface); border: 1px solid var(--pd-accent); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+        .pd-save-bar:not(.show) { display: none; }
+        .pd-save-bar .pd-msg { margin-right: auto; }
+        .pd-save-bar .pd-msg:empty::before { content: 'Tenés cambios sin guardar'; color: var(--pd-muted); }
+
+        /* ── Mesas: pasos ── */
+        .pd-lead { margin: 0 0 14px; font-size: .86rem; color: var(--pd-muted); line-height: 1.55; max-width: 820px; }
+        .pd-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-bottom: 14px; }
+        .pd-step { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .pd-step-head { display: flex; gap: 10px; align-items: flex-start; }
+        .pd-step-head h3 { margin: 0; font-size: .95rem; }
+        .pd-step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            background: var(--pd-accent); color: var(--pd-bg); font-weight: 800; font-size: .82rem; }
+        .pd-step-num.opt { background: transparent; color: var(--pd-accent); border: 1.5px dashed var(--pd-accent); }
+        .pd-step-sub { display: block; margin-top: 2px; font-size: .76rem; color: var(--pd-muted); line-height: 1.4; }
+        .pd-step-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+        .pd-step-opt { font-size: .8rem; }
+        .pd-step .pd-help { margin-top: -4px; }
+        .pd-tag { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; font-size: .62rem; font-weight: 600; letter-spacing: .4px;
+            text-transform: uppercase; vertical-align: middle; color: var(--pd-muted); border: 1px solid var(--pd-border); }
+        .pd-nfc-phone[hidden] { display: none; }
+
+        /* ── Configuración ── */
+        .pd-power { padding: 0; }
+        .pd-power-row { display: flex; align-items: center; gap: 14px; padding: 16px; cursor: pointer; }
+        .pd-power-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+            background: color-mix(in srgb, var(--pd-muted) 15%, transparent); color: var(--pd-muted); }
+        .pd-power-text { flex: 1; min-width: 0; }
+        .pd-power-text b { display: block; font-size: 1rem; }
+        .pd-power-text small { display: block; margin-top: 2px; font-size: .8rem; color: var(--pd-muted); line-height: 1.45; }
+        .pd-power.on { border-color: color-mix(in srgb, var(--pd-green) 55%, transparent); }
+        .pd-power.on .pd-power-icon { background: color-mix(in srgb, var(--pd-green) 18%, transparent); color: var(--pd-green); }
+        /* Interruptor grande */
+        .pd-toggle { position: relative; flex-shrink: 0; width: 50px; height: 28px; }
+        .pd-toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+        .pd-toggle span { position: absolute; inset: 0; border-radius: 999px; background: color-mix(in srgb, var(--pd-muted) 35%, transparent); transition: background .2s; }
+        .pd-toggle span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+        .pd-toggle input:checked + span { background: var(--pd-green); }
+        .pd-toggle input:checked + span::after { transform: translateX(22px); }
+        .pd-toggle input:focus-visible + span { outline: 2px solid var(--pd-accent); outline-offset: 2px; }
+        /* Tipo de negocio: dos tarjetas */
+        .pd-biz { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+        .pd-biz-opt { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1.5px solid var(--pd-border); border-radius: 12px; cursor: pointer; }
+        .pd-biz-opt input { position: absolute; top: 14px; right: 14px; accent-color: var(--pd-accent); }
+        .pd-biz-opt svg { color: var(--pd-accent); margin-bottom: 4px; }
+        .pd-biz-opt b { font-size: .9rem; }
+        .pd-biz-opt span { font-size: .78rem; color: var(--pd-muted); line-height: 1.45; }
+        .pd-biz-opt:has(input:checked) { border-color: var(--pd-accent); background: color-mix(in srgb, var(--pd-accent) 8%, transparent); }
+        /* Grupos plegables con resumen */
+        .pd-group { background: var(--pd-surface); border: 1px solid var(--pd-border); border-radius: 14px; margin-bottom: 10px; }
+        .pd-group > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+        .pd-group > summary::-webkit-details-marker { display: none; }
+        .pd-group > summary > svg:first-child { flex-shrink: 0; color: var(--pd-accent); }
+        .pd-group-title { flex: 1; min-width: 0; }
+        .pd-group-title b { display: block; font-size: .92rem; }
+        .pd-sum { display: block; margin-top: 2px; font-size: .78rem; color: var(--pd-muted); }
+        .pd-chev { flex-shrink: 0; color: var(--pd-muted); transition: transform .2s; }
+        .pd-group[open] > summary .pd-chev { transform: rotate(180deg); }
+        .pd-group[open] > summary { border-bottom: 1px solid var(--pd-border); }
+        .pd-group > summary:hover .pd-group-title b { color: var(--pd-accent); }
+        .pd-group-body { padding: 4px 16px 16px; }
+        .pd-sub { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--pd-border); }
+        .pd-sub h4 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: .88rem; }
         .pd-msg { font-size: .8rem; color: var(--pd-green); }
         .pd-hidden { display: none !important; }
 
@@ -260,159 +327,198 @@
 
     <!-- ── Mesas ── -->
     <section class="pd-panel" id="tab-tables">
-        <div class="pd-section">
-            <h3 id="tablesTitle">Mesas</h3>
-            <p id="tablesIntro">Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.</p>
-            <div class="pd-row" style="margin-top:0">
-                <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> <span id="addTableLabel">Agregar mesa</span></button>
-                <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
-                <button class="pd-btn" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos los stickers</button>
+        <p class="pd-lead" id="tablesIntro">Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.</p>
+
+        <!-- Los pasos, en orden: crear → imprimir → (opcional) NFC -->
+        <div class="pd-steps">
+            <div class="pd-step">
+                <div class="pd-step-head"><span class="pd-step-num">1</span>
+                    <div><h3 id="tablesTitle">Mesas</h3><small class="pd-step-sub" id="tablesCount">Creá una por cada mesa del local</small></div></div>
+                <div class="pd-step-actions">
+                    <button class="pd-btn primary" id="addTableBtn"><i data-lucide="plus" style="width:14px;height:14px"></i> <span id="addTableLabel">Agregar mesa</span></button>
+                    <button class="pd-btn" id="addManyBtn">Agregar varias…</button>
+                </div>
             </div>
-            <div class="pd-only-restaurant" style="margin-top:14px">
-                <label class="pd-switch"><input type="checkbox" id="stickerNfcLogo"> <span>Incluir el logo de NFC en los stickers impresos</span></label>
-                <p class="pd-help">Activalo si en cada mesa vas a pegar también un sticker NFC: el logo le indica al comensal que puede acercar el celular.
-                    Si no usás NFC, dejalo apagado y el sticker solo pide escanear el QR.</p>
+            <div class="pd-step">
+                <div class="pd-step-head"><span class="pd-step-num">2</span>
+                    <div><h3 id="printStepTitle">Imprimí los QR</h3><small class="pd-step-sub" id="printStepSub">Un sticker por mesa, listo para pegar</small></div></div>
+                <div class="pd-step-actions">
+                    <button class="pd-btn primary" id="printStickersBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir todos</button>
+                </div>
+                <label class="pd-switch pd-only-restaurant pd-step-opt"><input type="checkbox" id="stickerNfcLogo"> <span>Con el logo de NFC en el centro del QR</span></label>
+                <p class="pd-help pd-only-restaurant">Activalo si en cada mesa también vas a pegar un sticker NFC.</p>
+            </div>
+            <div class="pd-step pd-only-restaurant">
+                <div class="pd-step-head"><span class="pd-step-num opt">3</span>
+                    <div><h3>Stickers NFC <span class="pd-tag">opcional</span></h3><small class="pd-step-sub">Para que pidan acercando el celular, sin escanear</small></div></div>
+                <div class="pd-step-actions">
+                    <button class="pd-btn" id="nfcToggleBtn" type="button" aria-expanded="false" aria-controls="nfcPhoneCard"><i data-lucide="smartphone-nfc" style="width:14px;height:14px"></i> Grabarlos con el celular</button>
+                </div>
             </div>
         </div>
-        <div class="pd-section pd-nfc-phone" id="nfcPhoneCard">
+
+        <div class="pd-section pd-nfc-phone pd-only-restaurant" id="nfcPhoneCard" hidden>
             <div class="pd-nfc-qr" id="nfcPhoneQr"></div>
             <div class="pd-nfc-text">
                 <h3><i data-lucide="smartphone-nfc" style="width:16px;height:16px"></i> Grabá los stickers NFC con tu celular</h3>
-                <p>Escaneá este código con el celular (Android o iPhone): se abre una página simple para grabar cada link en su sticker y bloquearlo, sin tener que entrar al panel desde el teléfono.</p>
+                <p>Escaneá este código con el celular (Android o iPhone): se abre una página simple para grabar cada link en su sticker y bloquearlo, sin tener que entrar al panel desde el teléfono. Necesitás stickers NTAG213 o NTAG215.</p>
                 <a class="pd-btn primary" id="nfcPhoneLink" target="_blank" rel="noopener"><i data-lucide="external-link" style="width:14px;height:14px"></i> <span>Abrir en este dispositivo</span></a>
             </div>
         </div>
+
         <div class="pd-tables" id="tablesGrid"></div>
-        <p class="pd-help" id="nfcHelp"></p>
+        <p class="pd-help pd-only-restaurant" id="nfcHelp"></p>
     </section>
 
     <!-- ── Configuración ── -->
     <section class="pd-panel" id="tab-settings">
-        <div class="pd-section">
-            <h3>Tipo de negocio</h3>
-            <label class="pd-radio"><input type="radio" name="bizType" value="restaurant">
-                <div><b>Restaurante, bar o café</b><span>Los comensales piden desde su mesa escaneando el QR o acercando el celular al sticker NFC.</span></div></label>
-            <label class="pd-radio"><input type="radio" name="bizType" value="catering">
-                <div><b>Catering, viandas o pedidos</b><span>En lugar de mesas cargás a tus clientes (ej. «Marcela» o «Oficina Centro»): cada uno tiene su link y su QR, y los pedidos llegan como «Pedido de Marcela». No se verifica que estén en un local.</span></div></label>
+        <!-- Lo esencial, siempre a la vista -->
+        <div class="pd-section pd-power">
+            <label class="pd-power-row">
+                <span class="pd-power-icon"><i data-lucide="power" style="width:20px;height:20px"></i></span>
+                <span class="pd-power-text"><b id="enabledTitle">Pedidos desde la mesa</b>
+                    <small id="enabledState">Si está apagado, el QR/NFC abre el menú normal sin botón de pedir.</small></span>
+                <span class="pd-toggle"><input type="checkbox" id="cfgEnabled" role="switch"><span></span></span>
+            </label>
         </div>
 
         <div class="pd-section">
-            <h3 id="enabledTitle">Pedidos desde la mesa</h3>
-            <label class="pd-switch"><input type="checkbox" id="cfgEnabled"> Recibir pedidos desde el menú</label>
-            <p class="pd-help">Si está apagado, el QR/NFC abre el menú normal sin botón de pedir.</p>
-        </div>
-
-        <div class="pd-section">
-            <h3>¿Qué pasa cuando llega un pedido?</h3>
-            <label class="pd-radio"><input type="radio" name="approval" value="manual">
-                <div><b id="apManualTitle">Lo acepta el mozo o la caja</b><span id="apManualText">El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.</span></div></label>
-            <label class="pd-radio"><input type="radio" name="approval" value="direct">
-                <div><b id="apDirectTitle">Va directo a cocina si se verificó que el comensal está en el local</b><span id="apDirectText">Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.</span></div></label>
-        </div>
-
-        <div class="pd-section">
-            <h3>Límite de pedidos</h3>
-            <p>Para no recibir más pedidos de los que podés preparar. Cuando se llega al límite, el menú muestra tu mensaje y no deja pedir hasta que se libere un lugar.</p>
-            <label class="pd-switch"><input type="checkbox" id="cfgLimitOn"> Limitar la cantidad de pedidos</label>
-            <div id="limitFields">
-                <div class="pd-row">
-                    <label class="pd-field" style="max-width:160px">Máximo de pedidos <input class="pd-input" id="cfgLimitMax" type="number" min="1" max="10000" placeholder="ej: 20"></label>
-                    <label class="pd-field" style="max-width:220px">Por
-                        <select class="pd-select" id="cfgLimitPeriod">
-                            <option value="day">Día</option>
-                            <option value="week">Semana (de lunes a domingo)</option>
-                            <option value="hours">Cada cierta cantidad de horas</option>
-                        </select></label>
-                    <label class="pd-field" style="max-width:140px" id="limitHoursField">Horas <input class="pd-input" id="cfgLimitHours" type="number" min="1" max="720" value="2"></label>
-                </div>
-                <label class="pd-field" style="margin-top:10px">Mensaje cuando se llega al límite
-                    <textarea class="pd-input" id="cfgLimitMsg" rows="2" maxlength="300" placeholder="Por ahora no podemos recibir más pedidos. Vas a poder volver a pedir desde el {hasta}."></textarea></label>
-                <p class="pd-help">Escribí <b>{hasta}</b> donde quieras que aparezca la fecha y hora en que se vuelve a recibir pedidos. Los pedidos rechazados no cuentan para el límite.</p>
-            </div>
-            <div class="pd-status-line" id="capacityStatus"></div>
-
-            <label class="pd-switch" style="margin-top:16px"><input type="checkbox" id="cfgPauseOn"> Pausar los pedidos hasta una fecha</label>
-            <div id="pauseFields">
-                <div class="pd-row">
-                    <label class="pd-field" style="max-width:260px">Hasta <input class="pd-input" id="cfgPauseUntil" type="datetime-local"></label>
-                </div>
-                <label class="pd-field" style="margin-top:10px">Mensaje mientras está pausado
-                    <textarea class="pd-input" id="cfgPauseMsg" rows="2" maxlength="300" placeholder="Por ahora no estamos tomando pedidos. Volvemos el {hasta}."></textarea></label>
+            <h3>¿Qué tipo de negocio sos?</h3>
+            <div class="pd-biz">
+                <label class="pd-biz-opt"><input type="radio" name="bizType" value="restaurant">
+                    <i data-lucide="utensils" style="width:22px;height:22px"></i>
+                    <b>Restaurante, bar o café</b><span>Piden desde la mesa con el QR o el sticker NFC.</span></label>
+                <label class="pd-biz-opt"><input type="radio" name="bizType" value="catering">
+                    <i data-lucide="truck" style="width:22px;height:22px"></i>
+                    <b>Catering, viandas o pedidos</b><span>Cada cliente (ej. «Agencia AGP») tiene su link y su QR. No se verifica que estén en un local.</span></label>
             </div>
         </div>
 
-        <div class="pd-section pd-only-restaurant">
-            <h3>Verificar que el comensal esté en el local</h3>
-            <p>Evita pedidos de quien se llevó una foto del QR. Se usan en este orden y, si alguno confirma la presencia, no se le pide nada al comensal.</p>
-            <label class="pd-switch"><input type="checkbox" id="cfgSessions"> <span><b>Mesa abierta</b> — los pedidos de una mesa abierta van directo a cocina</span></label>
-            <p class="pd-help">La mesa se abre sola cuando aceptás su primer pedido (o tocándola arriba del tablero) y se cierra cuando la marcás como cobrada. Si nadie pide durante 6 horas, se cierra sola. Desde una mesa cerrada se puede pedir igual, pero lo tiene que aceptar el mozo.</p>
-            <label class="pd-switch" style="margin-top:14px"><input type="checkbox" id="cfgWifi"> <span><b>Wi-Fi del local</b> — si el comensal está conectado al Wi-Fi del restaurante, se lo da por verificado</span></label>
-            <p class="pd-help">Funciona solo: esta pantalla registra la red del local mientras está abierta. Tiene que estar conectada al <b>mismo Wi-Fi que usan los clientes</b>. Si el comensal usa datos móviles, se pasa al siguiente método.</p>
-            <div class="pd-status-line" id="wifiStatus"></div>
-        </div>
+        <!-- Lo demás, agrupado y plegable; cada grupo muestra un resumen de cómo está configurado -->
+        <details class="pd-group" data-group="approval">
+            <summary><i data-lucide="check-circle-2" style="width:18px;height:18px"></i>
+                <span class="pd-group-title"><b>Cómo se aceptan los pedidos</b><small class="pd-sum" id="sumApproval"></small></span>
+                <i data-lucide="chevron-down" class="pd-chev" style="width:18px;height:18px"></i></summary>
+            <div class="pd-group-body">
+                <label class="pd-radio"><input type="radio" name="approval" value="manual">
+                    <div><b id="apManualTitle">Lo acepta el mozo o la caja</b><span id="apManualText">El pedido aparece en "Nuevos" y pasa a cocina (e imprime) recién cuando alguien lo acepta. Con "Mesa abierta" activado, solo hay que aceptar el primero de cada mesa.</span></div></label>
+                <label class="pd-radio"><input type="radio" name="approval" value="direct">
+                    <div><b id="apDirectTitle">Va directo a cocina si se verificó que el comensal está en el local</b><span id="apDirectText">Mesa abierta, Wi-Fi del local o GPS. Si no se pudo verificar, queda en "Nuevos" para que lo acepte el mozo.</span></div></label>
 
-        <div class="pd-section pd-only-restaurant">
-            <h3>GPS (opcional)</h3>
-            <label class="pd-switch"><input type="checkbox" id="cfgGeo"> Pedir ubicación si la mesa está cerrada y el comensal no está en el Wi-Fi</label>
-            <p class="pd-help">El celular pide permiso de ubicación y el servidor compara la distancia con la del local. Adentro de edificios el GPS puede errar 20–100 m, por eso conviene un radio de al menos 100 m. Si lo dejás apagado, esos pedidos quedan en "Nuevos" para que los acepte el mozo.</p>
-            <div id="geoFields">
-                <div class="pd-row">
-                    <label class="pd-field">Latitud <input class="pd-input" id="cfgLat" inputmode="decimal" placeholder="-34.6037"></label>
-                    <label class="pd-field">Longitud <input class="pd-input" id="cfgLng" inputmode="decimal" placeholder="-58.3816"></label>
-                    <label class="pd-field">Radio permitido: <b id="radiusVal">150 m</b> <input type="range" id="cfgRadius" min="50" max="500" step="10" value="150" style="accent-color:var(--pd-accent)"></label>
-                </div>
-                <div class="pd-row">
-                    <button class="pd-btn" id="useMyLocation"><i data-lucide="locate-fixed" style="width:14px;height:14px"></i> Usar mi ubicación actual (estando en el local)</button>
-                    <a class="pd-btn" id="mapLink" target="_blank" rel="noopener"><i data-lucide="map-pin" style="width:14px;height:14px"></i> Ver en Google Maps</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="pd-section">
-            <h3>Comandera</h3>
-            <p>Elegí cómo se imprimen los pedidos en cocina. Funciona con cualquier marca.</p>
-            <label class="pd-radio"><input type="radio" name="printMode" value="browser">
-                <div><b>Impresora conectada a una PC o tablet</b><span>Cualquier térmica (USB, red o Bluetooth) instalada en la compu de la cocina/caja: Xprinter, 3nStar, Epson, Hasar, Gadnic… Dejás esta página abierta y cada pedido se imprime solo.</span></div></label>
-            <label class="pd-radio"><input type="radio" name="printMode" value="epson">
-                <div><b>Epson con impresión en la nube</b><span>TM-m30, TM-T88VI/VII, TM-m50 y otras con "Server Direct Print". Imprime sin PC.</span></div></label>
-            <label class="pd-radio"><input type="radio" name="printMode" value="star">
-                <div><b>Star con CloudPRNT</b><span>TSP143IV, mC-Print3, mC-Print2 y otras Star con CloudPRNT. Imprime sin PC.</span></div></label>
-            <label class="pd-radio"><input type="radio" name="printMode" value="none">
-                <div><b>Sin impresora (solo pantalla)</b><span>La cocina ve y marca los pedidos en esta pantalla, desde una tablet o TV.</span></div></label>
-
-            <div id="pm-browser" class="pd-hidden">
-                <div class="pd-row">
-                    <label class="pd-field" style="max-width:220px">Ancho del papel
-                        <select class="pd-select" id="cfgPaper"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
-                    <button class="pd-btn" id="testPrintBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir ticket de prueba</button>
-                </div>
-                <div class="pd-help">Para que imprima <b>sin mostrar el cuadro de diálogo</b>:
-                    <ol>
-                        <li>En la PC de la cocina, configurá la térmica como <b>impresora predeterminada</b> de Windows.</li>
-                        <li>Creá un acceso directo de Chrome con este destino:<br><span class="pd-code"><span>"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing <span class="url-here"></span></span></span></li>
-                        <li>Abrí esa ventana, entrá con tu cuenta y marcá <b>"Esta pantalla imprime los tickets"</b> en la pestaña Pedidos.</li>
-                    </ol>
+                <div class="pd-only-restaurant pd-sub">
+                    <h4><i data-lucide="shield-check" style="width:15px;height:15px"></i> Verificar que el comensal esté en el local</h4>
+                    <p class="pd-help" style="margin-top:2px">Evita pedidos de alguien que se llevó una foto del QR. Ninguna es obligatoria: con el mozo aceptando el primer pedido de cada mesa alcanza.</p>
+                    <label class="pd-switch"><input type="checkbox" id="cfgSessions"> <span><b>Mesa abierta</b> — después del primer pedido aceptado, los siguientes de esa mesa van directo</span></label>
+                    <p class="pd-help">La mesa se abre al aceptar su primer pedido y se cierra cuando la marcás como cobrada (o sola, a las 6 horas sin pedidos).</p>
+                    <label class="pd-switch" style="margin-top:12px"><input type="checkbox" id="cfgWifi"> <span><b>Wi-Fi del local</b> — si el comensal está en tu Wi-Fi, se da por verificado</span></label>
+                    <p class="pd-help">Funciona solo mientras esta pantalla esté abierta en un equipo conectado al <b>mismo Wi-Fi que usan los clientes</b>. El comensal no ve nada distinto.</p>
+                    <div class="pd-status-line" id="wifiStatus"></div>
+                    <label class="pd-switch" style="margin-top:12px"><input type="checkbox" id="cfgGeo"> <span><b>GPS</b> — si no se pudo verificar de otra forma, se le pide la ubicación al comensal</span></label>
+                    <p class="pd-help">Usalo solo si recibís pedidos falsos: al comensal le aparece un pedido de permiso de ubicación. Dentro de edificios el GPS puede errar 20–100 m, por eso conviene un radio de al menos 100 m.</p>
+                    <div id="geoFields">
+                        <div class="pd-row">
+                            <label class="pd-field">Latitud <input class="pd-input" id="cfgLat" inputmode="decimal" placeholder="-34.6037"></label>
+                            <label class="pd-field">Longitud <input class="pd-input" id="cfgLng" inputmode="decimal" placeholder="-58.3816"></label>
+                            <label class="pd-field">Radio permitido: <b id="radiusVal">150 m</b> <input type="range" id="cfgRadius" min="50" max="500" step="10" value="150" style="accent-color:var(--pd-accent)"></label>
+                        </div>
+                        <div class="pd-row">
+                            <button class="pd-btn" id="useMyLocation"><i data-lucide="locate-fixed" style="width:14px;height:14px"></i> Usar mi ubicación actual (estando en el local)</button>
+                            <a class="pd-btn" id="mapLink" target="_blank" rel="noopener"><i data-lucide="map-pin" style="width:14px;height:14px"></i> Ver en Google Maps</a>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="pm-cloud" class="pd-hidden">
-                <p class="pd-help">Configurá esta URL en la impresora (página web de configuración de la impresora → <span id="cloudMenuName"></span>). La impresora consulta cada pocos segundos si hay pedidos nuevos.</p>
-                <div class="pd-code"><span id="cloudUrl">Guardá la configuración para generar la URL</span><button class="pd-btn" id="copyCloudUrl" type="button">Copiar</button></div>
-                <div class="pd-help" id="cloudSteps"></div>
-                <div class="pd-row"><button class="pd-btn danger" id="regenKeyBtn">Regenerar clave de la impresora</button></div>
+        </details>
+
+        <details class="pd-group" data-group="print">
+            <summary><i data-lucide="printer" style="width:18px;height:18px"></i>
+                <span class="pd-group-title"><b>Impresión en cocina (comandera)</b><small class="pd-sum" id="sumPrint"></small></span>
+                <i data-lucide="chevron-down" class="pd-chev" style="width:18px;height:18px"></i></summary>
+            <div class="pd-group-body">
+                <p class="pd-help" style="margin-top:0">Elegí cómo se imprimen los pedidos. Funciona con cualquier marca.</p>
+                <label class="pd-radio"><input type="radio" name="printMode" value="browser">
+                    <div><b>Impresora conectada a una PC o tablet</b><span>Cualquier térmica (USB, red o Bluetooth) instalada en la compu de la cocina/caja: Xprinter, 3nStar, Epson, Hasar, Gadnic… Dejás esta página abierta y cada pedido se imprime solo.</span></div></label>
+                <label class="pd-radio"><input type="radio" name="printMode" value="epson">
+                    <div><b>Epson con impresión en la nube</b><span>TM-m30, TM-T88VI/VII, TM-m50 y otras con "Server Direct Print". Imprime sin PC.</span></div></label>
+                <label class="pd-radio"><input type="radio" name="printMode" value="star">
+                    <div><b>Star con CloudPRNT</b><span>TSP143IV, mC-Print3, mC-Print2 y otras Star con CloudPRNT. Imprime sin PC.</span></div></label>
+                <label class="pd-radio"><input type="radio" name="printMode" value="none">
+                    <div><b>Sin impresora (solo pantalla)</b><span>La cocina ve y marca los pedidos en esta pantalla, desde una tablet o TV.</span></div></label>
+
+                <div id="pm-browser" class="pd-hidden">
+                    <div class="pd-row">
+                        <label class="pd-field" style="max-width:220px">Ancho del papel
+                            <select class="pd-select" id="cfgPaper"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
+                        <button class="pd-btn" id="testPrintBtn"><i data-lucide="printer" style="width:14px;height:14px"></i> Imprimir ticket de prueba</button>
+                    </div>
+                    <div class="pd-help">Para que imprima <b>sin mostrar el cuadro de diálogo</b>:
+                        <ol>
+                            <li>En la PC de la cocina, configurá la térmica como <b>impresora predeterminada</b> de Windows.</li>
+                            <li>Creá un acceso directo de Chrome con este destino:<br><span class="pd-code"><span>"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing <span class="url-here"></span></span></span></li>
+                            <li>Abrí esa ventana, entrá con tu cuenta y marcá <b>"Esta pantalla imprime los tickets"</b> en la pestaña Pedidos.</li>
+                        </ol>
+                    </div>
+                </div>
+                <div id="pm-cloud" class="pd-hidden">
+                    <p class="pd-help">Configurá esta URL en la impresora (página web de configuración de la impresora → <span id="cloudMenuName"></span>). La impresora consulta cada pocos segundos si hay pedidos nuevos.</p>
+                    <div class="pd-code"><span id="cloudUrl">Guardá la configuración para generar la URL</span><button class="pd-btn" id="copyCloudUrl" type="button">Copiar</button></div>
+                    <div class="pd-help" id="cloudSteps"></div>
+                    <div class="pd-row"><button class="pd-btn danger" id="regenKeyBtn">Regenerar clave de la impresora</button></div>
+                </div>
             </div>
-        </div>
+        </details>
 
-        <div class="pd-section">
-            <h3>Integración con sistema de gestión / POS (avanzado)</h3>
-            <p>Si el restaurante usa un sistema propio (Fudo, Maxirest, un desarrollo a medida, Zapier, Make…), cada pedido que pasa a cocina se envía a esta URL como JSON firmado.</p>
-            <label class="pd-field">URL del webhook (https)
-                <input class="pd-input" id="cfgWebhook" placeholder="https://mi-sistema.com/api/pedidos"></label>
-            <div class="pd-code"><span>Firma: header <b>X-Cubierto-Signature</b> = HMAC-SHA256 del body con la clave <b id="webhookSecret">—</b></span></div>
-        </div>
+        <details class="pd-group" data-group="limits">
+            <summary><i data-lucide="gauge" style="width:18px;height:18px"></i>
+                <span class="pd-group-title"><b>Límite y pausa de pedidos</b><small class="pd-sum" id="sumLimits"></small></span>
+                <i data-lucide="chevron-down" class="pd-chev" style="width:18px;height:18px"></i></summary>
+            <div class="pd-group-body">
+                <div class="pd-status-line" id="capacityStatus"></div>
+                <label class="pd-switch"><input type="checkbox" id="cfgLimitOn"> <span><b>Limitar la cantidad de pedidos</b> — para no recibir más de los que podés preparar</span></label>
+                <div id="limitFields">
+                    <div class="pd-row">
+                        <label class="pd-field" style="max-width:160px">Máximo de pedidos <input class="pd-input" id="cfgLimitMax" type="number" min="1" max="10000" placeholder="ej: 20"></label>
+                        <label class="pd-field" style="max-width:220px">Por
+                            <select class="pd-select" id="cfgLimitPeriod">
+                                <option value="day">Día</option>
+                                <option value="week">Semana (de lunes a domingo)</option>
+                                <option value="hours">Cada cierta cantidad de horas</option>
+                            </select></label>
+                        <label class="pd-field" style="max-width:140px" id="limitHoursField">Horas <input class="pd-input" id="cfgLimitHours" type="number" min="1" max="720" value="2"></label>
+                    </div>
+                    <label class="pd-field" style="margin-top:10px">Mensaje cuando se llega al límite
+                        <textarea class="pd-input" id="cfgLimitMsg" rows="2" maxlength="300" placeholder="Por ahora no podemos recibir más pedidos. Vas a poder volver a pedir desde el {hasta}."></textarea></label>
+                    <p class="pd-help">Escribí <b>{hasta}</b> donde quieras que aparezca la fecha y hora en que se vuelve a recibir pedidos. Los pedidos rechazados no cuentan para el límite.</p>
+                </div>
 
-        <div class="pd-save-bar">
+                <label class="pd-switch" style="margin-top:16px"><input type="checkbox" id="cfgPauseOn"> <span><b>Pausar los pedidos hasta una fecha</b> — vacaciones, feriados, cierre temporal</span></label>
+                <div id="pauseFields">
+                    <div class="pd-row">
+                        <label class="pd-field" style="max-width:260px">Hasta <input class="pd-input" id="cfgPauseUntil" type="datetime-local"></label>
+                    </div>
+                    <label class="pd-field" style="margin-top:10px">Mensaje mientras está pausado
+                        <textarea class="pd-input" id="cfgPauseMsg" rows="2" maxlength="300" placeholder="Por ahora no estamos tomando pedidos. Volvemos el {hasta}."></textarea></label>
+                </div>
+            </div>
+        </details>
+
+        <details class="pd-group" data-group="pos">
+            <summary><i data-lucide="plug" style="width:18px;height:18px"></i>
+                <span class="pd-group-title"><b>Conectar con tu sistema de gestión <span class="pd-tag">avanzado</span></b><small class="pd-sum" id="sumPos"></small></span>
+                <i data-lucide="chevron-down" class="pd-chev" style="width:18px;height:18px"></i></summary>
+            <div class="pd-group-body">
+                <p class="pd-help" style="margin-top:0">Solo si usás un sistema propio (Fudo, Maxirest, un desarrollo a medida, Zapier, Make…): cada pedido que pasa a cocina se envía a esta URL como JSON firmado.</p>
+                <label class="pd-field">URL del webhook (https)
+                    <input class="pd-input" id="cfgWebhook" placeholder="https://mi-sistema.com/api/pedidos"></label>
+                <div class="pd-code"><span>Firma: header <b>X-Cubierto-Signature</b> = HMAC-SHA256 del body con la clave <b id="webhookSecret">—</b></span></div>
+            </div>
+        </details>
+
+        <!-- Aparece solo cuando hay cambios sin guardar -->
+        <div class="pd-save-bar" id="saveBar">
             <span class="pd-msg" id="saveMsg"></span>
-            <button class="pd-btn primary" id="saveCfgBtn">Guardar configuración</button>
+            <button class="pd-btn" id="discardCfgBtn" type="button">Descartar</button>
+            <button class="pd-btn primary" id="saveCfgBtn">Guardar cambios</button>
         </div>
     </section>
 
@@ -429,7 +535,7 @@
     <script src="./Js/benefits-config.js?v=4"></script>
     <script src="./Js/support-access.js?v=1"></script>
     <script src="./Js/restrictions.js?v=2"></script>
-    <script src="./Js/pedidos.js?v=13"></script>
+    <script src="./Js/pedidos.js?v=14"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

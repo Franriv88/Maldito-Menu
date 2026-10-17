@@ -529,6 +529,13 @@ function initTablesTab() {
         if (n > 0) addTables(Math.min(n, 100));
     });
     document.getElementById('printStickersBtn').addEventListener('click', () => printStickers(orderingCfg.tables || []));
+    // Paso 3: la tarjeta para grabar NFC con el celular se muestra al pedirla
+    document.getElementById('nfcToggleBtn')?.addEventListener('click', e => {
+        const card = document.getElementById('nfcPhoneCard');
+        card.hidden = !card.hidden;
+        e.currentTarget.setAttribute('aria-expanded', String(!card.hidden));
+        if (!card.hidden) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
     // Logo de NFC en los stickers impresos (config/ordering.stickerNfcLogo; se guarda al tocarlo)
     document.getElementById('stickerNfcLogo').addEventListener('change', async e => {
         await restRef().collection('config').doc('ordering').set({ stickerNfcLogo: e.target.checked }, { merge: true });
@@ -551,7 +558,7 @@ function initTablesTab() {
 
     document.getElementById('nfcHelp').innerHTML = 'NDEFReader' in window
         ? `${licon('nfc', 13)} Este dispositivo puede grabar stickers NFC: tocá "Grabar NFC" en una mesa. Si el sticker ya tiene algo grabado, te lo muestra y te pregunta antes de reescribirlo.`
-        : `${licon('info', 13)} Para grabar los stickers usá el código QR de arriba con tu celular. Los iPhone y Android leen el sticker sin instalar nada.`;
+        : `${licon('info', 13)} Para grabar los stickers NFC tocá <b>«Grabarlos con el celular»</b> en el paso 3. Los iPhone y Android leen el sticker sin instalar nada.`;
 }
 
 async function saveTables(tables) {
@@ -580,10 +587,16 @@ function renderTables() {
     if (!grid) return;
     const tables = orderingCfg.tables || [];
     if (!tables.length) {
+        const c = document.getElementById('tablesCount');
+        if (c) c.textContent = isCatering() ? 'Todavía no cargaste clientes' : 'Creá una por cada mesa del local';
         grid.innerHTML = `<p class="pd-empty">${isCatering() ? 'Todavía no hay clientes. Agregá el primero.' : 'Todavía no hay mesas. Agregá la primera.'}</p>`;
         return;
     }
     const canNfc = 'NDEFReader' in window;
+    const countEl = document.getElementById('tablesCount');
+    if (countEl) countEl.textContent = isCatering()
+        ? (tables.length === 1 ? 'Tenés 1 cliente' : `Tenés ${tables.length} clientes`)
+        : (tables.length === 1 ? 'Tenés 1 mesa' : `Tenés ${tables.length} mesas`);
     const tip = isCatering()
         ? 'Tocá el nombre de un cliente para cambiarlo (por ejemplo: «Marcela» o «Oficina Centro»). Los pedidos llegan como «Pedido de Marcela».'
         : 'Tocá el nombre de una mesa para cambiarlo (por ejemplo: «Terraza 2» o «Barra»).';
@@ -597,9 +610,9 @@ function renderTables() {
             <div class="pd-actions">
                 <button class="pd-btn" data-act="copy" title="Copiar link">${licon('link-2', 14)} Link</button>
                 ${canNfc ? `<button class="pd-btn" data-act="nfc">${licon('nfc', 14)} Grabar NFC</button>` : ''}
-                <button class="pd-btn" data-act="print" title="Imprimir sticker">${licon('printer', 14)}</button>
-                <a class="pd-btn" href="${tableUrl(t.id)}" target="_blank" rel="noopener" title="Probar">${licon('external-link', 14)}</a>
-                <button class="pd-btn danger" data-act="delete" title="Eliminar">${licon('trash-2', 14)}</button>
+                <button class="pd-btn" data-act="print" title="Imprimir el sticker de esta mesa">${licon('printer', 14)} Imprimir</button>
+                <a class="pd-btn" href="${tableUrl(t.id)}" target="_blank" rel="noopener" title="Abrir el menú como lo ve el comensal">${licon('external-link', 14)} Probar</a>
+                <button class="pd-btn danger" data-act="delete" title="Eliminar">${licon('trash-2', 14)} Eliminar</button>
             </div>
         </div>`).join('');
 }
@@ -683,6 +696,11 @@ function printStickers(tables) {
 // ══════════════════════════════════════════════════════════════
 
 let settingsDirty = false;
+// Cambios sin guardar: muestra la barra de "Guardar cambios" (abajo, siempre visible)
+function setDirty(v) {
+    settingsDirty = v;
+    document.getElementById('saveBar')?.classList.toggle('show', v);
+}
 
 // Textos según el tipo de negocio (restaurante: mesas · catering: clientes)
 function applyBizLabels(type) {
@@ -695,6 +713,8 @@ function applyBizLabels(type) {
         ? 'Cada cliente tiene un link único y su QR. Mandale el link por WhatsApp o imprimí su QR: al abrirlo ve tu menú y te hace el pedido, que llega como «Pedido de» y su nombre.'
         : 'Cada mesa tiene un link único. Imprimí el QR como sticker y grabá el mismo link en un sticker NFC (NTAG213 o NTAG215). El comensal escanea o acerca el celular y se abre el menú con esa mesa ya identificada.');
     set('addTableLabel',  cat ? 'Agregar cliente' : 'Agregar mesa');
+    set('printStepTitle', cat ? 'Compartí su link o imprimí su QR' : 'Imprimí los QR');
+    set('printStepSub',   cat ? 'Mandale a cada cliente su link (botón «Link») o imprimí su QR.' : 'Un sticker por mesa, listo para pegar.');
     set('enabledTitle',   cat ? 'Recibir pedidos' : 'Pedidos desde la mesa');
     set('apManualTitle',  cat ? 'Lo confirmás vos' : 'Lo acepta el mozo o la caja');
     set('apManualText',   cat
@@ -744,8 +764,9 @@ function renderCapacityStatus() {
 
 function initSettingsTab() {
     const panel = document.getElementById('tab-settings');
-    panel.addEventListener('input', () => { settingsDirty = true; updateSettingsVisibility(); });
-    panel.addEventListener('change', () => { settingsDirty = true; updateSettingsVisibility(); });
+    panel.addEventListener('input', () => { setDirty(true); updateSettingsVisibility(); });
+    panel.addEventListener('change', () => { setDirty(true); updateSettingsVisibility(); });
+    document.getElementById('discardCfgBtn').addEventListener('click', () => { setDirty(false); fillSettings(); });
 
     document.getElementById('cfgRadius').addEventListener('input', e => {
         document.getElementById('radiusVal').textContent = `${e.target.value} m`;
@@ -755,7 +776,7 @@ function initSettingsTab() {
         navigator.geolocation.getCurrentPosition(pos => {
             document.getElementById('cfgLat').value = pos.coords.latitude.toFixed(6);
             document.getElementById('cfgLng').value = pos.coords.longitude.toFixed(6);
-            settingsDirty = true;
+            setDirty(true);
             updateSettingsVisibility();
             toastMsg(`Ubicación tomada (precisión ±${Math.round(pos.coords.accuracy)} m)`);
         }, err => toastMsg(err.code === 1 ? 'Permiso de ubicación denegado' : 'No se pudo obtener la ubicación', 'error'),
@@ -814,6 +835,46 @@ function fillSettings() {
     updateSettingsVisibility();
 }
 
+// Una línea por grupo con cómo está configurado (se lee del formulario, antes de guardar)
+function renderSettingsSummaries() {
+    const val = sel => document.querySelector(sel);
+    const cat = val('input[name="bizType"]:checked')?.value === 'catering';
+    const on = document.getElementById('cfgEnabled').checked;
+    const power = document.querySelector('.pd-power');
+    power?.classList.toggle('on', on);
+    const st = document.getElementById('enabledState');
+    if (st) st.textContent = on
+        ? (cat ? 'Activado: tus clientes pueden pedir desde su link o su QR.' : 'Activado: los comensales pueden pedir desde el QR o el sticker de su mesa.')
+        : (cat ? 'Apagado: el link abre tu menú, pero sin botón para pedir.' : 'Apagado: el QR abre el menú normal, sin botón para pedir.');
+
+    const direct = val('input[name="approval"]:checked')?.value === 'direct';
+    const checks = cat ? [] : [['cfgSessions', 'mesa abierta'], ['cfgWifi', 'Wi-Fi'], ['cfgGeo', 'GPS']]
+        .filter(([id]) => document.getElementById(id).checked).map(([, l]) => l);
+    document.getElementById('sumApproval').textContent = (cat
+        ? (direct ? 'Van directo a preparación' : 'Los confirmás vos')
+        : (direct ? 'Directo a cocina si se verificó' : 'Los acepta el mozo o la caja'))
+        + (checks.length ? ` · verificación: ${checks.join(', ')}` : '');
+
+    const pm = val('input[name="printMode"]:checked')?.value || 'browser';
+    document.getElementById('sumPrint').textContent = {
+        browser: `Impresora en una PC o tablet · papel de ${document.getElementById('cfgPaper').value} mm`,
+        epson: 'Epson con impresión en la nube', star: 'Star con CloudPRNT', none: 'Sin impresora (solo pantalla)',
+    }[pm];
+
+    const parts = [];
+    if (document.getElementById('cfgLimitOn').checked) {
+        const max = document.getElementById('cfgLimitMax').value || '?';
+        const per = document.getElementById('cfgLimitPeriod').value;
+        parts.push(`Máximo ${max} ${per === 'day' ? 'por día' : per === 'week' ? 'por semana' : `cada ${document.getElementById('cfgLimitHours').value || '?'} h`}`);
+    }
+    if (document.getElementById('cfgPauseOn').checked) {
+        const d = new Date(document.getElementById('cfgPauseUntil').value);
+        parts.push(isNaN(d) ? 'Pausado (elegí hasta cuándo)' : `Pausado hasta el ${d.toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}`);
+    }
+    document.getElementById('sumLimits').textContent = parts.join(' · ') || 'Sin límite ni pausa';
+    document.getElementById('sumPos').textContent = document.getElementById('cfgWebhook').value.trim() ? 'Conectado' : 'No conectado (opcional)';
+}
+
 function updateSettingsVisibility() {
     const mode = document.querySelector('input[name="printMode"]:checked')?.value;
     document.getElementById('pm-browser').classList.toggle('pd-hidden', mode !== 'browser');
@@ -828,6 +889,7 @@ function updateSettingsVisibility() {
     document.getElementById('limitHoursField').style.display = document.getElementById('cfgLimitPeriod').value === 'hours' ? '' : 'none';
     const pauseOn = document.getElementById('cfgPauseOn').checked;
     document.getElementById('pauseFields').style.display = pauseOn ? '' : 'none';
+    renderSettingsSummaries();
 
     const lat = document.getElementById('cfgLat').value, lng = document.getElementById('cfgLng').value;
     const map = document.getElementById('mapLink');
@@ -915,8 +977,9 @@ async function saveSettings() {
             }, { merge: true }),
         ]);
         privateCfg = priv;
-        settingsDirty = false;
+        setDirty(false);
         fillSettings();
+        toastMsg('Configuración guardada');
         msg.textContent = 'Guardado ✓';
         setTimeout(() => { msg.textContent = ''; }, 2500);
     } catch (err) {
