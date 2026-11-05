@@ -170,7 +170,8 @@ supportGrants/{restaurantId}: { ownerId, restaurantName, codeHash, createdAt, ex
 **Bajas y eliminación segura** (function adminDeleteAccount { uid, action }): "preview" (finanzas: pagos del período,
   parte no usada, arrepentimiento ≤ 10 días del primer pago), "cancelRenewal" (corta el débito en MP; queda en "Bajas" =
   subscription.billing.status 'cancelled'), "delete" (corta el débito → devolución por MP opcional: none|proportional|full,
-  del pago más reciente hacia atrás → constancia en accountDeletions → recursiveDelete). Sin pedido del cliente exige
+  del pago más reciente hacia atrás → constancia en accountDeletions → recursiveDelete → borra el login de Firebase Auth, así el email
+  queda libre). action "purgeDeletedLogins" (la llama el superadmin al abrir) borra logins de cuentas eliminadas antes de eso. Sin pedido del cliente exige
   confirmEmail (segunda confirmación). Si MP falla, no se borra nada. billingSubs.accountDeleted: un débito tardío va a
   unmatchedPayments (applyRecurringCharge nunca recrea un usuario borrado).
 

@@ -1151,6 +1151,16 @@ const mpRefund = async (paymentId, amount, key) => (await axios.post(
     `${MP_API}/v1/payments/${encodeURIComponent(paymentId)}/refunds`, { amount },
     { headers: { ...mpHeaders(), "X-Idempotency-Key": key } })).data;
 
+// Borra el usuario de Firebase Authentication (true si se borró o ya no existía)
+async function deleteAuthUser(uid) {
+    try { await auth.deleteUser(uid); return true; }
+    catch (err) {
+        if (err.code === "auth/user-not-found") return true;
+        console.error("deleteAuthUser:", uid, err.message);
+        return false;
+    }
+}
+
 exports.adminDeleteAccount = onRequest(
     { cors: true, invoker: "public", timeoutSeconds: 300, secrets: ["MP_ACCESS_TOKEN"] },
     async (req, res) => {
@@ -1159,6 +1169,20 @@ exports.adminDeleteAccount = onRequest(
         if (!user) return;
         if (user.email !== SUPERADMIN_EMAIL) { res.status(403).json({ error: "Sin permiso" }); return; }
         const { uid, action = "preview", refund = "none", requestedByClient = false, confirmEmail } = req.body || {};
+        // Limpieza: logins que quedaron de cuentas eliminadas antes de que el borrado incluyera Authentication.
+        // Solo borra el login si la cuenta figura en accountDeletions y ya no tiene perfil (users/{uid}).
+        if (action === "purgeDeletedLogins") {
+            const snap = await db.collection("accountDeletions").get();
+            const uids = [...new Set(snap.docs.map(d => d.data().uid).filter(u => typeof u === "string" && u && u !== user.uid))];
+            let purged = 0;
+            for (const u of uids) {
+                if ((await db.collection("users").doc(u).get()).exists) continue;
+                try { await auth.getUser(u); } catch { continue; }   // ya no existe
+                if (await deleteAuthUser(u)) purged++;
+            }
+            res.json({ ok: true, purged });
+            return;
+        }
         if (typeof uid !== "string" || !/^[\w-]{1,128}$/.test(uid) || uid === user.uid) { res.status(400).json({ error: "Usuario inválido" }); return; }
         const fin = await accountFinance(uid);
         if (action === "preview") { res.json(fin); return; }
@@ -1218,7 +1242,9 @@ exports.adminDeleteAccount = onRequest(
             await db.collection("supportGrants").doc(r.id).delete();
         }
         await db.recursiveDelete(db.collection("users").doc(uid));
-        res.json({ ok: true, restaurants: fin.restaurants.length, refunded: refundAmount - left, refunds, cancelled: fin.cancelledPreapprovals.length });
+        // 5) El login (Firebase Authentication): sin esto el email queda "ocupado" y no se puede volver a registrar
+        const authDeleted = await deleteAuthUser(uid);
+        res.json({ ok: true, restaurants: fin.restaurants.length, refunded: refundAmount - left, refunds, cancelled: fin.cancelledPreapprovals.length, authDeleted });
     }
 );
 

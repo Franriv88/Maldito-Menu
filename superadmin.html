@@ -463,6 +463,10 @@ auth.onAuthStateChanged(async user => {
     renderStats(); renderTable();   // la tabla muestra el nombre del plan: redibujar con los planes ya cargados
     await loadCoupons();
     await loadSupport();
+    // Logins que quedaron de cuentas eliminadas antes (el email no se podía volver a usar): se limpian solos
+    SupportAccess.call('adminDeleteAccount', { action: 'purgeDeletedLogins' })
+        .then(r => { if (r?.purged) console.info(`Se borraron ${r.purged} logins de cuentas eliminadas`); })
+        .catch(err => console.warn('purgeDeletedLogins:', err.message));
 });
 
 // ── Plan management ───────────────────────────────────────────
@@ -763,7 +767,7 @@ async function deleteUser(uid, name) {
         allUsers = allUsers.filter(u => u.uid !== uid);
         renderStats(); renderCharts(); renderTable();
         Swal.fire({ icon: 'success', title: 'Cuenta eliminada',
-            html: `<span style="font-size:.88rem">${r.cancelled ? 'Se canceló el débito automático. ' : ''}${r.refunded ? `Se devolvieron ${saMoney(r.refunded)} por Mercado Pago.` : 'Sin devolución.'}</span>`, ...SWAL_DARK });
+            html: `<span style="font-size:.88rem">${r.cancelled ? 'Se canceló el débito automático. ' : ''}${r.refunded ? `Se devolvieron ${saMoney(r.refunded)} por Mercado Pago.` : 'Sin devolución.'}<br>${r.authDeleted ? 'También se borró su acceso: el email queda libre para registrarse de nuevo.' : '<b>No se pudo borrar su acceso (login)</b>: borralo en Firebase → Authentication → Usuarios.'}</span>`, ...SWAL_DARK });
     } catch (e) {
         Swal.fire({ icon: 'error', title: 'No se completó', text: e.message, ...SWAL_DARK });
     }
