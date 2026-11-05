@@ -410,6 +410,8 @@ async function renderAdminMenu() {
         }
         applyStyles(styleConfig);
         populateStyleControls(styleConfig);
+        // Imagen de fondo ya subida antes de esta función: tomar su color una sola vez
+        if (styleConfig.menuBgImage && styleConfig.menuBgColorFrom !== bgImageKey(styleConfig.menuBgImage)) syncMenuBgColorFromImage(styleConfig.menuBgImage);
         applyFontGating();   // los selectores se acaban de armar: volver a bloquear las premium
         initStyleControls();
         initSidebarUX();
@@ -2416,6 +2418,59 @@ function applyBenefitGating() {
 
 // ── Controles de imagen de fondo (menuBg / pageBg) ───────────
 
+// ── Color de fondo del menú tomado de la imagen de fondo ──
+// Con imagen de fondo, el color hexadecimal "Fondo del menú" pasa a ser el color predominante de esa imagen
+// (lo usan la vista previa del aviso al pie y cualquier lugar que muestre el color liso). menuBgColorFrom
+// recuerda de qué imagen salió, así se calcula una sola vez por imagen (también para las que ya estaban subidas).
+const bgImageKey = src => `${src.length}:${src.slice(-40)}`;
+
+function dominantColor(src) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                const N = 64, c = document.createElement('canvas');
+                c.width = N; c.height = N;
+                const ctx = c.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(img, 0, 0, N, N);
+                const d = ctx.getImageData(0, 0, N, N).data;
+                const buckets = new Map();   // colores agrupados (5 bits por canal) → cantidad y suma
+                for (let i = 0; i < d.length; i += 4) {
+                    if (d[i + 3] < 128) continue;   // transparente
+                    const k = (d[i] >> 3) << 10 | (d[i + 1] >> 3) << 5 | (d[i + 2] >> 3);
+                    const b = buckets.get(k) || { n: 0, r: 0, g: 0, b: 0 };
+                    b.n++; b.r += d[i]; b.g += d[i + 1]; b.b += d[i + 2];
+                    buckets.set(k, b);
+                }
+                let best = null;
+                buckets.forEach(b => { if (!best || b.n > best.n) best = b; });
+                if (!best) return resolve(null);
+                const hex = v => Math.round(v / best.n).toString(16).padStart(2, '0');
+                resolve(`#${hex(best.r)}${hex(best.g)}${hex(best.b)}`);
+            } catch (err) { console.warn('No se pudo leer el color de la imagen:', err); resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
+
+async function syncMenuBgColorFromImage(src, { notify = false } = {}) {
+    if (!src || isReadonly) return;
+    const hex = await dominantColor(src);
+    if (!hex) return;
+    document.documentElement.style.setProperty('--primary-color', hex);
+    const inp = document.getElementById('cfg-bgMenu'), hexInp = document.getElementById('cfg-bgMenuHex');
+    if (inp) inp.value = hex;
+    if (hexInp) hexInp.value = hex;
+    renderSidebarSummaries?.();
+    try {
+        await restRef().collection('config').doc('styles').set({ bgMenu: hex, menuBgColorFrom: bgImageKey(src) }, { merge: true });
+    } catch (e) { console.error('Error guardando el color de fondo:', e); }
+    if (notify && window.Swal) Swal.fire({ toast: true, position: 'bottom-end', icon: 'info', timer: 4500, showConfirmButton: false,
+        title: `El color de fondo del menú ahora es ${hex}, el predominante de tu imagen` });
+}
+
 // Imagen de fondo de página en el editor: a los costados del menú, igual que en el menú público
 function applyEditorPageBg(img) {
     const b = document.body.style;
@@ -2450,7 +2505,7 @@ function initBgImageControls() {
                 const field  = key === 'menuBg' ? 'menuBgImage' : 'pageBgImage';
                 await restRef().collection('config').doc('styles').set({ [field]: base64 }, { merge: true });
                 if (thumb)  thumb.style.backgroundImage = `url('${base64}')`;
-                if (key === 'menuBg') { editorMenuBg.image = base64; applyEditorMenuBg(); }
+                if (key === 'menuBg') { editorMenuBg.image = base64; applyEditorMenuBg(); syncMenuBgColorFromImage(base64, { notify: true }); }
                 else applyEditorPageBg(base64);
                 if (remove) remove.style.display = '';
                 showExtras(true);
