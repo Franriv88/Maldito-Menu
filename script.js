@@ -236,7 +236,7 @@ const SUPERADMIN_EMAIL = 'frivasv2388@gmail.com';
 // ── Auth guard ────────────────────────────────────────────────
 
 auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = './login.html'; return; }
+    if (!user) { if (!window.__loggingOut) window.location.href = './login.html'; return; }
     if (!restaurantId) { window.location.href = './dashboard.html'; return; }
 
     // Verificar que el usuario es dueño (o superadmin en modo vista)
@@ -293,7 +293,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('topbarUserName').textContent  = user.displayName || user.email;
         document.getElementById('viewMenuLink').href = `./menu.html?r=${restaurantId}`;
         document.getElementById('ordersLink').href   = `./pedidos.html?r=${restaurantId}`;
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = './login.html'));
+        document.getElementById('logoutBtn').addEventListener('click', () => { window.__loggingOut = true; auth.signOut().then(() => window.location.href = './'); });   // a cubierto.menu
         document.getElementById('saveMenuBtn').addEventListener('click', guardarMenu);
         initThemeToggle('themeBtn');
 

@@ -245,9 +245,61 @@
     .co-legal a { color: rgba(200,184,154,.8); }
     body.light .co-legal { color: rgba(60,42,20,.55); }
     body.light .co-legal a { color: #6b5135; }
+
+    /* ── Modo claro: la pantalla de planes siempre en claro (más amigable al elegir y pagar) ── */
+    body.light { background: #f2ede6; color: #3a2e22; }
+    body.light .co-logo { color: #6b5135; }
+    body.light .co-card { background: #fffdf9; border-color: rgba(100,80,50,.16); box-shadow: 0 20px 50px rgba(60,42,20,.12); }
+    body.light .co-badge { background: #f4ede2; border-color: rgba(100,80,50,.22); color: #7a6248; }
+    body.light .co-price-block { border-bottom-color: rgba(100,80,50,.12); }
+    body.light .co-price, body.light .co-plan-price, body.light .co-success h2, body.light .co-modal-box h3, body.light .co-modal-box .co-amount { color: #2e241a; }
+    body.light .co-price span, body.light .co-plan-price span { color: rgba(60,42,20,.5); }
+    body.light .co-per-month, body.light .co-plan-sub, body.light .co-plan-month, body.light .co-plan-note { color: rgba(60,42,20,.6); }
+    body.light .co-benefit { color: #4a3a28; border-bottom-color: rgba(100,80,50,.08); }
+    body.light .co-check { background: #e3f3e8; border-color: rgba(46,158,87,.4); color: #2e8a4e; }
+    body.light .co-saving, body.light .co-plan-save { background: #e3f3e8; border-color: rgba(46,158,87,.3); color: #2e7d46; }
+    body.light .co-plan { background: #fff; border-color: rgba(100,80,50,.18); box-shadow: 0 2px 10px rgba(60,42,20,.05); }
+    body.light .co-plan:hover { border-color: rgba(100,80,50,.4); }
+    body.light .co-plan.recommended { border: 2px solid #c9a24a; background: #fffaf0; box-shadow: 0 10px 28px rgba(160,120,40,.16); }
+    body.light .co-rec-badge { background: #c9a24a; color: #fff; }
+    body.light .co-plan.current { border-color: rgba(46,158,87,.55); }
+    body.light .co-plan-label { color: #7a6248; }
+    body.light .co-plan-features { border-top-color: rgba(100,80,50,.12); }
+    body.light .co-feat-item { color: #4a3a28; }
+    body.light .co-feat-item.disabled, body.light .co-feat-item.disabled .co-feat-check { color: rgba(60,42,20,.32); }
+    body.light .co-periods { background: #f4ede2; border-color: rgba(100,80,50,.18); }
+    body.light .co-period { color: #7a6248; }
+    body.light .co-period:hover { color: #2e241a; }
+    body.light .co-period.on { background: #6b5135; color: #fff; }
+    body.light .co-period small { color: #2e7d46; background: #e3f3e8; }
+    body.light .co-period.on small { color: #fff; background: rgba(255,255,255,.22); }
+    body.light .co-savings-banner { color: #2e7d46; }
+    body.light .btn-plain { border-color: rgba(100,80,50,.4); color: #4a3a28; background: #fff; }
+    body.light .btn-plain:hover { border-color: #6b5135; background: #f4ede2; }
+    body.light .btn-skip { color: rgba(60,42,20,.5); }
+    body.light .btn-skip:hover { color: #3a2e22; }
+    body.light .co-current { background: #eef7f0; border-color: rgba(46,158,87,.3); color: #4a3a28; }
+    body.light .co-current b { color: #2e241a; }
+    body.light .co-current.warn { background: #fdf5e4; border-color: rgba(200,140,30,.45); }
+    body.light .co-no-config { background: #fdf5e4; border-color: rgba(200,140,30,.4); color: #8a5a00; }
+    body.light .co-loading, body.light .co-success p, body.light .co-pending p { color: rgba(60,42,20,.6); }
+    body.light .co-success .redirect-msg { color: rgba(60,42,20,.45); }
+    body.light .co-pending a { color: #6b5135; }
+    body.light .co-modal { background: rgba(40,28,14,.45); }
+    body.light .co-modal-box { background: #fffdf9; border-color: rgba(100,80,50,.2); box-shadow: 0 24px 60px rgba(40,28,14,.3); }
+    body.light .co-modal-box p, body.light .co-email { color: #4a3a28; }
+    body.light .co-email input { background: #fff; border-color: rgba(100,80,50,.3); color: #2e241a; }
+    body.light .co-email small { color: rgba(60,42,20,.55); }
+    body.light .co-modal-cancel { border-color: rgba(100,80,50,.35); color: #4a3a28; }
+    body.light .co-error, body.light .co-link { color: #b8382c; }
+    body.light #couponToggle { color: #7a6248 !important; }
+    body.light #couponCodeInput { background: #fff !important; border-color: rgba(100,80,50,.3) !important; color: #2e241a !important; }
+    body.light #couponApplyBtn { background: #e3f3e8 !important; border-color: rgba(46,158,87,.4) !important; color: #2e7d46 !important; }
+    body.light #couponMsg { color: rgba(60,42,20,.6) !important; }
+    @media(min-width:900px){ body.light.co-wide .co-benefit:last-child { border-bottom-color: rgba(100,80,50,.08); } }
 </style>
 </head>
-<body>
+<body class="light">
 
 <div class="co-wrap">
     <div class="co-logo">Cubierto</div>

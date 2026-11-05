@@ -8,7 +8,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="./Css/auth.css?v=4">
+    <link rel="stylesheet" href="./Css/auth.css?v=5">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
     <style>
         .login-card h1 {
@@ -49,6 +49,21 @@
             <span class="btn-label">Continuar con Google</span>
         </button>
 
+        <div class="auth-divider"><span>o con tu email</span></div>
+
+        <form id="emailForm" class="auth-form" novalidate>
+            <input type="email" id="loginEmail" class="auth-input" placeholder="Email" autocomplete="email" required>
+            <div class="pw-wrap">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="Contraseña" autocomplete="current-password" required>
+                <button type="button" class="pw-toggle" data-for="loginPassword" aria-label="Mostrar la contraseña" title="Mostrar la contraseña"></button>
+            </div>
+            <p class="auth-msg" id="authMsg" role="alert"></p>
+            <button type="submit" class="btn-auth" id="emailSignInBtn">Iniciar sesión</button>
+            <button type="button" class="auth-link" id="forgotBtn">¿Olvidaste tu contraseña?</button>
+        </form>
+
+        <p class="auth-switch">¿No tenés cuenta? <a href="./?signup=1">Creá una gratis</a></p>
+
         <p class="login-disclaimer">Solo vos podés ver y editar tu menú.</p>
         <p class="login-legal">Al continuar aceptás los <a href="./terminos.html">Términos y condiciones</a>
             y la <a href="./privacidad.html">Política de privacidad</a>.</p>
@@ -58,31 +73,32 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="./Js/firebase-config.js?v=4"></script>
+    <script src="./Js/password-toggle.js?v=1"></script>
     <script>
+        auth.languageCode = 'es';   // los emails de Firebase (recuperar contraseña) en español
+        const $ = id => document.getElementById(id);
+        const msg = (text, kind = 'error') => { const m = $('authMsg'); m.textContent = text; m.dataset.kind = kind; };
+        const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
         // Mostrar aviso si el usuario fue bloqueado
         if (new URLSearchParams(location.search).get('reason') === 'blocked') {
             const card = document.querySelector('.login-card');
             const notice = document.createElement('p');
             notice.className = 'blocked-notice';
-            const ico = lucide.createElement('ban'); ico.setAttribute('width',14); ico.setAttribute('height',14); ico.setAttribute('stroke-width','1.75'); ico.style.cssText='display:inline-block;vertical-align:middle';
-            notice.innerHTML = ''; notice.appendChild(ico);
+            const ico = lucide.createElement(lucide.Ban); ico.setAttribute('width',14); ico.setAttribute('height',14); ico.setAttribute('stroke-width','1.75'); ico.style.cssText='display:inline-block;vertical-align:middle';
+            notice.appendChild(ico);
             notice.insertAdjacentHTML('beforeend', ' <strong>Cuenta suspendida.</strong><br>Tu acceso fue bloqueado por el administrador. Contactá a <a href="mailto:frivasv2388@gmail.com" style="color:#e06070">soporte</a> para regularizar tu situación.');
             card.appendChild(notice);
-            document.getElementById('googleSignInBtn').disabled = true;
-            document.getElementById('googleSignInBtn').style.opacity = '.4';
-            document.getElementById('googleSignInBtn').style.cursor = 'not-allowed';
+            card.querySelectorAll('button, input').forEach(el => { el.disabled = true; });
+            card.classList.add('is-blocked');
         }
 
         auth.onAuthStateChanged(user => {
             if (!user) return;
-            if (user.email === 'frivasv2388@gmail.com') {
-                window.location.href = './superadmin.html';
-            } else {
-                window.location.href = './dashboard.html';
-            }
+            window.location.href = user.email === 'frivasv2388@gmail.com' ? './superadmin.html' : './dashboard.html';
         });
 
-        document.getElementById('googleSignInBtn').addEventListener('click', function () {
+        $('googleSignInBtn').addEventListener('click', function () {
             const btn   = this;
             const label = btn.querySelector('.btn-label');
             btn.disabled = true;
@@ -95,8 +111,52 @@
                 btn.disabled = false;
                 btn.classList.remove('is-loading');
                 label.textContent = 'Continuar con Google';
-                alert('No se pudo iniciar sesión. Intentá de nuevo.');
+                if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') msg('No se pudo iniciar sesión con Google. Intentá de nuevo.');
             });
+        });
+
+        // ── Email y contraseña ──
+        $('emailForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const email = $('loginEmail').value.trim(), pass = $('loginPassword').value;
+            if (!isEmail(email)) { msg('Escribí un email válido.'); $('loginEmail').focus(); return; }
+            if (!pass) { msg('Escribí tu contraseña.'); $('loginPassword').focus(); return; }
+            const btn = $('emailSignInBtn');
+            btn.disabled = true; btn.textContent = 'Entrando…'; msg('');
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);   // onAuthStateChanged redirige
+            } catch (err) {
+                console.warn('Login con email:', err.code);
+                btn.disabled = false; btn.textContent = 'Iniciar sesión';
+                if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-login-credentials'].includes(err.code)) {
+                    msg('Email o contraseña incorrectos. Si te registraste con Google, usá «Continuar con Google».');
+                } else if (err.code === 'auth/too-many-requests') {
+                    msg('Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.');
+                } else if (err.code === 'auth/user-disabled') {
+                    msg('Esta cuenta está deshabilitada. Contactá a soporte.');
+                } else if (err.code === 'auth/operation-not-allowed') {
+                    msg('El ingreso con email todavía no está habilitado. Usá «Continuar con Google».');
+                } else {
+                    msg('No se pudo iniciar sesión. Revisá tu conexión e intentá de nuevo.');
+                }
+            }
+        });
+
+        // ── Recuperar contraseña: Firebase manda un enlace para crear una nueva ──
+        $('forgotBtn').addEventListener('click', async () => {
+            const email = $('loginEmail').value.trim();
+            if (!isEmail(email)) { msg('Escribí tu email arriba y volvé a tocar «¿Olvidaste tu contraseña?».', 'info'); $('loginEmail').focus(); return; }
+            const btn = $('forgotBtn');
+            btn.disabled = true;
+            try {
+                await auth.sendPasswordResetEmail(email, { url: location.origin + '/login.html' });
+            } catch (err) {
+                console.warn('Recuperar contraseña:', err.code);
+                if (err.code === 'auth/too-many-requests') { msg('Ya pediste varios enlaces. Esperá unos minutos.'); btn.disabled = false; return; }
+                // Otros errores (ej. email sin cuenta): mismo mensaje, para no revelar qué emails están registrados
+            }
+            msg(`Si hay una cuenta con ${email}, te mandamos un enlace para crear una contraseña nueva. Revisá tu bandeja (y la carpeta de spam).`, 'ok');
+            setTimeout(() => { btn.disabled = false; }, 30000);
         });
     </script>
 </body>

@@ -7,10 +7,10 @@ const qrModal      = document.getElementById('qrModal');
 // ── Auth guard ────────────────────────────────────────────────
 
 auth.onAuthStateChanged(async user => {
-    if (!user) { window.location.href = './login.html'; return; }
+    if (!user) { window.location.href = window.__loggingOut ? './' : './login.html'; return; }   // al cerrar sesión: a cubierto.menu
 
     document.getElementById('userName').textContent = user.displayName || user.email;
-    document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+    document.getElementById('logoutBtn').addEventListener('click', () => { window.__loggingOut = true; auth.signOut(); });
     if (user.email === 'frivasv2388@gmail.com') {
         document.getElementById('superAdminLink').style.display = 'inline-flex';
     }

@@ -510,6 +510,11 @@ body.light .btn-signin{border-color:rgba(80,55,25,.3);color:rgba(80,55,25,.7)}
 body.light .btn-signin:hover{border-color:rgba(80,55,25,.6);color:#6b5135}
 body.light .btn-signup{background:rgba(80,55,25,.1);border-color:rgba(80,55,25,.4);color:#6b5135}
 body.light .btn-signup:hover{background:rgba(80,55,25,.2)}
+/* Registro con email: contraseña con "ojito" (Js/password-toggle.js) */
+.su-pw{position:relative}
+.su-pw .pw-toggle{position:absolute;right:6px;top:calc(50% - .25rem);transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;padding:0;border:none;border-radius:8px;background:none;color:rgba(200,184,154,.6);cursor:pointer}
+.su-pw .pw-toggle:hover,.su-pw .pw-toggle[aria-pressed="true"]{color:#c8b89a;background:rgba(200,184,154,.08)}
 </style>
 </head>
 <body>
@@ -1164,6 +1169,7 @@ setTimeout(()=>{
     themeToggle.classList.add('pulsing');
     themeToggle.addEventListener('animationend', ()=> themeToggle.classList.remove('pulsing'), { once: true });
     setTimeout(()=>{
+        if (Swal.isVisible()) return;   // no tapar una ventana abierta (ej. «Crear cuenta»)
         themeToast.fire({
             html:'<span style="font-size:.82rem;color:#ede4d8;font-family:Inter,sans-serif;line-height:1.6">'+licon('moon',14)+' &nbsp;Usá el panel lateral para<br><b style="color:#ddd0bb">cambiar modo oscuro / claro</b></span>'
         });
@@ -1227,6 +1233,7 @@ document.addEventListener('touchend',   e=>{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="./Js/firebase-config.js?v=4"></script>
+<script src="./Js/password-toggle.js?v=1"></script>
 <script>
 // ── Registro / Sign Up ────────────────────────────────────────
 // URL base de las Firebase Functions (se actualiza tras el deploy)
@@ -1247,90 +1254,67 @@ async function signInWithGoogle() {
     return user;
 }
 
-async function emailOTPFlow() {
-    const inp = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.25);color:#ddd0bb;border-radius:8px;font-size:.9rem;padding:.48rem .8rem;outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
-
-    // Paso 1: datos del usuario
-    const { value: form, isConfirmed } = await Swal.fire({
+// Registro con email y contraseña (Firebase Auth). Pide los mismos datos que el registro con Google.
+async function emailPasswordSignup() {
+    const inp = 'width:100%;background:#111;border:1px solid rgba(200,184,154,.25);color:#ddd0bb;border-radius:8px;font-size:.9rem;padding:.55rem .8rem;outline:none;font-family:inherit;margin:0 0 .5rem;box-sizing:border-box;height:auto';
+    let created = null;
+    const { isConfirmed } = await Swal.fire({
         title: '<span style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:1.5rem;color:#ddd0bb">Crear cuenta con email</span>',
         html: `
-            <input id="ot-email"    class="swal2-input" type="email"  placeholder="Email *"    style="${inp}">
-            <input id="ot-nombre"   class="swal2-input"               placeholder="Nombre *"   style="${inp}">
-            <input id="ot-apellido" class="swal2-input"               placeholder="Apellido *" style="${inp}">
-            <input id="ot-tel"      class="swal2-input" type="tel"    placeholder="Teléfono * (ej: +5491155667788)" style="${inp}">`,
+            <div style="text-align:left">
+            <input id="su-email"    type="email" placeholder="Email *"    autocomplete="email" style="${inp}">
+            <div class="su-pw">
+                <input id="su-pass" type="password" placeholder="Contraseña * (mínimo 8 caracteres)" autocomplete="new-password" style="${inp}padding-right:44px">
+                <button type="button" class="pw-toggle" data-for="su-pass"></button>
+            </div>
+            <input id="su-nombre"   placeholder="Nombre *"   autocomplete="given-name"  style="${inp}">
+            <input id="su-apellido" placeholder="Apellido *" autocomplete="family-name" style="${inp}">
+            <input id="su-tel" type="tel" placeholder="Teléfono * (ej: +5491155667788)" autocomplete="tel" style="${inp}">
+            <p style="font-size:.72rem;color:rgba(200,184,154,.45);margin:.3rem 0 0">¿Ya tenés cuenta? <a href="./login.html" style="color:#c8b89a">Iniciá sesión</a></p>
+            </div>`,
         background: '#1a1a1a', color: '#c8b89a',
-        confirmButtonText: 'Enviar código', confirmButtonColor: '#2d9a4e',
+        confirmButtonText: 'Crear cuenta', confirmButtonColor: '#2d9a4e',
         showCancelButton: true, cancelButtonText: 'Cancelar', cancelButtonColor: 'rgba(124,108,92,.2)',
         focusConfirm: false,
+        didOpen: () => { window.enhancePasswordToggles?.(Swal.getHtmlContainer()); document.getElementById('su-email').focus(); },
         preConfirm: async () => {
-            const email    = document.getElementById('ot-email').value.trim();
-            const nombre   = document.getElementById('ot-nombre').value.trim();
-            const apellido = document.getElementById('ot-apellido').value.trim();
-            const phone    = document.getElementById('ot-tel').value.trim();
-            if (!email || !nombre || !apellido || !phone) {
-                Swal.showValidationMessage('Completá todos los campos'); return false;
-            }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                Swal.showValidationMessage('Email inválido'); return false;
-            }
+            const v = id => document.getElementById(id).value.trim();
+            const email = v('su-email'), pass = document.getElementById('su-pass').value;
+            const nombre = v('su-nombre'), apellido = v('su-apellido'), phone = v('su-tel');
+            if (!email || !pass || !nombre || !apellido || !phone) { Swal.showValidationMessage('Completá todos los campos'); return false; }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Swal.showValidationMessage('Email inválido'); return false; }
+            if (pass.length < 8) { Swal.showValidationMessage('La contraseña tiene que tener al menos 8 caracteres'); return false; }
             const digits = phone.replace(/\D/g, '');
             const esAR = digits.length === 10 || (digits.length === 11 && digits[0] === '0') ||
                          (digits.length === 12 && digits.startsWith('54')) || (digits.length === 13 && digits.startsWith('549'));
             if (!esAR) { Swal.showValidationMessage('Teléfono argentino inválido (ej: +5491155667788)'); return false; }
-
-            Swal.showValidationMessage('Enviando código…');
             try {
-                const r = await fetch(`${FUNCTIONS_BASE}/sendOTP`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
-                });
-                const j = await r.json();
-                if (!r.ok) { Swal.showValidationMessage(j.error || 'Error al enviar el código'); return false; }
-            } catch {
-                Swal.showValidationMessage('Error de conexión. Intentá de nuevo.'); return false;
-            }
-            return { email, nombre, apellido, phone };
-        },
-    });
-    if (!isConfirmed || !form) return;
-
-    // Paso 2: ingresar el código
-    const { value: otpForm, isConfirmed: otpOk } = await Swal.fire({
-        title: '<span style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:1.5rem;color:#ddd0bb">Revisá tu email</span>',
-        html: `<p style="font-size:.82rem;color:rgba(200,184,154,.55);margin-bottom:1rem">Enviamos un código a <b style="color:#c8b89a">${form.email}</b></p>
-               <input id="ot-code" class="swal2-input" type="number" placeholder="Código de 4 dígitos" maxlength="4"
-                   style="${inp}text-align:center;font-size:1.5rem;letter-spacing:.4rem">`,
-        background: '#1a1a1a', color: '#c8b89a',
-        confirmButtonText: 'Verificar y entrar', confirmButtonColor: '#2d9a4e',
-        showCancelButton: true, cancelButtonText: 'Cancelar', cancelButtonColor: 'rgba(124,108,92,.2)',
-        focusConfirm: false,
-        preConfirm: async () => {
-            const code = document.getElementById('ot-code').value.trim();
-            if (!code || code.length !== 4) { Swal.showValidationMessage('Ingresá el código de 4 dígitos'); return false; }
-            Swal.showValidationMessage('Verificando…');
-            try {
-                const r = await fetch(`${FUNCTIONS_BASE}/verifyOTPAndSignIn`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: form.email, code }),
-                });
-                const j = await r.json();
-                if (!r.ok) { Swal.showValidationMessage(j.error || 'Error al verificar'); return false; }
-                return j.token;
-            } catch {
-                Swal.showValidationMessage('Error de conexión. Intentá de nuevo.'); return false;
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                await cred.user.updateProfile({ displayName: `${nombre} ${apellido}` }).catch(() => {});
+                // Verificación del email (no bloquea el ingreso). Con el email verificado, si después entra con
+                // Google con el mismo email, Firebase une las dos formas de ingreso en vez de reemplazar la contraseña.
+                auth.languageCode = 'es';
+                cred.user.sendEmailVerification({ url: location.origin + '/dashboard.html' }).catch(() => {});
+                created = { user: cred.user, nombre, apellido, phone };
+                return true;
+            } catch (err) {
+                const msgs = {
+                    'auth/email-already-in-use': 'Ya hay una cuenta con ese email. <a href="./login.html" style="color:#c8b89a">Iniciá sesión</a> (con Google o con tu contraseña).',
+                    'auth/invalid-email':        'Email inválido',
+                    'auth/weak-password':        'La contraseña es muy débil: usá al menos 8 caracteres',
+                    'auth/operation-not-allowed':'El registro con email todavía no está habilitado. Usá «Continuar con Google».',
+                    'auth/network-request-failed':'Sin conexión. Intentá de nuevo.',
+                };
+                Swal.showValidationMessage(msgs[err.code] || 'No se pudo crear la cuenta. Intentá de nuevo.');
+                return false;
             }
         },
     });
-    if (!otpOk || !otpForm) return;
-
-    // Autenticar con el custom token
-    const cred = await auth.signInWithCustomToken(otpForm);
-    return { user: cred.user, nombre: form.nombre, apellido: form.apellido, phone: form.phone };
+    return isConfirmed ? created : null;
 }
 
-// El registro por email necesita un proveedor de emails funcionando (pendiente: Resend o Brevo).
-// Mientras tanto, "Crear cuenta" va directo a Google.
-const EMAIL_SIGNUP_ENABLED = false;
+// "Crear cuenta": con Google o con email y contraseña (Firebase Auth manda los emails de verificación y de recuperación)
+const EMAIL_SIGNUP_ENABLED = true;
 
 document.getElementById('signUpBtn').addEventListener('click', async () => {
     // Elegir método de registro. Ojo: Swal.close('x') NO devuelve 'x' como value (bug anterior:
@@ -1344,8 +1328,9 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
                 Continuar con Google
             </button>
             <button id="opt-email" style="background:rgba(200,184,154,.1);border:1px solid rgba(200,184,154,.25);color:#c8b89a;border-radius:10px;padding:.7rem 1rem;font-size:.88rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;justify-content:center">
-                ${licon('mail',17)} Registrarme con email
+                ${licon('mail',17)} Registrarme con email y contraseña
             </button>
+            <p style="font-size:.75rem;color:rgba(200,184,154,.5);margin:.2rem 0 0">¿Ya tenés cuenta? <a href="./login.html" style="color:#c8b89a">Iniciá sesión</a></p>
         </div>`,
         background: '#1a1a1a', color: '#c8b89a',
         showConfirmButton: false,
@@ -1362,7 +1347,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
         user = await signInWithGoogle();
         if (!user) return;
     } else if (method === 'email') {
-        const result = await emailOTPFlow();
+        const result = await emailPasswordSignup();
         if (!result) return;
         user = result.user;
         prefilledData = { nombre: result.nombre, apellido: result.apellido, phone: result.phone };
@@ -1450,6 +1435,10 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
     window.location.href = './dashboard.html';   // ahí arranca la prueba gratis de 14 días
 });
 </script>
-<script>lucide.createIcons();</script>
+<script>lucide.createIcons();
+if (new URLSearchParams(location.search).get('signup') === '1') {
+    history.replaceState(null, '', location.pathname);
+    document.getElementById('signUpBtn')?.click();
+}</script>
 </body>
 </html>
