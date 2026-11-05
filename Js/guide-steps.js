@@ -1,6 +1,6 @@
 // Pasos del instructivo (Js/guide.js). Las imágenes están en img/guide/{id}-{n}-{dark|light}.webp
 // (capturas reales de la app). Si cambia algo de la pantalla, actualizar el texto y la captura.
-const GUIDE_IMG_VERSION = 1;
+const GUIDE_IMG_VERSION = 2;
 
 const GUIDE_STEPS = {
     editor: () => [
@@ -35,10 +35,12 @@ const GUIDE_STEPS = {
         {
             img: 'img/guide/editor-4',
             title: 'La foto de cada sección',
-            html: `<p>Hacé clic en la foto para subir una (o arrastrala desde tu computadora). Después podés <b>arrastrarla</b> para encuadrarla o usar los controles:</p>
+            html: `<p>Para subir una foto, hacé clic en el recuadro vacío o arrastrala desde tu computadora.</p>
+                   <p>Para ajustarla, hacé clic en la foto (o en <b>Ajustar imagen</b>): abajo se abre un panel que queda fijo mientras la acomodás.</p>
                    <ul>
-                     <li><b>Mover</b> a los costados o arriba y abajo, <b>zoom</b>, <b>alto</b> y <b>ancho</b> del recuadro.</li>
-                     <li><b>Voltear</b>, <b>Quitar fondo</b> (deja solo el producto) y <b>Centrar</b> para volver al encuadre original.</li>
+                     <li><b>La foto</b>: su tamaño, y moverla a los costados o arriba y abajo. También podés arrastrarla con el mouse.</li>
+                     <li><b>El recuadro</b>: qué tan alto es y cuánto ancho ocupa al lado de los productos.</li>
+                     <li><b>Cambiar foto</b>, <b>Voltear</b>, <b>Quitar fondo</b> (deja solo el producto) y <b>Restablecer</b>. Con <b>Listo</b> lo cerrás.</li>
                    </ul>
                    <span class="gd-tip">Las fotos con buena luz y fondo simple son las que mejor quedan.</span>`,
         },

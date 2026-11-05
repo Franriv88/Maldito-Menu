@@ -1515,3 +1515,140 @@ body.light .btn-bg-remove:hover, body.light .social-remove-btn:hover, body.light
     .topbar-right { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
     #topbarUserName { display: none; }
 }
+
+/* ══ Ajustar la imagen de una sección: botón sobre la foto + panel fijo abajo ══ */
+.img-edit-btn {
+    position: absolute; right: 10px; bottom: 10px; z-index: 12;
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+    font: 600 .76rem/1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: rgba(18,15,12,.82); color: #f0e6d4; border: 1px solid rgba(200,184,154,.55);
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(4px);
+    transition: background .15s, transform .15s;
+}
+.img-edit-btn:hover { background: rgba(40,33,26,.95); transform: translateY(-1px); }
+.img-edit-btn[hidden], .drop-zone.img-editing .img-edit-btn, body.preview-mode .img-edit-btn { display: none !important; }
+.drop-zone.img-editing { outline: 3px solid #c8b89a; outline-offset: -3px; }
+.drop-zone.img-editing .drop-overlay { opacity: 0 !important; }
+
+/* El panel: escondido hasta que se edita esa foto; entonces queda fijo en la pantalla */
+.admin-page .menu-image .img-dock { display: none; }
+.admin-page .menu-image.img-editing .img-dock {
+    display: flex; flex-direction: column; gap: 12px;
+    position: fixed; left: var(--dock-x, 50%); bottom: 16px; top: auto; right: auto;
+    transform: translateX(-50%); width: var(--dock-w, min(720px, calc(100vw - 24px))); max-height: calc(100vh - 90px); overflow-y: auto;
+    z-index: 1200; padding: 14px 16px; border-radius: 16px; cursor: default;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #e9dfcd;
+    background: rgba(24,20,17,.97); border: 1px solid rgba(200,184,154,.35);
+    box-shadow: 0 18px 50px rgba(0,0,0,.55); backdrop-filter: blur(8px);
+    animation: dockIn .2s ease-out;
+}
+@keyframes dockIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+body.img-dock-open { padding-bottom: 320px; }
+body.img-dock-open .save-container, body.img-dock-open .gd-fab { display: none; }
+
+.img-dock .dock-head { display: flex; align-items: center; gap: 12px; }
+.img-dock .dock-title { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: .95rem; color: #f5ecdc; }
+.img-dock .dock-title svg { color: #c8b89a; }
+.img-dock .dock-hint { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; color: rgba(233,223,205,.6); margin-right: auto; }
+.img-dock .dock-done {
+    display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    font: 700 .8rem/1 inherit; font-family: inherit; background: #c8b89a; color: #1b1612; border: 1px solid #c8b89a;
+}
+.img-dock .dock-done:hover { background: #d9cbb0; }
+
+.img-dock .dock-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px 20px; }
+.img-dock .dock-group { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.img-dock .dock-group-title { margin: 0; font-size: .66rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(200,184,154,.75); }
+.img-dock .dock-row { display: flex; flex-direction: column; gap: 4px; cursor: default; }
+.img-dock .dock-label { display: flex; align-items: center; gap: 7px; font-size: .8rem; color: #e9dfcd; }
+.img-dock .dock-label svg { color: #c8b89a; flex-shrink: 0; }
+.img-dock .dock-label b { font-weight: 600; }
+.img-dock .dock-val { margin-left: auto; font-size: .72rem; font-variant-numeric: tabular-nums; color: #c8b89a; background: rgba(200,184,154,.12); padding: 2px 7px; border-radius: 6px; }
+.img-dock .dock-range { display: flex; align-items: center; gap: 8px; }
+.img-dock .dock-range small { font-size: .66rem; color: rgba(233,223,205,.5); white-space: nowrap; min-width: 56px; }
+.img-dock .dock-range small:last-child { text-align: right; }
+.img-dock input[type=range] {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 6px; margin: 0;
+    border-radius: 6px; background: rgba(255,255,255,.16); outline: none; cursor: pointer;
+}
+.img-dock input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; cursor: grab;
+    background: #c8b89a; border: 3px solid #1b1612; box-shadow: 0 0 0 1px rgba(200,184,154,.7), 0 2px 6px rgba(0,0,0,.5);
+    transition: transform .1s;
+}
+.img-dock input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.img-dock input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.15); }
+.img-dock input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; cursor: grab;
+    background: #c8b89a; border: 3px solid #1b1612; box-shadow: 0 0 0 1px rgba(200,184,154,.7);
+}
+.img-dock input[type=range]:focus-visible { box-shadow: 0 0 0 2px rgba(200,184,154,.55); }
+
+.img-dock .dock-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(200,184,154,.16); }
+.img-dock .dock-actions button {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; margin: 0; padding: 0 12px; width: auto; border-radius: 10px; cursor: pointer;
+    font: 600 .78rem/1 inherit; font-family: inherit; white-space: nowrap; line-height: 1;
+    background: rgba(255,255,255,.06); color: #e9dfcd; border: 1px solid rgba(200,184,154,.3);
+    transition: background .15s, border-color .15s, color .15s;
+}
+.img-dock .dock-actions button:hover { background: rgba(255,255,255,.13); border-color: rgba(200,184,154,.6); color: #fff; }
+.img-dock .dock-actions .img-flip-btn.active { background: rgba(200,184,154,.28); border-color: #c8b89a; color: #fff; }
+.img-dock .dock-actions .img-delete-btn { margin-left: auto; color: #f0938a; border-color: rgba(220,90,80,.45); background: rgba(220,90,80,.08); }
+.img-dock .dock-actions .img-delete-btn:hover { background: #d9534f; border-color: #d9534f; color: #fff; }
+.img-dock .dock-actions button[hidden] { display: none; }
+.drop-zone.uploading .img-dock .dock-actions button { opacity: .45; pointer-events: none; }
+
+body.light .img-edit-btn { background: rgba(255,253,249,.94); color: #4a3a28; border-color: rgba(100,80,50,.4); box-shadow: 0 4px 14px rgba(60,42,20,.2); }
+body.light .img-edit-btn:hover { background: #fff; }
+body.light .drop-zone.img-editing { outline-color: #6b5135; }
+body.light.admin-page .menu-image.img-editing .img-dock {
+    background: rgba(255,253,249,.98); color: #3a2e22; border-color: rgba(100,80,50,.25); box-shadow: 0 18px 50px rgba(40,28,14,.28);
+}
+body.light .img-dock .dock-title { color: #2e241a; }
+body.light .img-dock .dock-title svg, body.light .img-dock .dock-label svg { color: #6b5135; }
+body.light .img-dock .dock-hint, body.light .img-dock .dock-range small { color: rgba(60,42,20,.55); }
+body.light .img-dock .dock-done { background: #6b5135; border-color: #6b5135; color: #fff; }
+body.light .img-dock .dock-done:hover { background: #5a4430; }
+body.light .img-dock .dock-group-title { color: #8a6d4c; }
+body.light .img-dock .dock-label { color: #3a2e22; }
+body.light .img-dock .dock-val { color: #6b5135; background: rgba(100,80,50,.1); }
+body.light .img-dock input[type=range] { background: rgba(100,80,50,.18); }
+body.light .img-dock input[type=range]::-webkit-slider-thumb { background: #6b5135; border-color: #fffdf9; box-shadow: 0 0 0 1px rgba(100,80,50,.6), 0 2px 6px rgba(60,42,20,.3); }
+body.light .img-dock input[type=range]::-moz-range-thumb { background: #6b5135; border-color: #fffdf9; }
+body.light .img-dock .dock-actions { border-top-color: rgba(100,80,50,.15); }
+body.light .img-dock .dock-actions button { background: #fff; color: #4a3a28; border-color: rgba(100,80,50,.3); }
+body.light .img-dock .dock-actions button:hover { background: #f4ede2; border-color: rgba(100,80,50,.55); color: #2e241a; }
+body.light .img-dock .dock-actions .img-flip-btn.active { background: #ece1cf; border-color: #6b5135; color: #2e241a; }
+body.light .img-dock .dock-actions .img-delete-btn { color: #b8382c; border-color: rgba(190,60,50,.45); background: #fdecea; }
+body.light .img-dock .dock-actions .img-delete-btn:hover { background: #c9302c; border-color: #c9302c; color: #fff; }
+
+/* Celular / pantallas angostas: el panel ocupa el ancho y se puede desplazar */
+@media (max-width: 760px) {
+    .admin-page .menu-image.img-editing .img-dock {
+        left: 8px; right: 8px; bottom: 8px; width: auto; transform: none; max-height: 48vh; padding: 10px 12px; gap: 8px;
+        animation: none;
+    }
+    .img-dock .dock-hint { display: none; }
+    .img-dock .dock-body { gap: 8px; }
+    .img-dock .dock-group { gap: 6px; }
+    .img-dock .dock-row { gap: 2px; }
+    .img-dock .dock-done { margin-left: auto; padding: 7px 12px; }
+    .img-dock .dock-actions { gap: 6px; padding-top: 8px; }
+    .img-dock .dock-actions button { height: 32px; padding: 0 10px; font-size: .74rem; }
+    .img-dock .dock-actions .img-delete-btn { margin-left: 0; }
+    body.img-dock-open { padding-bottom: 50vh; }
+}
+
+/* La sección que se está ajustando va por encima de las demás (si no, la siguiente tapa el panel) */
+.admin-page .menu-section.sec-img-editing { z-index: 60; }
+.admin-page .menu-section.sec-img-editing .menu-image { z-index: 60; }
+
+/* Celular: la barra superior (que ocupa 2-3 filas) no queda fija, así no tapa el menú */
+@media (max-width: 600px) { .admin-topbar { position: static; } }
+
+/* Editor en celular/tablet: las secciones van en columna y la foto ocupa todo el ancho
+   (antes quedaba en 0×0 por align-self: flex-start + flex-basis en columna) */
+@media (max-width: 768px) {
+    .admin-page .menu-section .menu-image.drop-zone { align-self: stretch; width: 100%; flex: 0 0 auto; }
+    .img-dock .width-cell { display: none; }   /* en columna la foto ya ocupa todo el ancho */
+}

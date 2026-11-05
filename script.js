@@ -474,33 +474,50 @@ function buildSectionHTML(sec, { imageConfig, sectionImage, catTitles, byCategor
                 <div class="menu-image drop-zone" data-img-key="${key}" data-pos-x="${posX}" data-pos-y="${posY}" data-ref-w="${refW}"
                      style="aspect-ratio:${refW} / ${heightVal};height:auto;min-height:0;">
                     <div class="image-bg${flipH ? ' img-flipped' : ''}" style="background-image:url('${imgSrc}');background-position:${posX}% ${posY}%;background-size:auto ${zoom}%;transform:${frameTransform(shiftX, shiftY, flipH)};"></div>
-                    <div class="drop-overlay"><span>Clic para cambiar la imagen · arrastrala para encuadrar</span></div>
+                    <div class="drop-overlay"><span>${sectionImage(key) ? 'Clic para ajustar la imagen · arrastrala para encuadrar' : 'Clic o arrastrá una foto acá para subirla'}</span></div>
                     <div class="img-res-warning" hidden>${licon('alert-triangle', 12)} Con este zoom puede verse pixelada: subí una imagen más grande</div>
-                    <div class="pos-controls">
-                        <div class="ctrl-grid">
-                            <label class="ctrl-cell" title="Mover a la izquierda o a la derecha">${licon('move-horizontal', 13)}
-                                <input type="range" class="pos-slider" min="-100" max="100" value="${shiftX}" aria-label="Posición horizontal"></label>
-                            <label class="ctrl-cell" title="Subir o bajar la imagen (hacia la derecha sube)">${licon('move-vertical', 13)}
-                                <input type="range" class="posy-slider" min="-100" max="100" value="${-shiftY}" aria-label="Posición vertical"></label>
-                            <label class="ctrl-cell" title="Zoom: hacia la izquierda achica, hacia la derecha agranda">${licon('zoom-in', 13)}
-                                <input type="range" class="zoom-slider" min="20" max="500" value="${zoom}" aria-label="Zoom"></label>
-                            <label class="ctrl-cell" title="Alto del recuadro">${licon('unfold-vertical', 13)}
-                                <input type="range" class="height-slider" min="150" max="900" value="${heightVal}" aria-label="Alto del recuadro"></label>
-                            <label class="ctrl-cell ctrl-wide width-cell" title="Ancho de la imagen: hacia la derecha ocupa más lugar y se acerca a los textos">${licon('move-horizontal', 13)}<small>Ancho</small>
-                                <input type="range" class="width-slider" min="${IMG_W_MIN}" max="${IMG_W_MAX}" value="${widthVal}" aria-label="Ancho de la imagen"></label>
-                        </div>
-                        <div class="ctrl-row">
-                            <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Voltear horizontalmente">${licon('flip-horizontal', 13)}</button>
-                            <span class="flip-label">Voltear</span>
-                            <button class="img-removebg-btn" type="button" ${sectionImage(key) ? '' : 'hidden'}
-                                    title="Quitar el fondo de la imagen que ya está cargada">${licon('sparkles', 12)} Quitar fondo</button>
-                            <button class="img-reset-btn" type="button" title="Volver al encuadre original">${licon('crosshair', 12)} Centrar</button>
-                            <button class="img-delete-btn" type="button" ${sectionImage(key) ? '' : 'hidden'}
-                                    title="Eliminar la imagen de esta sección">${licon('trash-2', 12)} Eliminar</button>
-                        </div>
-                    </div>
+                    <button class="img-edit-btn" type="button" ${sectionImage(key) ? '' : 'hidden'} title="Ajustar tamaño, posición y recuadro de la foto">${licon('sliders-horizontal', 14)} Ajustar imagen</button>
+                    ${imageDockHTML({ shiftX, shiftY, zoom, heightVal, widthVal, flipH, hasImg: !!sectionImage(key) })}
                 </div>
             </div>`;
+}
+
+// Panel para ajustar la imagen de una sección. Vive dentro del recuadro (.drop-zone) para que los manejadores
+// lo encuentren, pero se muestra FIJO abajo de la pantalla al editar: no se mueve aunque la foto cambie de tamaño.
+function imageDockHTML({ shiftX, shiftY, zoom, heightVal, widthVal, flipH, hasImg }) {
+    const row = (cls, icon, label, help, min, max, val, lo, hi, unit = '') => `
+        <label class="dock-row${cls === 'width-slider' ? ' width-cell' : ''}" title="${help}">
+            <span class="dock-label">${licon(icon, 15)} <b>${label}</b>${unit ? `<span class="dock-val" data-unit="${unit}">${val}${unit}</span>` : ''}</span>
+            <span class="dock-range"><small>${lo}</small><input type="range" class="${cls}" min="${min}" max="${max}" value="${val}" aria-label="${label}"><small>${hi}</small></span>
+        </label>`;
+    return `
+        <div class="pos-controls img-dock" role="dialog" aria-label="Ajustar imagen">
+            <div class="dock-head">
+                <span class="dock-title">${licon('image', 16)} Ajustar imagen</span>
+                <span class="dock-hint">${licon('hand', 13)} También podés arrastrar la foto para moverla</span>
+                <button class="dock-done" type="button" title="Cerrar el panel">${licon('check', 15)} Listo</button>
+            </div>
+            <div class="dock-body">
+                <div class="dock-group">
+                    <p class="dock-group-title">La foto</p>
+                    ${row('zoom-slider', 'zoom-in', 'Tamaño de la foto', 'Agrandá o achicá la foto dentro del recuadro', 20, 500, zoom, 'Más chica', 'Más grande', '%')}
+                    ${row('pos-slider', 'move-horizontal', 'Mover a los costados', 'Corré la foto a la izquierda o a la derecha', -100, 100, shiftX, 'Izquierda', 'Derecha')}
+                    ${row('posy-slider', 'move-vertical', 'Mover arriba o abajo', 'Bajá o subí la foto', -100, 100, -shiftY, 'Bajar', 'Subir')}
+                </div>
+                <div class="dock-group">
+                    <p class="dock-group-title">El recuadro</p>
+                    ${row('height-slider', 'unfold-vertical', 'Alto', 'Qué tan alto es el espacio de la foto en el menú', 150, 900, heightVal, 'Más bajo', 'Más alto', ' px')}
+                    ${row('width-slider', 'unfold-horizontal', 'Ancho', 'Cuánto lugar ocupa la foto al lado de los productos', IMG_W_MIN, IMG_W_MAX, widthVal, 'Más angosto', 'Más ancho', '%')}
+                </div>
+            </div>
+            <div class="dock-actions">
+                <button class="img-change-btn" type="button" title="Elegir otra foto">${licon('replace', 14)} Cambiar foto</button>
+                <button class="img-flip-btn${flipH ? ' active' : ''}" type="button" title="Espejar la foto (izquierda ↔ derecha)">${licon('flip-horizontal', 14)} Voltear</button>
+                <button class="img-removebg-btn" type="button" ${hasImg ? '' : 'hidden'} title="Quitar el fondo de la foto (deja solo el producto)">${licon('sparkles', 14)} Quitar fondo</button>
+                <button class="img-reset-btn" type="button" title="Volver al tamaño y la posición originales">${licon('rotate-ccw', 14)} Restablecer</button>
+                <button class="img-delete-btn" type="button" ${hasImg ? '' : 'hidden'} title="Eliminar la foto de esta sección">${licon('trash-2', 14)} Eliminar</button>
+            </div>
+        </div>`;
 }
 
 // Un título con sus productos dentro de una sección
@@ -645,9 +662,7 @@ function initDropZones() {
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) await uploadImage(file, zone.dataset.imgKey, zone, overlay);
         });
-        zone.addEventListener('click', e => {
-            if (e.target.closest('.pos-controls')) return;
-            if (zone._justDragged) { zone._justDragged = false; return; } // fue un arrastre, no un clic
+        const pickFile = () => {
             const input = document.createElement('input');
             input.type = 'file'; input.accept = 'image/*';
             input.onchange = async ev => {
@@ -655,7 +670,22 @@ function initDropZones() {
                 if (file) await uploadImage(file, zone.dataset.imgKey, zone, overlay);
             };
             input.click();
+        };
+        const hasImage = () => !zone.querySelector('.img-delete-btn')?.hidden;
+        // Clic en la foto: si ya hay una, abre el panel para ajustarla; si no, elegir una para subir
+        zone.addEventListener('click', e => {
+            if (e.target.closest('.pos-controls, .img-edit-btn')) return;
+            if (zone._justDragged) { zone._justDragged = false; return; } // fue un arrastre, no un clic
+            if (zone.classList.contains('img-editing')) return;
+            if (hasImage()) openImageDock(zone); else pickFile();
         });
+        zone.querySelector('.img-edit-btn')?.addEventListener('click', e => { e.stopPropagation(); openImageDock(zone); });
+        zone.querySelector('.img-change-btn')?.addEventListener('click', e => { e.stopPropagation(); pickFile(); });
+        zone.querySelector('.dock-done')?.addEventListener('click', e => { e.stopPropagation(); closeImageDock(); });
+        // Los valores que se muestran al lado de cada control (zoom %, alto px, ancho %)
+        const dock = zone.querySelector('.img-dock');
+        // (en captura: los controles frenan el evento; con setTimeout, para leer el valor ya aplicado, ej. «Restablecer»)
+        ['input', 'change', 'click'].forEach(t => dock?.addEventListener(t, () => setTimeout(() => refreshDockValues(zone)), true));
 
         // Encuadre: horizontal, vertical y zoom (se aplican juntos al fondo de la imagen)
         const saveFrame = fields => restRef().collection('config').doc('images')
@@ -716,7 +746,9 @@ function initDropZones() {
             }
             const bg = zone.querySelector('.image-bg');
             if (bg) bg.style.backgroundImage = `url('${IMG_PLACEHOLDER}')`;
-            zone.querySelectorAll('.img-removebg-btn, .img-delete-btn').forEach(b => { b.hidden = true; });
+            zone.querySelectorAll('.img-removebg-btn, .img-delete-btn, .img-edit-btn').forEach(b => { b.hidden = true; });
+            closeImageDock();
+            if (overlay) overlay.textContent = zoneOverlayText(zone);
             applyImageFrame(zone);
         });
 
@@ -791,6 +823,66 @@ function initDropZones() {
 
     });
 }
+
+// ── Panel fijo para ajustar la imagen de una sección ──────────
+let activeImageZone = null;
+
+const zoneOverlayText = zone => (zone.querySelector('.img-delete-btn')?.hidden
+    ? 'Clic o arrastrá una foto acá para subirla'
+    : 'Clic para ajustar la imagen · arrastrala para encuadrar');
+
+function refreshDockValues(zone) {
+    zone.querySelectorAll('.img-dock .dock-row').forEach(row => {
+        const val = row.querySelector('.dock-val'), inp = row.querySelector('input[type=range]');
+        if (val && inp) val.textContent = inp.value + val.dataset.unit;
+    });
+}
+
+// Centrado sobre la columna del menú (en celular ocupa el ancho de la pantalla, ver CSS)
+function positionImageDock() {
+    const dock = activeImageZone?.querySelector('.img-dock');
+    const col  = document.querySelector('.admin-menu-editor');
+    if (!dock || !col) return;
+    const r = col.getBoundingClientRect();
+    dock.style.setProperty('--dock-x', `${r.left + r.width / 2}px`);
+    dock.style.setProperty('--dock-w', `${Math.min(720, r.width - 24)}px`);
+}
+
+function openImageDock(zone) {
+    if (document.body.classList.contains('preview-mode')) return;
+    if (activeImageZone && activeImageZone !== zone) closeImageDock();
+    activeImageZone = zone;
+    zone.classList.add('img-editing');
+    zone.closest('.menu-section')?.classList.add('sec-img-editing');   // por encima de las otras secciones
+    document.body.classList.add('img-dock-open');
+    positionImageDock();
+    refreshDockValues(zone);
+    // Que la foto quede a la vista, arriba del panel
+    requestAnimationFrame(() => {
+        const r = zone.getBoundingClientRect();
+        const dockH = zone.querySelector('.img-dock')?.offsetHeight || 0;
+        const free = innerHeight - dockH - 24;
+        const tb = document.querySelector('.admin-topbar');
+        const top = (tb && getComputedStyle(tb).position !== 'static' ? tb.offsetHeight : 0) + 12;   // debajo de la barra superior
+        if (r.bottom > free || r.top < top) window.scrollBy({ top: r.top - Math.max(top, top + (free - top - r.height) / 2), behavior: 'smooth' });
+    });
+}
+
+function closeImageDock() {
+    if (!activeImageZone) return;
+    activeImageZone.classList.remove('img-editing');
+    activeImageZone.closest('.menu-section')?.classList.remove('sec-img-editing');
+    activeImageZone = null;
+    document.body.classList.remove('img-dock-open');
+}
+
+window.addEventListener('resize', positionImageDock);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && activeImageZone && !document.querySelector('.swal2-container')) closeImageDock(); });
+// Tocar afuera de la foto y del panel lo cierra (no si es una ventana de confirmación)
+document.addEventListener('pointerdown', e => {
+    if (!activeImageZone || activeImageZone.contains(e.target) || e.target.closest('.swal2-container')) return;
+    closeImageDock();
+});
 
 // ── Diseño de la sección: qué va en cada lado ─────────────────
 // Modos guardados en config/images como imgN_mode (+ imgN_layout para el orden):
@@ -1220,7 +1312,7 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
         applyImageFrame(zone); // recalcula el aviso de resolución
         deleteOldSectionImage(prev, url);
         // ya hay una imagen propia: se le puede quitar el fondo o eliminarla
-        zone.querySelectorAll('.img-removebg-btn, .img-delete-btn').forEach(b => { b.hidden = false; });
+        zone.querySelectorAll('.img-removebg-btn, .img-delete-btn, .img-edit-btn').forEach(b => { b.hidden = false; });
         // Si no se pudo usar Storage, avisarlo (antes pasaba en silencio y no se sabía por qué)
         if (storageErr || window.storageUnavailable) {
             const why = storageErr ? (storageErr.code || storageErr.message || 'error') : 'Storage no respondió antes en esta sesión';
@@ -1233,7 +1325,7 @@ async function uploadImage(file, imgKey, zone, overlaySpan, opts = {}) {
         console.error('Error al procesar imagen:', error);
         alert('Error al procesar la imagen. Intentá con un archivo más chico.');
     } finally {
-        overlaySpan.textContent = textoOriginal;
+        overlaySpan.textContent = zoneOverlayText(zone);
         zone.classList.remove('uploading');
     }
 }
