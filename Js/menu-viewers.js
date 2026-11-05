@@ -458,6 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let html = '';
 
+        // Orden: aviso, redes sociales, dirección
+        if (notice)  html += `<p class="footer-notice" style="${noticeInlineStyle(footerConfig.noticeStyle)}">${TCH(notice)}</p>`;
+
         if (socials.length) {
             html += '<div class="footer-socials">';
             socials.forEach(s => {
@@ -473,7 +476,6 @@ document.addEventListener('DOMContentLoaded', () => {
             html += '</div>';
         }
 
-        if (notice)  html += `<p class="footer-notice" style="${noticeInlineStyle(footerConfig.noticeStyle)}">${TCH(notice)}</p>`;
         if (address) html += `<p class="footer-address">${address}</p>`;
 
         footer.innerHTML = html;
