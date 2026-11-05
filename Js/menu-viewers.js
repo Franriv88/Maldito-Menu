@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     function renderStaticTexts() {
         const p = document.querySelector('#menu-disclaimer p');
-        if (p) p.textContent = T('FUERA DE CARTA EN PIZARRA');
+        if (p) p.textContent = T('CONSULTA POR PRODUCTOS FUERA DE CARTA');
         window._menuShareLabel?.();
     }
     let imageConfig   = {};
@@ -422,10 +422,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             header.innerHTML = `<h1>${restData.nombre || ''}</h1>`;
         }
-        // "Fuera de carta en pizarra": opcional (visible salvo que el admin lo desactive)
+        // Cartel "Consulta por productos fuera de carta": opcional (visible salvo que el admin lo desactive)
         const disclaimer = document.getElementById('menu-disclaimer');
         if (disclaimer) disclaimer.style.display = stylesConfig.showDisclaimer === false ? 'none' : 'block';
         renderStaticTexts();
+    }
+
+    // Formato del aviso al pie (config/footer.noticeStyle). Igual que en script.js (vista previa del editor)
+    function noticeInlineStyle(st) {
+        st = st || {};
+        const SIZES = { sm: '.7rem', md: '.9rem', lg: '1.1rem', xl: '1.4rem' };
+        const hex = v => (/^#[0-9a-f]{6}$/i.test(v || '') ? v : '');
+        const out = [`font-size:${SIZES[st.size] || SIZES.sm}`];
+        if (st.bold) out.push('font-weight:700');
+        if (hex(st.color)) out.push(`color:${hex(st.color)}`, 'opacity:1');
+        if (hex(st.bg)) out.push(`background:${hex(st.bg)}`, 'opacity:1', 'display:inline-block', 'padding:.45em 1em', 'border-radius:10px');
+        return out.join(';');
     }
 
     // ── Footer ─────────────────────────────────────────────────
@@ -461,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += '</div>';
         }
 
-        if (notice)  html += `<p class="footer-notice">${TCH(notice)}</p>`;
+        if (notice)  html += `<p class="footer-notice" style="${noticeInlineStyle(footerConfig.noticeStyle)}">${TCH(notice)}</p>`;
         if (address) html += `<p class="footer-address">${address}</p>`;
 
         footer.innerHTML = html;

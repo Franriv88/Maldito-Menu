@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="./Css/menu-styles.css?v=30">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=31">
+    <link rel="stylesheet" href="styles.css?v=32">
     <link rel="stylesheet" href="./Css/guide.css?v=1">
     <style>
         /* topbar heredado de styles.css */
@@ -249,12 +249,33 @@
                         <label class="ctrl-label">Cartel de la carta</label>
                         <label class="bg-remove-toggle">
                             <input type="checkbox" id="cfg-showDisclaimer" checked>
-                            <span>Mostrar «Fuera de carta en pizarra»</span>
+                            <span>Mostrar «Consulta por productos fuera de carta»</span>
                         </label>
                     </div>
                     <div class="sidebar-section">
                         <label class="ctrl-label">Aviso al pie</label>
-                        <input type="text" id="cfg-footerNotice" class="ctrl-input-text" placeholder="Fuera de Carta en Pizarra">
+                        <input type="text" id="cfg-footerNotice" class="ctrl-input-text" placeholder="Ej.: ¡Gracias por tu visita!">
+                        <div class="notice-fmt-row">
+                            <button type="button" class="style-toggle" id="cfg-noticeBold" aria-pressed="false" title="Aviso en negrita"><b>N</b> Negrita</button>
+                            <div class="seg-control notice-size" id="cfg-noticeSize" role="group" aria-label="Tamaño del aviso">
+                                <button type="button" class="seg-btn active" data-value="sm" title="Chico" style="font-size:.72rem">A</button>
+                                <button type="button" class="seg-btn" data-value="md" title="Mediano" style="font-size:.85rem">A</button>
+                                <button type="button" class="seg-btn" data-value="lg" title="Grande" style="font-size:1rem">A</button>
+                                <button type="button" class="seg-btn" data-value="xl" title="Muy grande" style="font-size:1.18rem">A</button>
+                            </div>
+                        </div>
+                        <div class="color-ctrl-row">
+                            <span class="ctrl-label-inline">Color del texto</span>
+                            <button type="button" class="notice-clear" id="cfg-noticeColorClear" title="Volver al color de los productos" hidden>Automático</button>
+                            <input type="color" id="cfg-noticeColor" class="ctrl-color" value="#c8b89a">
+                        </div>
+                        <div class="color-ctrl-row">
+                            <span class="ctrl-label-inline">Fondo del aviso</span>
+                            <button type="button" class="notice-clear" id="cfg-noticeBgClear" title="Sacar el fondo" hidden>Sin fondo</button>
+                            <input type="color" id="cfg-noticeBg" class="ctrl-color" value="#c8b89a">
+                        </div>
+                        <div class="notice-preview-box"><p class="notice-preview" id="noticePreview"></p></div>
+                        <p class="ctrl-help">Así se ve al pie de tu menú. El formato se guarda solo; el texto, con «Guardar menú».</p>
                     </div>
                     <div class="sidebar-section">
                         <label class="ctrl-label">Dirección del local</label>
@@ -286,7 +307,7 @@
     <script src="./Js/fonts.js?v=2"></script>
     <script src="./Js/guide-steps.js?v=2"></script>
     <script src="./Js/guide.js?v=1"></script>
-    <script src="script.js?v=42"></script>
+    <script src="script.js?v=43"></script>
     <script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons());</script>
 </body>
 </html>

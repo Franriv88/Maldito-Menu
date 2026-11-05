@@ -49,7 +49,7 @@ window.MenuI18n = (() => {
         // Menú
         'Compartir': ['Share', 'Teilen', 'Partager'],
         '¡Link copiado!': ['Link copied!', 'Link kopiert!', 'Lien copié !'],
-        'FUERA DE CARTA EN PIZARRA': ['OFF-MENU SPECIALS ON THE BOARD', 'TAGESANGEBOTE AN DER TAFEL', 'SUGGESTIONS DU JOUR À L’ARDOISE'],
+        'CONSULTA POR PRODUCTOS FUERA DE CARTA': ['ASK ABOUT OFF-MENU ITEMS', 'FRAGEN SIE NACH SPEISEN AUSSERHALB DER KARTE', 'DEMANDEZ NOS PRODUITS HORS CARTE'],
         'Escribir email': ['Write an email', 'E-Mail schreiben', 'Écrire un e-mail'],
         'Abrir en Gmail': ['Open in Gmail', 'In Gmail öffnen', 'Ouvrir dans Gmail'],
         'Copiar dirección': ['Copy address', 'Adresse kopieren', 'Copier l’adresse'],

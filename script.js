@@ -14,6 +14,7 @@ const SOCIAL_NETS = {
 };
 
 let footerSocials = [];
+let footerNoticeStyle = {};   // config/footer.noticeStyle: { bold, size: sm|md|lg|xl, color, bg }
 
 const SOCIAL_PLACEHOLDERS = {
     instagram: 'https://instagram.com/tuusuario',
@@ -397,6 +398,8 @@ async function renderAdminMenu() {
         document.getElementById('cfg-footerNotice').value  = footerConfig.notice  || '';
         document.getElementById('cfg-footerAddress').value = footerConfig.address || '';
         footerSocials = footerConfig.socials || [];
+        footerNoticeStyle = footerConfig.noticeStyle || {};
+        initNoticeStyleControls();
         renderSocialsEditor();
 
         // Selectores de tipografía desde el catálogo (Js/fonts.js) y todas las fuentes para previsualizarlas
@@ -410,6 +413,7 @@ async function renderAdminMenu() {
         applyFontGating();   // los selectores se acaban de armar: volver a bloquear las premium
         initStyleControls();
         initSidebarUX();
+        syncNoticeStyleControls();   // ya están los colores del menú (vista previa del aviso)
         updateAdminHeader();
 
         const byCategory = {};
@@ -1558,6 +1562,7 @@ async function guardarMenu() {
         // Guardar pie del menú
         await ref.collection('config').doc('footer').set({
             notice:  document.getElementById('cfg-footerNotice')?.value.trim()  || '',
+            noticeStyle: footerNoticeStyle,
             address: document.getElementById('cfg-footerAddress')?.value.trim() || '',
             socials: footerSocials.map(s => ({ network: s.network, url: s.url || '', color: s.color || SOCIAL_NETS[s.network]?.color || '#c8b89a' }))
         });
@@ -1566,6 +1571,74 @@ async function guardarMenu() {
         console.error('Error al guardar:', error);
         setSaveBtnState('error');
     }
+}
+
+// ── Formato del aviso al pie: negrita, tamaño, color y fondo (se guarda al instante) ──
+// Mismo cálculo que noticeInlineStyle() en Js/menu-viewers.js (menú público)
+function noticeInlineStyle(st) {
+    st = st || {};
+    const SIZES = { sm: '.7rem', md: '.9rem', lg: '1.1rem', xl: '1.4rem' };
+    const hex = v => (/^#[0-9a-f]{6}$/i.test(v || '') ? v : '');
+    const out = [`font-size:${SIZES[st.size] || SIZES.sm}`];
+    if (st.bold) out.push('font-weight:700');
+    if (hex(st.color)) out.push(`color:${hex(st.color)}`, 'opacity:1');
+    if (hex(st.bg)) out.push(`background:${hex(st.bg)}`, 'opacity:1', 'display:inline-block', 'padding:.45em 1em', 'border-radius:10px');
+    return out.join(';');
+}
+
+function renderNoticePreview() {
+    const p = document.getElementById('noticePreview');
+    if (!p) return;
+    const text = document.getElementById('cfg-footerNotice')?.value.trim();
+    p.textContent = text || 'Escribí un aviso para verlo acá';
+    p.classList.toggle('is-empty', !text);
+    p.setAttribute('style', noticeInlineStyle(footerNoticeStyle));
+}
+
+let noticeSaveTimer = null;
+function saveNoticeStyle() {
+    clearTimeout(noticeSaveTimer);
+    noticeSaveTimer = setTimeout(() => {
+        if (isReadonly) return;
+        restRef().collection('config').doc('footer').set({ noticeStyle: footerNoticeStyle }, { merge: true })
+            .catch(err => console.error('Error guardando el formato del aviso:', err));
+    }, 300);
+}
+
+function syncNoticeStyleControls() {
+    const st = footerNoticeStyle;
+    document.getElementById('cfg-noticeBold')?.setAttribute('aria-pressed', String(!!st.bold));
+    document.querySelectorAll('#cfg-noticeSize .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === (st.size || 'sm')));
+    const color = document.getElementById('cfg-noticeColor'), bg = document.getElementById('cfg-noticeBg');
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+    if (color) { color.value = st.color || (/^#[0-9a-f]{6}$/i.test(textColor) ? textColor : '#c8b89a'); color.classList.toggle('is-auto', !st.color); }
+    if (bg)    { bg.value = st.bg || '#c8b89a'; bg.classList.toggle('is-auto', !st.bg); }
+    document.getElementById('cfg-noticeColorClear').hidden = !st.color;
+    document.getElementById('cfg-noticeBgClear').hidden = !st.bg;
+    renderNoticePreview();
+}
+
+let noticeControlsReady = false;
+function initNoticeStyleControls() {
+    syncNoticeStyleControls();
+    if (noticeControlsReady) return;
+    noticeControlsReady = true;
+    const set = (patch, save = true) => {
+        footerNoticeStyle = { ...footerNoticeStyle, ...patch };
+        Object.keys(footerNoticeStyle).forEach(k => { if (footerNoticeStyle[k] === '' || footerNoticeStyle[k] == null) delete footerNoticeStyle[k]; });
+        syncNoticeStyleControls();
+        if (save) saveNoticeStyle();
+    };
+    document.getElementById('cfg-footerNotice')?.addEventListener('input', renderNoticePreview);
+    document.getElementById('cfg-noticeBold')?.addEventListener('click', () => set({ bold: !footerNoticeStyle.bold }));
+    document.querySelectorAll('#cfg-noticeSize .seg-btn').forEach(b => b.addEventListener('click', () => set({ size: b.dataset.value })));
+    const color = document.getElementById('cfg-noticeColor'), bg = document.getElementById('cfg-noticeBg');
+    color?.addEventListener('input', () => set({ color: color.value }, false));
+    color?.addEventListener('change', () => set({ color: color.value }));
+    bg?.addEventListener('input', () => set({ bg: bg.value }, false));
+    bg?.addEventListener('change', () => set({ bg: bg.value }));
+    document.getElementById('cfg-noticeColorClear')?.addEventListener('click', () => set({ color: '' }));
+    document.getElementById('cfg-noticeBgClear')?.addEventListener('click', () => set({ bg: '' }));
 }
 
 // Estados del botón Guardar (reemplaza los alert() del navegador)
@@ -1949,7 +2022,7 @@ async function confirmModal({ title, html, confirmText = 'Confirmar', cancelText
 function initStyleControls() {
     const root = document.documentElement;
 
-    // ── Cartel "Fuera de carta en pizarra" (opcional, se guarda al instante) ──
+    // ── Cartel "Consulta por productos fuera de carta" (opcional, se guarda al instante) ──
     const disclaimerBox = document.getElementById('cfg-showDisclaimer');
     if (disclaimerBox) disclaimerBox.addEventListener('change', () =>
         saveStyleField('showDisclaimer', disclaimerBox.checked));
