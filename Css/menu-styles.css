@@ -390,15 +390,19 @@ body.ordering-on .page-wrapper { padding-bottom: 88px; }
 }
 .item-header .to-add[hidden] { display: none; }
 .item-header .to-sub { margin-left: 8px; }
-.item-header .to-sub + .to-qty-badge { margin-left: 3px; }
-.item-header .to-qty-badge + .to-add { margin-left: 3px; }   /* − cantidad + juntos */
+/* Columnas fijas de derecha a izquierda: "+", cantidad, "−" y precio quedan alineados en todos los productos.
+   El "−" sin cantidad no se ve pero guarda su lugar. */
+.item-header:has(.to-add) .producto { flex: 1 1 auto; min-width: 0; }
+.item-header .to-sub[hidden] { display: inline-flex; visibility: hidden; }
+.item-header .to-sub + .to-qty-badge { margin-left: 2px; }
+.item-header .to-qty-badge + .to-add { margin-left: 2px; }
 .item-header .to-add:hover,
 .item-header .to-add:focus-visible { background: var(--to-accent, var(--title-color)); color: var(--to-surface, var(--primary-color)); outline: none; }
 .item-header .to-add.pop { animation: to-pop .3s ease; }
 @keyframes to-pop { 50% { transform: scale(1.25); } }
 
 .to-qty-badge {
-    margin-left: 8px; font-size: .75rem; font-weight: 700; min-width: 16px; text-align: center;
+    flex: 0 0 22px; width: 22px; margin-left: 2px; font-size: .72rem; font-weight: 700; text-align: center; letter-spacing: -.2px;   /* entra "×20" (el máximo) */
     color: var(--to-accent, var(--title-color)); white-space: nowrap;
 }
 

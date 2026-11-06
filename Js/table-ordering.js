@@ -314,14 +314,14 @@
         const qty = cart[item.dataset.id]?.qty || 0;
         const sub = item.querySelector('.to-sub');
         if (sub) sub.hidden = !qty;
+        // La cantidad ocupa siempre su lugar (vacía si es 0): así el "−" y el "+" quedan en columna en todos los productos
         let badge = item.querySelector('.to-qty-badge');
-        if (!qty) { badge?.remove(); return; }
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'to-qty-badge';
             item.querySelector('.to-add:not(.to-sub)')?.before(badge);
         }
-        badge.textContent = `×${qty}`;
+        badge.textContent = qty ? `×${qty}` : '';
     }
 
     function addToCart(id, name, price) {
