@@ -1,7 +1,7 @@
 // Js/nfc.js — Grabar (y bloquear) los stickers NFC de las mesas desde el celular.
 // Se abre escaneando el QR de Pedidos → Mesas en la computadora. No requiere iniciar sesión:
 // la lista de mesas (config/ordering) es pública porque la usa el menú.
-//  - Android con Chrome (Web NFC): graba y bloquea desde acá, de a una o todas seguidas.
+//  - Android con Chrome (Web NFC): graba y bloquea desde acá, de a una (botón «Grabar» de cada mesa).
 //  - iPhone u otros: pasos con la app NFC Tools y botón "Copiar link" por mesa.
 
 const restaurantId = new URLSearchParams(location.search).get('r');
@@ -132,13 +132,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.title = `Grabar stickers NFC · ${restSnap.data().nombre || 'Cubierto'}`;
     document.getElementById('subtitle').textContent = `${restSnap.data().nombre || ''} · ${tables.length} ${isCatering ? (tables.length === 1 ? 'cliente' : 'clientes') : (tables.length === 1 ? 'mesa' : 'mesas')}`;
     document.getElementById('itemWord').textContent = isCatering ? 'el cliente' : 'la mesa';
-    document.getElementById('writeAllLabel').textContent = isCatering ? 'Grabar todos, uno por uno' : 'Grabar todas, una por una';
 
     if (hasWebNfc) {
         document.getElementById('androidMode').hidden = false;
         // Sin bloqueo permanente en este Chrome: solo queda la opción de clave (con NFC Tools)
         if (!canLock) document.querySelector('input[name="protect"][value="lock"]').closest('label').hidden = true;
-        document.getElementById('writeAllBtn').addEventListener('click', writeAll);
         document.getElementById('scanBtn').addEventListener('click', startIdleScan);
         setScanUI('off');
         // Si Chrome ya tiene el permiso de NFC, la lectura se activa sola
@@ -228,12 +226,10 @@ function nfcPrompt(title, html, ctrl, cancelText, stage) {
 // Graba un sticker sin pisar lo que tenga: si ya tiene contenido, lo muestra y pregunta si
 // reescribirlo. Después, si se eligió, lo bloquea para siempre (en el mismo acercamiento).
 // Devuelve true para seguir (grabado u omitido) y false si se canceló.
-// En "grabar todas" (used: número de serie del sticker → mesa) se espera un sticker NUEVO antes de grabar:
-// si se acerca uno que ya se grabó en esta tanda, no se graba y se pide otro.
-async function writeOne(t, { step, force, used } = {}) {
+async function writeOne(t, { force } = {}) {
     const lock = canLock && document.querySelector('input[name="protect"]:checked')?.value === 'lock';
-    const cancelText = step ? 'Terminar' : 'Cancelar';
-    const head = `${step ? `${step} · ` : ''}${esc(t.label)}`;
+    const cancelText = 'Cancelar';
+    const head = esc(t.label);
     releaseNfc();
     const ctrl = new AbortController();
     activeNfc = ctrl;
@@ -243,33 +239,11 @@ async function writeOne(t, { step, force, used } = {}) {
     try {
         const ndef = new NDEFReader();
         // Se lee lo que tiene el sticker al acercarlo (para poder mostrarlo si ya tiene algo)
-        let lastRead = null, lastSerial = '', onTag = null;
-        ndef.onreading = e => { lastRead = e.message; lastSerial = e.serialNumber || ''; onTag?.(e); };
+        let lastRead = null;
+        ndef.onreading = e => { lastRead = e.message; };
         try { await ndef.scan({ signal: ctrl.signal }); } catch (e) { if (e.name === 'AbortError') throw e; }
 
-        if (used) {
-            // Primero se detecta el sticker; recién si es uno nuevo se graba
-            nfcPrompt(head, `Acercá un sticker <b>nuevo</b> a la parte de atrás del celular y <b>mantenelo apoyado</b> hasta que termine.`, ctrl, cancelText, stage);
-            await new Promise((resolve, reject) => {
-                ctrl.signal.addEventListener('abort', () => reject(new DOMException('Cancelado', 'AbortError')), { once: true });
-                onTag = e => {
-                    const prev = e.serialNumber && used.get(e.serialNumber);
-                    if (prev) {
-                        const box = Swal.getHtmlContainer();
-                        if (box) box.innerHTML = `<span class="nfc-warn">⚠ Ese sticker ya quedó grabado con <b>${esc(prev)}</b>.</span><br>Retiralo y acercá un sticker <b>nuevo</b> para <b>${esc(t.label)}</b>.`;
-                        return;
-                    }
-                    onTag = null;
-                    const box = Swal.getHtmlContainer();
-                    if (box) box.innerHTML = `Grabando… <b>no lo muevas</b>${lock ? ' (se graba y se bloquea)' : ''}.`;
-                    // Si tarda, algunos celulares necesitan volver a detectar el sticker
-                    setTimeout(() => { const b = Swal.getHtmlContainer(); if (stage.waiting && b && /Grabando/.test(b.textContent)) b.insertAdjacentHTML('beforeend', '<br><small>Si no avanza, alejá <b>este mismo</b> sticker y volvé a apoyarlo.</small>'); }, 3000);
-                    resolve();
-                };
-            });
-        } else {
-            nfcPrompt(head, `Acercá el sticker a la parte de atrás del celular${lock ? ' y <b>mantenelo apoyado</b> hasta que termine (se graba y se bloquea)' : ''}.`, ctrl, cancelText, stage);
-        }
+        nfcPrompt(head, `Acercá el sticker a la parte de atrás del celular${lock ? ' y <b>mantenelo apoyado</b> hasta que termine (se graba y se bloquea)' : ''}.`, ctrl, cancelText, stage);
         try {
             // force: el contenido ya se mostró (lectura en espera) y se eligió reescribirlo
             await ndef.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal, overwrite: !!force });
@@ -295,7 +269,7 @@ async function writeOne(t, { step, force, used } = {}) {
             if (!ans.isConfirmed) {
                 if (same) { status[t.id] = 'written'; render(); }
                 Swal.close();
-                return same || !!step;   // en "grabar todas" se sigue con la próxima
+                return same;
             }
             nfcPrompt(head, 'Acercá el sticker otra vez para <b>reescribirlo</b>.', ctrl, cancelText, stage);
             try {
@@ -307,12 +281,11 @@ async function writeOne(t, { step, force, used } = {}) {
                 const r2 = await sw({ icon: 'error', title: 'No se pudo reescribir',
                     html: `Este sticker está <b>bloqueado</b> o <b>protegido con clave</b>.<br><br>
                            <small>Si tiene clave, quitala con NFC Tools (<b>Otros → Quitar contraseña</b>) y volvé a intentar. Si está bloqueado para siempre, usá un sticker nuevo.</small>`,
-                    showCancelButton: !!step, confirmButtonText: step ? 'Seguir con la próxima' : 'Entendido', cancelButtonText: 'Terminar' });
-                return !!step && r2.isConfirmed;
+                    confirmButtonText: 'Entendido' });
+                return false;
             }
         }
         status[t.id] = 'written';
-        if (used && lastSerial) used.set(lastSerial, t.label);
         if (lock) {
             await ndef.makeReadOnly({ signal: ctrl.signal });
             status[t.id] = 'locked';
@@ -320,8 +293,7 @@ async function writeOne(t, { step, force, used } = {}) {
         stage.waiting = false;
         if (activeNfc === ctrl) releaseNfc();   // liberar ya, antes de mostrar el aviso
         render();
-        if (!step) await sw({ icon: 'success', title: lock ? 'Grabada y bloqueada' : 'Grabada', timer: 1500, showConfirmButton: false });
-        else Swal.close();
+        await sw({ icon: 'success', title: lock ? 'Grabada y bloqueada' : 'Grabada', timer: 1500, showConfirmButton: false });
         return true;
     } catch (err) {
         stage.waiting = false;
@@ -331,42 +303,12 @@ async function writeOne(t, { step, force, used } = {}) {
         const r = await sw({ icon: 'error', title: 'No se pudo grabar',
             ...(permProblem ? { html: `<div style="text-align:left">${await nfcProblemHTML(err)}</div>` }
                             : { text: `${err.message}. Probá apoyar el sticker en otra parte del celular.` }),
-            showCancelButton: true, confirmButtonText: 'Reintentar', cancelButtonText: step ? 'Terminar' : 'Cerrar' });
-        return r.isConfirmed ? writeOne(t, { step, used }) : false;
+            showCancelButton: true, confirmButtonText: 'Reintentar', cancelButtonText: 'Cerrar' });
+        return r.isConfirmed ? writeOne(t) : false;
     } finally {
         // Liberar el NFC apenas termina (si no, el celular no lee otros stickers)
         if (activeNfc === ctrl) releaseNfc();
-        // y volver a la lectura en espera (si estaba activa), salvo durante "grabar todas"
-        if (idleWanted && !step) setTimeout(startIdleScan, 400);
+        // y volver a la lectura en espera (si estaba activa)
+        if (idleWanted) setTimeout(startIdleScan, 400);
     }
-}
-
-async function writeAll() {
-    stopIdleScan();
-    try { await writeAllSteps(); } finally { if (idleWanted) setTimeout(startIdleScan, 400); }
-}
-// De a un sticker por vez: después de cada uno se pide retirarlo y se espera "Siguiente" antes de
-// activar el próximo (si no, el mismo sticker, todavía apoyado, se grababa con todas las mesas).
-async function writeAllSteps() {
-    const pending = tables.filter(t => !status[t.id]);
-    const list = pending.length ? pending : tables;
-    const used = new Map();   // número de serie → mesa grabada en esta tanda
-    for (let i = 0; i < list.length; i++) {
-        if (i > 0) {
-            const prev = list[i - 1], ok = !!status[prev.id];
-            const r = await sw({
-                icon: ok ? 'success' : 'info',
-                title: ok ? `${esc(prev.label)}: lista` : `${esc(prev.label)}: sin cambios`,
-                html: `<b>Retirá ese sticker</b> del celular.<br><br>Ahora tené a mano el sticker para <b>${esc(list[i].label)}</b> (${i + 1} de ${list.length}) y tocá «Siguiente».`,
-                showCancelButton: true, allowOutsideClick: false,
-                confirmButtonText: `Siguiente: ${esc(list[i].label)}`, cancelButtonText: 'Terminar',
-            });
-            if (!r.isConfirmed) break;
-        }
-        const goOn = await writeOne(list[i], { step: `${i + 1} de ${list.length}`, used });
-        if (!goOn) break;
-    }
-    const done = list.filter(t => status[t.id]).length;
-    sw({ icon: done === list.length ? 'success' : 'info', title: done === list.length ? '¡Listo!' : 'Grabación terminada',
-         text: `${done} de ${list.length} ${isCatering ? 'stickers de clientes' : 'stickers de mesas'} quedaron grabados.` });
 }
